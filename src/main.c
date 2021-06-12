@@ -1,4 +1,4 @@
-void main() {
+void main(void) {
   const short color = 0x0F00;
   const char *hello = "Hello world!";
   short *vga = (short *)0xb8000;

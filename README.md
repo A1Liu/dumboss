@@ -10,10 +10,10 @@ Unix Systems
 docker build -t dumboss .
 
 # Copy the file out of the container
-docker run --rm dumboss > build/kernel
+docker run --rm dumboss > kernel
 
 # Run the kernel
-qemu-system-x86_64 -fda build/kernel
+qemu-system-x86_64 -fda kernel
 ```
 
 
