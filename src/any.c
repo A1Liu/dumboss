@@ -8,30 +8,30 @@ uint64_t any__fmt(any value, char *out, uint64_t size) {
 
   switch (value.type) {
   case type_id_u8:
-    return fmt_u64(*(uint8_t *)value.data, out, size);
+    return fmt_u64(value.u64_value, out, size);
   case type_id_i8:
-    return fmt_i64(*(int8_t *)value.data, out, size);
+    return fmt_i64(value.i64_value, out, size);
   case type_id_u16:
-    return fmt_u64(*(uint16_t *)value.data, out, size);
+    return fmt_u64(value.u64_value, out, size);
   case type_id_i16:
-    return fmt_i64(*(int16_t *)value.data, out, size);
+    return fmt_i64(value.i64_value, out, size);
   case type_id_u32:
-    return fmt_u64(*(uint32_t *)value.data, out, size);
+    return fmt_u64(value.u64_value, out, size);
   case type_id_i32:
-    return fmt_i64(*(int32_t *)value.data, out, size);
+    return fmt_i64(value.i64_value, out, size);
   case type_id_u64:
-    return fmt_u64(*(uint64_t *)value.data, out, size);
+    return fmt_u64(value.u64_value, out, size);
   case type_id_i64:
-    return fmt_i64(*(int64_t *)value.data, out, size);
+    return fmt_i64(value.i64_value, out, size);
 
   case type_id_char: {
     if (size >= 1)
-      *out = *(char *)value.data;
+      *out = value.char_value;
     return 1;
   }
 
   case type_id_char_ptr: {
-    char *src = *(char **)value.data;
+    char *src = (char *)value.ptr;
     if (src == NULL)
       return 0;
 

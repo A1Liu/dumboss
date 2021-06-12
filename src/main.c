@@ -4,15 +4,21 @@
 
 void main(void) {
   serial__init();
-  // const char *hello = "Hello world!\n";
-  // for (int32_t i = 0; hello[i]; i++)
-  //   serial__write(hello[i]);
 
-  log("Logging");
-  panic();
+  const char *hello = "Hello world!\n";
+  for (int32_t i = 0; hello[i]; i++)
+    serial__write(hello[i]);
 
-  log_fmt("Hello peeps");
-  log_fmt("Hello %", "world");
+  any a = make_any("Logging");
   panic();
+  (void)a;
+  logging__log(__LOC__, 1, &a);
+
+  // log("Logging");
+  // panic();
+
+  // log_fmt("Hello peeps");
+  // log_fmt("Hello %", "world");
+  // panic();
   // log_fmt("% %", "Hello", "world!");
 }

@@ -29,11 +29,9 @@ static uint64_t write_prefix_to_buffer(sloc loc) {
 
 void logging__log(sloc loc, uint32_t count, any *args) {
   (void)loc;
-  panic();
 
   uint64_t written = 0;
   for (uint32_t i = 0; i < count; i++) {
-    panic();
     written += any__fmt(args[i], buffer + written, BUF_SIZE - written);
     if (written > BUF_SIZE) // TODO expand buffer instead of crashing
       panic();

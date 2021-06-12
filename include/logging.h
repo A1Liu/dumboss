@@ -20,7 +20,6 @@ void logging__panic(sloc loc);
 #define log(...)                                                               \
   do {                                                                         \
     any args[] = {FOR_EACH(make_any, __VA_ARGS__)};                            \
-    panic();                                                                   \
     logging__log(__LOC__, NARG(__VA_ARGS__), args);                            \
   } while (false);
 
