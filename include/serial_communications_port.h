@@ -1,7 +1,5 @@
 #pragma once
 
-int init_serial();
-
-int is_transmit_empty();
+int init_serial(void);
 
 void write_serial(char a);

@@ -5,7 +5,7 @@
 
 #define COM1 ((uint16_t)0x3f8)
 
-int init_serial() {
+int init_serial(void) {
   asm_outb(COM1 + 1, 0x00); // Disable all interrupts
   asm_outb(COM1 + 3, 0x80); // Enable DLAB (set baud rate divisor)
   asm_outb(COM1 + 0, 0x03); // Set divisor to 3 (lo byte) 38400 baud
