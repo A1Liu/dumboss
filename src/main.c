@@ -1,7 +1,9 @@
+#include "serial_communications_port.h"
+#include <stdint.h>
+
 void main(void) {
-  const short color = 0x0F00;
-  const char *hello = "Hello world!";
-  short *vga = (short *)0xb8000;
-  for (int i = 0; i < 16; i++)
-    vga[i] = color | hello[i];
+  init_serial();
+  const char *hello = "Hello world!\n";
+  for (int32_t i = 0; i < 16; i++)
+    write_serial(hello[i]);
 }
