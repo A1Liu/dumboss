@@ -1,9 +1,18 @@
+#include "logging.h"
 #include "serial_communications_port.h"
 #include <stdint.h>
 
 void main(void) {
-  init_serial();
-  const char *hello = "Hello world!\n";
-  for (int32_t i = 0; i < 16; i++)
-    write_serial(hello[i]);
+  serial__init();
+  // const char *hello = "Hello world!\n";
+  // for (int32_t i = 0; hello[i]; i++)
+  //   serial__write(hello[i]);
+
+  log("Logging");
+  panic();
+
+  log_fmt("Hello peeps");
+  log_fmt("Hello %", "world");
+  panic();
+  // log_fmt("% %", "Hello", "world!");
 }

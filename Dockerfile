@@ -11,7 +11,7 @@ RUN nasm -f elf32 -o boot.o bootloader.asm
 
 COPY ./include ./include
 COPY ./src ./src
-RUN clang ./src/*.c -c \
+RUN clang ./src/*.c -c --std=gnu17 -Os \
         --target=i386-unknown-unknown-elf --include-directory=/root/dumboss/include \
         -nostdlib -ffreestanding -Wall -Wextra -Werror -Wconversion
 

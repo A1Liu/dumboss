@@ -5,7 +5,7 @@
 
 #define COM1 ((uint16_t)0x3f8)
 
-int init_serial(void) {
+int serial__init(void) {
   asm_outb(COM1 + 1, 0x00); // Disable all interrupts
   asm_outb(COM1 + 3, 0x80); // Enable DLAB (set baud rate divisor)
   asm_outb(COM1 + 0, 0x03); // Set divisor to 3 (lo byte) 38400 baud
@@ -30,7 +30,7 @@ int init_serial(void) {
 
 int is_transmit_empty() { return asm_inb(COM1 + 5) & 0x20; }
 
-void write_serial(char a) {
+void serial__write(char a) {
   while (is_transmit_empty() == 0)
     ;
 

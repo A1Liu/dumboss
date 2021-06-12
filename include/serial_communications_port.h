@@ -1,5 +1,5 @@
 #pragma once
 
-int init_serial(void);
+int serial__init(void);
 
-void write_serial(char a);
+void serial__write(char a);
