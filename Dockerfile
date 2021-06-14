@@ -13,20 +13,19 @@ ENV CFLAGS='-c -Os --std=gnu17 -target x86_64-unknown-windows -ffreestanding \
         -fshort-wchar -mno-red-zone \
         -nostdlib -Wall -Wextra -Werror -Wconversion \
         -Iinclude \
-        -Ignu-efi/inc -Ignu-efi/inc/x86_64 -Ignu-efi/inc/protocol'
+        -Iinclude/gnu-efi -Iinclude/gnu-efi/x86_64 -Iinclude/gnu-efi/protocol'
 
 ENV LDFLAGS='-target x86_64-unknown-windows -nostdlib -Wl,-entry:efi_main \
         -Wl,-subsystem:efi_application -fuse-ld=lld-link'
 
-COPY ./gnu-efi/inc ./gnu-efi/inc
-COPY ./gnu-efi/lib/data.c ./gnu-efi/lib/data.c
-RUN clang $CFLAGS -o data.o ./gnu-efi/lib/data.c
-
 COPY ./include ./include
+COPY ./bootloader/ ./bootloader/
+RUN clang $CFLAGS ./bootloader/*.c
+
 COPY ./src ./src
 RUN clang $CFLAGS src/*.c
 
-RUN clang $LDFLAGS -o BOOTX64.EFI ./*.o data.o
+RUN clang $LDFLAGS -o BOOTX64.EFI ./*.o
 
 RUN dd if=/dev/zero of=kernel bs=1k count=1440
 RUN mformat -i kernel -f 1440 ::

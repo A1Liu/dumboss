@@ -42,11 +42,6 @@ void page_tables__init(MemoryMap memory_map) {
         index - 1, efi_memory_type[descriptor->Type], descriptor->PhysicalStart,
         descriptor->VirtualStart, descriptor->NumberOfPages,
         descriptor->Attribute);
-
-    if (descriptor->Attribute != 15) {
-      log_fmt("descriptor->Attribute = %", descriptor->Attribute);
-      panic();
-    }
   }
 
   for (int32_t i = 0; i < PT_SIZE; i++)
