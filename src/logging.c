@@ -91,5 +91,5 @@ void logging__panic(sloc loc, char *message) {
   serial__write('\n');
 
   for (;;)
-    ;
+    asm("hlt");
 }

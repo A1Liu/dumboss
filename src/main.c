@@ -5,6 +5,9 @@
 
 void main(MemoryMap memory_map) {
   asm("cli"); // clear interrupts
+  log("--------------------------------------------------");
+  log("                    BOOTING UP");
+  log("--------------------------------------------------");
 
   page_tables__init(memory_map);
   serial__init();

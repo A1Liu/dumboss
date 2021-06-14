@@ -37,12 +37,10 @@ EFI_STATUS efi_main(EFI_HANDLE image_handle, EFI_SYSTEM_TABLE *system_table) {
   if (result != EFI_SUCCESS)
     return result;
 
-  const MemoryMap memory_map =
-      MemoryMap__new(map_size, descriptor_size, buffer);
-  main(memory_map);
+  main(MemoryMap__new(map_size, descriptor_size, buffer));
 
   for (;;)
-    ;
+    asm("hlt");
 
   return EFI_SUCCESS;
 }

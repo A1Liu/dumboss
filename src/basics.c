@@ -236,7 +236,7 @@ static uint64_t _ntoa_format(out_fct_type out, char *buffer, uint64_t idx,
 // internal itoa for 'long' type
 // TODO change this `uint32_t value` to a `uint64_t value` once we're on x86_64
 static uint64_t _ntoa_long(out_fct_type out, char *buffer, uint64_t idx,
-                           uint64_t maxlen, uint32_t value, bool negative,
+                           uint64_t maxlen, uint64_t value, bool negative,
                            unsigned long base, uint32_t prec, uint32_t width,
                            uint32_t flags) {
   char buf[PRINTF_NTOA_BUFFER_SIZE];
@@ -521,11 +521,10 @@ static uint64_t _etoa(out_fct_type out, char *buffer, uint64_t idx,
 
 // TODO remove casts to uint32_t once target changes to `x86_64`
 uint64_t fmt_u64(uint64_t value, char *out, uint64_t size) {
-  return _ntoa_long(_out_buffer, out, 0, size, (uint32_t)value, false, 10, 0, 0,
-                    0);
+  return _ntoa_long(_out_buffer, out, 0, size, value, false, 10, 0, 0, 0);
 }
 uint64_t fmt_i64(int64_t value, char *out, uint64_t size) {
   return _ntoa_long(_out_buffer, out, 0, size,
-                    (uint32_t)(value < 0 ? -value : value), value < 0, 10, 0, 0,
+                    (uint64_t)(value < 0 ? -value : value), value < 0, 10, 0, 0,
                     0);
 }
