@@ -1,6 +1,6 @@
 #pragma once
 
+#include "gnu-efi/efi.h"
 #include "page_tables.h"
-#include <efi.h>
 
 void main(MemoryMap memory_map);

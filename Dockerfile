@@ -12,8 +12,7 @@ RUN apk add clang lld nasm mtools
 ENV CFLAGS='-c -Os --std=gnu17 -target x86_64-unknown-windows -ffreestanding \
         -fshort-wchar -mno-red-zone \
         -nostdlib -Wall -Wextra -Werror -Wconversion \
-        -Iinclude \
-        -Iinclude/gnu-efi -Iinclude/gnu-efi/x86_64 -Iinclude/gnu-efi/protocol'
+        -Iinclude'
 
 ENV LDFLAGS='-target x86_64-unknown-windows -nostdlib -Wl,-entry:efi_main \
         -Wl,-subsystem:efi_application -fuse-ld=lld-link'

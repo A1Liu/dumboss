@@ -1,6 +1,6 @@
 #pragma once
 
-#include <efi.h>
+#include "gnu-efi/efi.h"
 #include <stdint.h>
 
 typedef enum __attribute__((packed)) {

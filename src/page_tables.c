@@ -1,6 +1,6 @@
 #include "page_tables.h"
+#include "gnu-efi/efi.h"
 #include "logging.h"
-#include <efi.h>
 
 #define PT_SIZE 512
 const char *efi_memory_type[] = {
