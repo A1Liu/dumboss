@@ -4,24 +4,28 @@ and to break as much existing code as possible.
 
 ## Commands
 
-Unix Systems
-```
-# Build the file
-docker build -t dumboss .
+#### Unix Systems
+1. Build the kernel in a docker image
 
-# Copy the file out of the container
-docker run --rm dumboss > kernel
+   ```
+   docker build -t dumboss .
+   ```
 
-# Run the kernel
-qemu-system-x86_64 -serial stdio -fda kernel
-```
+2. Copy the file out of the image
+
+   ```
+   docker run --rm dumboss > kernel
+   ```
+
+3. Run the kernel in QEMU
+
+   ```
+   qemu-system-x86_64 -pflash OVMF.bin -serial stdio -hda kernel
+   ```
 
 ## ToDo
-1. switch to UEFI and remove this "bootloader" nonsense.
-2. make a primitive form of logging, with some macros and stuff to make things
-   easier and safer to write.
-3. add interrupt stuff and update logging to use it.
-4. add paging and whatnot.
-5. add support for atomics, as types, and use atomics in interrupt stuff.
-6. add support for running programs!
+1. add interrupt stuff and update logging to use it.
+2. add paging and whatnot.
+3. add support for atomics, as types, and use atomics in interrupt stuff.
+4. add support for running (single threaded) programs!
 
