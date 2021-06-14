@@ -28,9 +28,8 @@ static uint64_t write_prefix_to_buffer(sloc loc) {
 }
 
 void logging__log(sloc loc, uint32_t count, any *args) {
-  (void)loc;
+  uint64_t written = write_prefix_to_buffer(loc);
 
-  uint64_t written = 0;
   for (uint32_t i = 0; i < count; i++) {
     written += any__fmt(args[i], buffer + written, BUF_SIZE - written);
     if (written > BUF_SIZE) // TODO expand buffer instead of crashing
@@ -43,8 +42,9 @@ void logging__log(sloc loc, uint32_t count, any *args) {
 }
 
 void logging__log_fmt(sloc loc, const char *fmt, uint32_t count, any *args) {
-  (void)loc;
-  uint64_t written = 0, format_count = 0;
+  uint64_t written = write_prefix_to_buffer(loc);
+
+  uint64_t format_count = 0;
   while (written < BUF_SIZE && *fmt) {
     if (*fmt != '%') {
       buffer[written] = *fmt;
