@@ -8,21 +8,20 @@ char buffer[BUF_SIZE];
 
 static uint64_t write_prefix_to_buffer(sloc loc) {
   buffer[0] = '[';
-
   uint64_t written = 1 + strcpy_s(buffer + 1, loc.file, BUF_SIZE - 1);
-  if (written == BUF_SIZE)
-    panic();
+  if (written >= BUF_SIZE)
+    return strcpy_s(buffer, "[source location too long]: ", BUF_SIZE);
 
   buffer[written] = ':';
   written++;
 
   written += fmt_u64(loc.line, buffer + written, BUF_SIZE - written);
-  if (written == BUF_SIZE)
-    panic();
+  if (written >= BUF_SIZE)
+    return strcpy_s(buffer, "[source location too long]: ", BUF_SIZE);
 
   written += strcpy_s(buffer + written, "]: ", BUF_SIZE - written);
-  if (written == BUF_SIZE)
-    panic();
+  if (written >= BUF_SIZE)
+    return strcpy_s(buffer, "[source location too long]: ", BUF_SIZE);
 
   return written;
 }
@@ -61,9 +60,10 @@ void logging__log_fmt(sloc loc, const char *fmt, uint32_t count, any *args) {
       continue;
     }
 
+    // TODO how should we handle this? It's definitely a bug, and this case is
+    // the scary one we don't ever want to happen
     if (format_count == count)
-      panic(); // TODO how should we handle this? It's definitely a bug, and
-               // this case is the scary one we don't ever want to happen
+      logging__panic(loc, "didn't pass enough arguments for format string");
 
     written +=
         any__fmt(args[format_count], buffer + written, BUF_SIZE - written);
@@ -71,28 +71,24 @@ void logging__log_fmt(sloc loc, const char *fmt, uint32_t count, any *args) {
   }
 
   if (written > BUF_SIZE || *fmt) // TODO expand buffer instead of crashing
-    panic();
+    logging__panic(loc, "output message too long");
 
+  // TODO how should we handle this? It's a bug, but it's kinda fine
   if (format_count != count)
-    panic(); // TODO how should we handle this? It's a bug, but it's kinda
-             // fine
+    logging__panic(loc, "passed too many arguments for format string");
 
   for (uint32_t i = 0; i < written; i++)
     serial__write(buffer[i]);
   serial__write('\n');
 }
 
-void logging__panic(sloc loc) {
-  (void)loc;
-  (void)write_prefix_to_buffer;
+void logging__panic(sloc loc, char *message) {
   uint64_t written = write_prefix_to_buffer(loc);
+  written += strcpy_s(buffer + written, message, BUF_SIZE - written);
 
-  for (uint64_t i = 0; i < written; i++)
+  for (uint32_t i = 0; i < written; i++)
     serial__write(buffer[i]);
-
-  char *message = "Panicking!\n";
-  for (; *message; message++)
-    serial__write(*message);
+  serial__write('\n');
 
   for (;;)
     ;

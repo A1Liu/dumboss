@@ -15,7 +15,7 @@ typedef struct {
 
 void logging__log(sloc loc, uint32_t count, any *args);
 void logging__log_fmt(sloc loc, const char *fmt, uint32_t count, any *args);
-void logging__panic(sloc loc);
+void logging__panic(sloc loc, char *message);
 
 #define log(...)                                                               \
   do {                                                                         \
@@ -29,4 +29,4 @@ void logging__panic(sloc loc);
     logging__log_fmt(__LOC__, fmt, NARG(__VA_ARGS__), args);                   \
   } while (false);
 
-#define panic() logging__panic(__LOC__)
+#define panic() logging__panic(__LOC__, "panicked!")

@@ -24,6 +24,13 @@
 #define _FOR_EACH1(func, a) func(a)
 #define _FOR_EACH2(func, a, b) func(a), func(b)
 #define _FOR_EACH3(func, a, b, c) func(a), func(b), func(c)
+#define _FOR_EACH4(func, a, b, c, d) func(a), func(b), func(c), func(d)
+#define _FOR_EACH5(func, a, b, c, d, e)                                        \
+  func(a), func(b), func(c), func(d), func(e)
+#define _FOR_EACH6(func, a, b, c, d, e, f)                                     \
+  func(a), func(b), func(c), func(d), func(e), func(f)
+#define _FOR_EACH7(func, a, b, c, d, e, f, g)                                  \
+  func(a), func(b), func(c), func(d), func(e), func(f), func(g)
 #define FOR_EACH(func, ...)                                                    \
   XPASTE(_FOR_EACH, NARG(__VA_ARGS__))                                         \
   (func, __VA_ARGS__)
