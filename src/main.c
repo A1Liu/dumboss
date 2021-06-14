@@ -3,9 +3,10 @@
 #include "serial_communications_port.h"
 #include <stdint.h>
 
-void main(void) {
+void main(MemoryMap memory_map) {
   asm("cli"); // clear interrupts
 
+  page_tables__init(memory_map);
   serial__init();
 
   log("Logging ", 12, " to port ", 1);
