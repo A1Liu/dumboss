@@ -31,5 +31,6 @@ RUN mformat -i kernel -f 1440 ::
 RUN mmd -i kernel ::/EFI
 RUN mmd -i kernel ::/EFI/BOOT
 RUN mcopy -i kernel BOOTX64.EFI ::/EFI/BOOT
+RUN mcopy -i kernel BOOTX64.EFI ::/kernel
 
 ENTRYPOINT ["cat", "kernel"]

@@ -1,8 +1,17 @@
+#include "boot/util.h"
 #include "gnu-efi/efi.h"
+#include "gnu-efi/efilib.h"
 #include "main.h"
 #include "page_tables.h"
 
 EFI_STATUS efi_main(EFI_HANDLE image_handle, EFI_SYSTEM_TABLE *system_table) {
+  ST = system_table;
+  BS = system_table->BootServices;
+
+  EFI_FILE_HANDLE volume = get_volume(image_handle);
+  Buffer kernel = read_file(volume, L"kernel");
+  (void)kernel;
+
   UINTN map_size = 0, descriptor_size;
   // Get the required memory pool size for the memory map...
   EFI_STATUS result =

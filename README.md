@@ -24,8 +24,9 @@ and to break as much existing code as possible.
    ```
 
 ## ToDo
-1. add interrupt stuff and update logging to use it.
-2. add paging and whatnot.
-3. add support for atomics, as types, and use atomics in interrupt stuff.
-4. add support for running (single threaded) programs!
+1. Update system to have real bootloader that loads the kernel
+2. add interrupt stuff and update logging to use it.
+3. add paging and whatnot.
+4. add support for atomics, as types, and use atomics in interrupt stuff.
+5. add support for running (single threaded) programs!
 
