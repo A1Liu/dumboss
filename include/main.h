@@ -3,4 +3,4 @@
 #include "gnu-efi/efi.h"
 #include "page_tables.h"
 
-void main(MemoryMap memory_map);
+typedef void (*main_func)(void);

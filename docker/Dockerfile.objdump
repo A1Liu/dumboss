@@ -1,0 +1,8 @@
+FROM dumboss
+
+RUN apk add llvm10
+
+RUN llvm-objcopy -I binary -O elf64-x86-64 os os.elf
+RUN llvm-objdump --arch=x86-64 -D os.elf > dump
+
+ENTRYPOINT ["cat", "dump"]

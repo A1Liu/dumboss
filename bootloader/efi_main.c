@@ -10,7 +10,14 @@ EFI_STATUS efi_main(EFI_HANDLE image_handle, EFI_SYSTEM_TABLE *system_table) {
 
   EFI_FILE_HANDLE volume = get_volume(image_handle);
   Buffer kernel = read_file(volume, L"kernel");
-  (void)kernel;
+  // uint8_t values[] = {0x12, 0x13, 0x11, 0x15};
+  // for (uint32_t i = 0; i < sizeof(values) && values[i] == kernel.data[i];
+  // i++) {
+  //   print(L"Bruh\r\n");
+  // }
+
+  print(L"Hello\r\n");
+  print(L"Goodbye\r\n");
 
   UINTN map_size = 0, descriptor_size;
   // Get the required memory pool size for the memory map...
@@ -41,15 +48,19 @@ EFI_STATUS efi_main(EFI_HANDLE image_handle, EFI_SYSTEM_TABLE *system_table) {
   if (result != EFI_SUCCESS)
     return result;
 
+  // print(L"Passedena\r\n");
   result = uefi_call_wrapper(system_table->BootServices->ExitBootServices, 2,
                              image_handle, map_key);
   if (result != EFI_SUCCESS)
     return result;
 
-  main(MemoryMap__new(map_size, descriptor_size, buffer));
+  // main_func f = (void *)kernel.data;
+  // f();
+  // goto *(void *)kernel.data;
+  // asm volatile("jmpq *%0" : : "X"(kernel.data));
+
+  // goto *(void *)kernel.data;
 
   for (;;)
     asm("hlt");
-
-  return EFI_SUCCESS;
 }
