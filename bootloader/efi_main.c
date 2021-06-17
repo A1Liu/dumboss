@@ -1,8 +1,25 @@
+#include "basics.h"
 #include "boot/util.h"
 #include "gnu-efi/efi.h"
 #include "gnu-efi/efilib.h"
 #include "main.h"
 #include "page_tables.h"
+
+#define BUF_SIZE 100
+
+static CHAR16 wchar_buffer[BUF_SIZE];
+static char temp_buffer[BUF_SIZE];
+
+uint64_t wfmt_u64(uint64_t value, uint64_t index) {
+
+  uint64_t written = fmt_u64(value, temp_buffer, BUF_SIZE - index);
+  if (written + index > BUF_SIZE)
+    return written;
+  for (uint64_t i = 0; i < written; i++)
+    wchar_buffer[i + index] = (CHAR16)temp_buffer[i];
+
+  return written;
+}
 
 EFI_STATUS efi_main(EFI_HANDLE image_handle, EFI_SYSTEM_TABLE *system_table) {
   ST = system_table;
@@ -16,6 +33,11 @@ EFI_STATUS efi_main(EFI_HANDLE image_handle, EFI_SYSTEM_TABLE *system_table) {
   //   print(L"Bruh\r\n");
   // }
 
+  uint64_t written = wfmt_u64(kernel.data[0], 0);
+  wchar_buffer[written++] = L'\r';
+  wchar_buffer[written++] = L'\n';
+  wchar_buffer[written++] = L'\0';
+  print(wchar_buffer);
   print(L"Hello\r\n");
   print(L"Goodbye\r\n");
 
@@ -54,8 +76,8 @@ EFI_STATUS efi_main(EFI_HANDLE image_handle, EFI_SYSTEM_TABLE *system_table) {
   if (result != EFI_SUCCESS)
     return result;
 
-  // main_func f = (void *)kernel.data;
-  // f();
+  main_func f = (void *)kernel.data;
+  f();
   // goto *(void *)kernel.data;
   // asm volatile("jmpq *%0" : : "X"(kernel.data));
 

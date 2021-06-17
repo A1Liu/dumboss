@@ -24,7 +24,8 @@ ENV BOOT_LDFLAGS='-target x86_64-unknown-windows -nostdlib -Wl,-entry:efi_main \
 COPY ./link.ld ./link.ld
 COPY ./include ./include
 COPY ./bootloader/ ./bootloader/
-RUN clang $BOOT_CFLAGS $BOOT_LDFLAGS -o BOOTX64.EFI ./bootloader/*.c
+COPY ./src/basics.c ./src/basics.c
+RUN clang $BOOT_CFLAGS $BOOT_LDFLAGS -o BOOTX64.EFI ./bootloader/*.c ./src/basics.c
 
 COPY ./src ./src
 RUN nasm -f elf64 -o kmain.o src/entry.asm
