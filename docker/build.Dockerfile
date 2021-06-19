@@ -20,7 +20,6 @@ ENV BOOT_CFLAGS='-Os --std=gnu17 -target x86_64-unknown-windows -ffreestanding \
 ENV BOOT_LDFLAGS='-target x86_64-unknown-windows -nostdlib -Wl,-entry:efi_main \
         -Wl,-subsystem:efi_application -fuse-ld=lld-link'
 
-COPY ./link.ld ./link.ld
 COPY ./include ./include
 COPY ./bootloader/ ./bootloader/
 COPY ./src/basics.c ./src/basics.c
@@ -29,7 +28,7 @@ RUN clang $BOOT_CFLAGS $BOOT_LDFLAGS -o BOOTX64.EFI ./bootloader/*.c ./src/basic
 COPY ./src ./src
 RUN nasm -f elf64 -o kmain.o src/entry.asm
 RUN clang $CFLAGS src/*.c
-RUN ld.lld --oformat binary --pie --script link.ld -o os ./*.o
+RUN ld.lld --oformat binary --pie --script src/link.ld -o os ./*.o
 
 RUN dd if=/dev/zero of=kernel bs=1k count=1440
 RUN mformat -i kernel -f 1440 ::
