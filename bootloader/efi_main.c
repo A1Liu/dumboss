@@ -21,8 +21,6 @@ uint64_t wfmt_u64(uint64_t value, uint64_t index) {
   return written;
 }
 
-typedef void (*try_func)(main_func);
-
 EFI_STATUS efi_main(EFI_HANDLE image_handle, EFI_SYSTEM_TABLE *system_table) {
   ST = system_table;
   BS = system_table->BootServices;
@@ -69,8 +67,9 @@ EFI_STATUS efi_main(EFI_HANDLE image_handle, EFI_SYSTEM_TABLE *system_table) {
   // asm volatile("jmpq *%0" : : "r"(kernel.data));
 
   // Jump directly to the new kernel
-  main_func kernel_main = (void *)kernel.data;
-  kernel_main();
+  KernelInfo info = {.kernel = kernel};
+  kernel_entry kernel_main = (void *)kernel.data;
+  kernel_main(&info);
 
   return EFI_SUCCESS;
 }

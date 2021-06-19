@@ -1,5 +1,4 @@
 FROM alpine:3.13.5
-
 USER root
 WORKDIR /root/dumboss
 

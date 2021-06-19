@@ -3,6 +3,11 @@
 #include <stddef.h>
 #include <stdint.h>
 
+typedef struct {
+  uint8_t *data;
+  uint64_t size;
+} Buffer;
+
 // Formats a u64. Returns the length of buffer needed to output this number. If
 // return value is smaller than `size`, then the writing succedded
 uint64_t fmt_u64(uint64_t value, char *out, uint64_t size);

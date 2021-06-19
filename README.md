@@ -8,7 +8,7 @@ and to break as much existing code as possible.
 1. Build the kernel in a docker image
 
    ```
-   docker build -t dumboss -f docker/Dockerfile.build .
+   docker build -t dumboss -f docker/build.Dockerfile .
    ```
 
 2. Copy the file out of the image

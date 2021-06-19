@@ -1,6 +1,11 @@
 #pragma once
 
+#include "basics.h"
 #include "gnu-efi/efi.h"
 #include "page_tables.h"
 
-typedef void (*main_func)(void);
+typedef struct {
+  Buffer kernel;
+} KernelInfo;
+
+typedef void (*kernel_entry)(KernelInfo *info);
