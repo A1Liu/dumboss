@@ -4,13 +4,13 @@ USER root
 WORKDIR /root/dumboss
 
 RUN apk update
-RUN apk add clang lld nasm mtools binutils
+RUN apk add llvm10 clang lld nasm mtools binutils
 
 # COPY ./bootloader.asm ./bootloader.asm
 # RUN nasm -f elf32 -o boot.o bootloader.asm
 
 ENV CFLAGS='-c -Os --std=gnu17 -target x86_64-unknown-elf -ffreestanding \
-        -mno-red-zone -nostdlib -Iinclude \
+        -mno-red-zone -nostdlib -fPIC -Iinclude \
         -Wall -Wextra -Werror -Wconversion'
 
 ENV BOOT_CFLAGS='-Os --std=gnu17 -target x86_64-unknown-windows -ffreestanding \
@@ -30,7 +30,7 @@ RUN clang $BOOT_CFLAGS $BOOT_LDFLAGS -o BOOTX64.EFI ./bootloader/*.c ./src/basic
 COPY ./src ./src
 RUN nasm -f elf64 -o kmain.o src/entry.asm
 RUN clang $CFLAGS src/*.c
-RUN ld.lld --oformat binary --script link.ld -o os ./*.o
+RUN ld.lld --oformat binary --pie --script link.ld -o os ./*.o
 
 RUN dd if=/dev/zero of=kernel bs=1k count=1440
 RUN mformat -i kernel -f 1440 ::
