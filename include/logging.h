@@ -1,6 +1,6 @@
 #pragma once
 
-#include "any.h"
+#include "fmt.h"
 #include "macros.h"
 #include <stdbool.h>
 #include <stdint.h>
@@ -15,7 +15,7 @@ typedef struct {
 
 void logging__log(sloc loc, uint32_t count, any *args);
 void logging__log_fmt(sloc loc, const char *fmt, uint32_t count, any *args);
-void logging__panic(sloc loc, char *message);
+void logging__panic(sloc loc, const char *message);
 
 #define log(...)                                                               \
   do {                                                                         \

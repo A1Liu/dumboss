@@ -4,92 +4,83 @@
 
 #define BUF_SIZE 200
 
-char buffer[BUF_SIZE];
+static char buffer[BUF_SIZE];
 
-static uint64_t write_prefix_to_buffer(sloc loc) {
-  buffer[0] = '[';
-  uint64_t written = 1 + strcpy_s(buffer + 1, loc.file, BUF_SIZE - 1);
-  if (written >= BUF_SIZE)
-    return strcpy_s(buffer, "[source location too long]: ", BUF_SIZE);
+static int64_t write_prefix_to_buffer(String out, sloc loc) {
+  const int64_t len = (int64_t)out.size;
+
+  out.data[0] = '[';
+  int64_t written = 1 + (int64_t)strcpy_s(string__suffix(out, 1), loc.file);
+  if (written >= len)
+    return (int64_t)strcpy_s(out, "[source location too long]: ");
 
   buffer[written] = ':';
   written++;
 
-  written += fmt_u64(loc.line, buffer + written, BUF_SIZE - written);
-  if (written >= BUF_SIZE)
-    return strcpy_s(buffer, "[source location too long]: ", BUF_SIZE);
+  written += fmt_u64(string__suffix(out, written), loc.line);
+  if (written >= len)
+    return (int64_t)strcpy_s(out, "[source location too long]: ");
 
-  written += strcpy_s(buffer + written, "]: ", BUF_SIZE - written);
-  if (written >= BUF_SIZE)
-    return strcpy_s(buffer, "[source location too long]: ", BUF_SIZE);
+  written += strcpy_s(string__suffix(out, written), "]: ");
+  if (written >= len)
+    return (int64_t)strcpy_s(out, "[source location too long]: ");
 
   return written;
 }
 
 void logging__log(sloc loc, uint32_t count, any *args) {
-  uint64_t written = write_prefix_to_buffer(loc);
+  String out = string__new(buffer, BUF_SIZE);
+  int64_t written = write_prefix_to_buffer(out, loc);
 
   for (uint32_t i = 0; i < count; i++) {
-    written += any__fmt(args[i], buffer + written, BUF_SIZE - written);
-    if (written > BUF_SIZE) // TODO expand buffer instead of crashing
+    int64_t fmt_try =
+        fmt__fmt_any(string__suffix(out, min(written, BUF_SIZE)), args[i]);
+    if (fmt_try < 0)
       panic();
+    written += fmt_try;
   }
 
-  for (uint32_t i = 0; i < written; i++)
+  if (written > BUF_SIZE) { // TODO expand buffer
+    const char *suffix = "... [clipped]";
+    strcpy_s(string__suffix(out, (int64_t)(out.size - strlen(suffix))), suffix);
+    written = BUF_SIZE;
+  }
+
+  for (int64_t i = 0; i < written; i++)
     serial__write(buffer[i]);
   serial__write('\n');
 }
 
 void logging__log_fmt(sloc loc, const char *fmt, uint32_t count, any *args) {
-  uint64_t written = write_prefix_to_buffer(loc);
+  String out = string__new(buffer, BUF_SIZE);
+  int64_t written = write_prefix_to_buffer(out, loc);
+  int64_t fmt_try = fmt__fmt(string__suffix(out, written), fmt, count, args);
+  if (fmt_try < 0)
+    logging__panic(loc, "failed to log data due to invalid parameters");
 
-  uint64_t format_count = 0;
-  while (written < BUF_SIZE && *fmt) {
-    if (*fmt != '%') {
-      buffer[written] = *fmt;
-      written++;
-      fmt++;
-      continue;
-    }
+  written += fmt_try;
 
-    fmt++;
-    if (*fmt == '%') {
-      buffer[written] = '%';
-      written++;
-      fmt++;
-      continue;
-    }
-
-    // TODO how should we handle this? It's definitely a bug, and this case is
-    // the scary one we don't ever want to happen
-    if (format_count == count)
-      logging__panic(loc, "didn't pass enough arguments for format string");
-
-    written +=
-        any__fmt(args[format_count], buffer + written, BUF_SIZE - written);
-    format_count++;
+  if (written > BUF_SIZE) { // TODO expand buffer
+    const char *suffix = "... [clipped]";
+    strcpy_s(string__suffix(out, (int64_t)(out.size - strlen(suffix))), suffix);
+    written = BUF_SIZE;
   }
 
-  if (written > BUF_SIZE || *fmt) // TODO expand buffer instead of crashing
-    logging__panic(loc, "output message too long");
-
-  // TODO how should we handle this? It's a bug, but it's kinda fine
-  if (format_count != count)
-    logging__panic(loc, "passed too many arguments for format string");
-
-  for (uint32_t i = 0; i < written; i++)
+  for (int64_t i = 0; i < written; i++)
     serial__write(buffer[i]);
   serial__write('\n');
 }
 
-void logging__panic(sloc loc, char *message) {
-  uint64_t written = write_prefix_to_buffer(loc);
-  written += strcpy_s(buffer + written, message, BUF_SIZE - written);
+void logging__panic(sloc loc, const char *message) {
+  String out = string__new(buffer, BUF_SIZE);
+  int64_t written = write_prefix_to_buffer(out, loc);
+  written += (int64_t)strcpy_s(string__suffix(out, written), message);
+  written = min(written, BUF_SIZE);
 
-  for (uint32_t i = 0; i < written; i++)
+  for (int64_t i = 0; i < written; i++)
     serial__write(buffer[i]);
   serial__write('\n');
 
   for (;;)
-    asm("hlt");
+    asm volatile("hlt");
 }

@@ -3,7 +3,7 @@
 #include "logging.h"
 
 #define PT_SIZE 512
-const char *efi_memory_type[] = {
+static const char *efi_memory_type[] = {
     "EfiReservedMemoryType",
     "EfiLoaderCode",
     "EfiLoaderData",

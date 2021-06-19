@@ -1,6 +1,56 @@
 #include "basics.h"
 
-uint64_t strlen(char *str) {
+String string__new(char *data, int64_t size) {
+  if (size < 0)
+    return (String){.data = NULL, .size = 0};
+  return (String){.data = data, .size = (uint64_t)size};
+}
+
+String string__slice(String str, int64_t begin, int64_t end) {
+  int64_t len = (int64_t)str.size;
+  if (begin < 0 || end < 0 || begin >= len || end >= len || begin > end ||
+      str.data == NULL)
+    return (String){.data = NULL, .size = 0};
+  return (String){.data = str.data + begin, .size = (uint64_t)(end - begin)};
+}
+String string__suffix(String str, int64_t begin) {
+  int64_t len = (int64_t)str.size;
+  if (begin < 0 || begin >= len || str.data == NULL)
+    return (String){.data = NULL, .size = 0};
+  return (String){.data = str.data + begin, .size = (uint64_t)(len - begin)};
+}
+
+// output function type
+typedef void (*out_fct_type)(char character, void *buffer, uint64_t idx,
+                             uint64_t maxlen);
+
+// internal buffer output
+static inline void _out_buffer(char character, void *buffer, uint64_t idx,
+                               uint64_t maxlen) {
+  if (idx < maxlen) {
+    ((char *)buffer)[idx] = character;
+  }
+}
+
+static uint64_t _ntoa_long(out_fct_type out, char *buffer, uint64_t idx,
+                           uint64_t maxlen, uint64_t value, bool negative,
+                           unsigned long base, uint32_t prec, uint32_t width,
+                           uint32_t flags);
+
+uint64_t fmt_u64(String out, uint64_t value) {
+  return _ntoa_long(_out_buffer, out.data, 0, out.size, value, false, 10, 0, 0,
+                    0);
+}
+uint64_t fmt_i64(String out, int64_t value) {
+  return _ntoa_long(_out_buffer, out.data, 0, out.size,
+                    (uint64_t)(value < 0 ? -value : value), value < 0, 10, 0, 0,
+                    0);
+}
+
+uint64_t strlen(const char *str) {
+  if (str == NULL)
+    return 0;
+
   uint64_t i = 0;
   for (; *str; i++, str++)
     ;
@@ -18,13 +68,13 @@ char *strcpy(char *dest, const char *src) {
   return dest;
 }
 
-uint64_t strcpy_s(char *dest, const char *src, uint64_t size) {
+uint64_t strcpy_s(String dest, const char *src) {
   if (src == NULL)
     return 0;
 
   uint64_t written = 0;
-  for (; written < size && *src; dest++, src++, written++)
-    *dest = *src;
+  for (; written < dest.size && src[written]; written++)
+    dest.data[written] = src[written];
 
   return written;
 }
@@ -112,18 +162,6 @@ uint64_t strcpy_s(char *dest, const char *src, uint64_t size) {
 #define FLAGS_LONG_LONG (1U << 9U)
 #define FLAGS_PRECISION (1U << 10U)
 #define FLAGS_ADAPT_EXP (1U << 11U)
-
-// output function type
-typedef void (*out_fct_type)(char character, void *buffer, uint64_t idx,
-                             uint64_t maxlen);
-
-// internal buffer output
-static inline void _out_buffer(char character, void *buffer, uint64_t idx,
-                               uint64_t maxlen) {
-  if (idx < maxlen) {
-    ((char *)buffer)[idx] = character;
-  }
-}
 
 // internal output function wrapper
 // internal secure strlen
@@ -518,13 +556,3 @@ static uint64_t _etoa(out_fct_type out, char *buffer, uint64_t idx,
 }
 #endif // PRINTF_SUPPORT_EXPONENTIAL
 #endif // PRINTF_SUPPORT_FLOAT
-
-// TODO remove casts to uint32_t once target changes to `x86_64`
-uint64_t fmt_u64(uint64_t value, char *out, uint64_t size) {
-  return _ntoa_long(_out_buffer, out, 0, size, value, false, 10, 0, 0, 0);
-}
-uint64_t fmt_i64(int64_t value, char *out, uint64_t size) {
-  return _ntoa_long(_out_buffer, out, 0, size,
-                    (uint64_t)(value < 0 ? -value : value), value < 0, 10, 0, 0,
-                    0);
-}
