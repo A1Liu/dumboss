@@ -58,15 +58,15 @@ uint64_t strlen(const char *str) {
   return i;
 }
 
-char *strcpy(char *dest, const char *src) {
-  if (src == NULL)
-    return dest;
-
-  for (; *src; dest++, src++)
-    *dest = *src;
-
-  return dest;
-}
+// char *strcpy(char *dest, const char *src) {
+//   if (src == NULL)
+//     return dest;
+//
+//   for (; *src; dest++, src++)
+//     *dest = *src;
+//
+//   return dest;
+// }
 
 uint64_t strcpy_s(String dest, const char *src) {
   if (src == NULL)

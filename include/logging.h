@@ -5,8 +5,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-void logging__log(sloc loc, uint32_t count, any *args);
-void logging__log_fmt(sloc loc, const char *fmt, uint32_t count, any *args);
+void logging__log(sloc loc, int32_t count, any *args);
+void logging__log_fmt(sloc loc, const char *fmt, int32_t count, any *args);
 void logging__panic(sloc loc, const char *message);
 
 #define log(...)                                                               \

@@ -31,7 +31,7 @@ uint64_t fmt_i64(String out, int64_t value);
 uint64_t strlen(const char *str);
 
 // Tries to write null-terminated string `src` into `dest`
-char *strcpy(char *dest, const char *src);
+// char *strcpy(char *dest, const char *src);
 
 // Tries to write null-terminated string `src` into `dest`, stopping when
 // `dest.size` is reached, and returning the amount of data written

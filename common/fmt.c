@@ -2,31 +2,11 @@
 #include "basics.h"
 
 int64_t write_prefix_to_buffer(String out, sloc loc) {
-  const int64_t len = (int64_t)out.size;
-
-  out.data[0] = '[';
-  int64_t written = 1 + (int64_t)strcpy_s(string__suffix(out, 1), loc.file);
-  if (written >= len)
-    return (int64_t)strcpy_s(out, "[source location too long]: ");
-
-  out.data[written] = ':';
-  written++;
-
-  written += fmt_u64(string__suffix(out, written), loc.line);
-  if (written >= len)
-    return (int64_t)strcpy_s(out, "[source location too long]: ");
-
-  written += strcpy_s(string__suffix(out, written), "]: ");
-  if (written >= len)
-    return (int64_t)strcpy_s(out, "[source location too long]: ");
-
-  return written;
+  any args[] = {make_any(loc.file), make_any(loc.line)};
+  return fmt__fmt(out, "[%:%]: ", 2, args);
 }
 
 int64_t fmt__fmt_any(String out, any value) {
-  if (out.data == NULL) // @TODO what should we do here?
-    return -1;
-
   switch (value.type) {
   case type_id_u8:
     return (int64_t)fmt_u64(out, value.u64_value);
@@ -66,14 +46,15 @@ int64_t fmt__fmt_any(String out, any value) {
   }
 }
 
-int64_t fmt__fmt(String out, const char *fmt, uint32_t count, any *args) {
+int64_t fmt__fmt(String out, const char *fmt, int32_t count, any *args) {
   // TODO why would a string be larger than int64_t's max value?
   const int64_t len = (int64_t)out.size;
   int64_t format_count = 0, written = 0;
 
   while (*fmt) {
     if (*fmt != '%') {
-      out.data[written] = *fmt;
+      if (written < len)
+        out.data[written] = *fmt;
       written++;
       fmt++;
       continue;
@@ -81,7 +62,8 @@ int64_t fmt__fmt(String out, const char *fmt, uint32_t count, any *args) {
 
     fmt++;
     if (*fmt == '%') {
-      out.data[written] = '%';
+      if (written < len)
+        out.data[written] = '%';
       written++;
       fmt++;
       continue;
@@ -89,7 +71,7 @@ int64_t fmt__fmt(String out, const char *fmt, uint32_t count, any *args) {
 
     // TODO how should we handle this? It's definitely a bug, and this case is
     // the scary one we don't ever want to happen
-    if ((uint64_t)format_count == count)
+    if (format_count >= count)
       return -format_count - 1;
 
     int64_t fmt_try = fmt__fmt_any(string__suffix(out, min(written, len)),

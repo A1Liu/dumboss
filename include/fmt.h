@@ -80,4 +80,4 @@ int64_t fmt__fmt_any(String out, any value);
 // If return value is positive, formatter tried to write that many bytes to
 // provided buffer; If negative, the formatter failed on that argument
 // (one-indexed)
-int64_t fmt__fmt(String out, const char *fmt, uint32_t count, any *args);
+int64_t fmt__fmt(String out, const char *fmt, int32_t count, any *args);
