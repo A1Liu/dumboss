@@ -1,6 +1,5 @@
 #include "logging.h"
-#include "basics.h"
-#include "kernel/serial_communications_port.h"
+#include <stdio.h>
 
 #define BUF_SIZE 200
 
@@ -24,9 +23,7 @@ void logging__log(sloc loc, uint32_t count, any *args) {
     written = BUF_SIZE;
   }
 
-  for (int64_t i = 0; i < written; i++)
-    serial__write(buffer[i]);
-  serial__write('\n');
+  printf("%.*s\n", (int)out.size, out.data);
 }
 
 void logging__log_fmt(sloc loc, const char *fmt, uint32_t count, any *args) {
@@ -44,21 +41,19 @@ void logging__log_fmt(sloc loc, const char *fmt, uint32_t count, any *args) {
     written = BUF_SIZE;
   }
 
-  for (int64_t i = 0; i < written; i++)
-    serial__write(buffer[i]);
-  serial__write('\n');
+  printf("%.*s\n", (int)out.size, out.data);
 }
 
 void logging__panic(sloc loc, const char *message) {
   String out = string__new(buffer, BUF_SIZE);
   int64_t written = write_prefix_to_buffer(out, loc);
   written += (int64_t)strcpy_s(string__suffix(out, written), message);
-  written = min(written, BUF_SIZE);
+  if (written > BUF_SIZE) { // TODO expand buffer
+    const char *suffix = "... [clipped]";
+    strcpy_s(string__suffix(out, (int64_t)(out.size - strlen(suffix))), suffix);
+    written = BUF_SIZE;
+  }
 
-  for (int64_t i = 0; i < written; i++)
-    serial__write(buffer[i]);
-  serial__write('\n');
-
-  for (;;)
-    asm volatile("hlt");
+  printf("%.*s\n", (int)out.size, out.data);
+  __builtin_trap();
 }

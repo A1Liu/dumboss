@@ -1,6 +1,6 @@
 #include "main.h"
+#include "kernel/serial_communications_port.h"
 #include "logging.h"
-#include "serial_communications_port.h"
 #include <stdint.h>
 
 void main(KernelInfo *info) {
@@ -11,7 +11,7 @@ void main(KernelInfo *info) {
   serial__init();
 
   log("--------------------------------------------------");
-  log("                    BOOTING UP");
+  log("                    BOOTING UP                    ");
   log("--------------------------------------------------");
 
   log_fmt("Kernel starts at % and is % bytes", (uint64_t)info->kernel.data,

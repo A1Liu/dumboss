@@ -4,6 +4,14 @@
 #include "gnu-efi/efi.h"
 #include <stdint.h>
 
+typedef struct {
+  const char *file;
+  uint32_t line;
+} sloc;
+
+#define __LOC__                                                                \
+  (sloc) { .file = __FILE__, .line = __LINE__ }
+
 typedef enum __attribute__((packed)) {
   type_id_u8,
   type_id_i8,
@@ -62,6 +70,8 @@ any inline fmt__make_any_any(any value) { return value; }
            any  : fmt__make_any_any                                            \
   )(value)
 // clang-format on
+
+int64_t write_prefix_to_buffer(String out, sloc loc);
 
 // If return value is positive, formatter tried to write that many bytes to
 // provided buffer; If negative, the formatter to format the argument

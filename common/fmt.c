@@ -1,6 +1,28 @@
 #include "fmt.h"
 #include "basics.h"
 
+int64_t write_prefix_to_buffer(String out, sloc loc) {
+  const int64_t len = (int64_t)out.size;
+
+  out.data[0] = '[';
+  int64_t written = 1 + (int64_t)strcpy_s(string__suffix(out, 1), loc.file);
+  if (written >= len)
+    return (int64_t)strcpy_s(out, "[source location too long]: ");
+
+  out.data[written] = ':';
+  written++;
+
+  written += fmt_u64(string__suffix(out, written), loc.line);
+  if (written >= len)
+    return (int64_t)strcpy_s(out, "[source location too long]: ");
+
+  written += strcpy_s(string__suffix(out, written), "]: ");
+  if (written >= len)
+    return (int64_t)strcpy_s(out, "[source location too long]: ");
+
+  return written;
+}
+
 int64_t fmt__fmt_any(String out, any value) {
   if (out.data == NULL) // @TODO what should we do here?
     return -1;

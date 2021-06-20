@@ -5,9 +5,6 @@ WORKDIR /root/dumboss
 RUN apk update
 RUN apk add llvm10 clang lld nasm mtools binutils
 
-# COPY ./bootloader.asm ./bootloader.asm
-# RUN nasm -f elf32 -o boot.o bootloader.asm
-
 ENV CFLAGS='-c -Os --std=gnu17 -target x86_64-unknown-elf -ffreestanding \
         -mno-red-zone -nostdlib -fPIC -Iinclude \
         -Wall -Wextra -Werror -Wconversion'

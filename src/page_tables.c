@@ -1,4 +1,4 @@
-#include "page_tables.h"
+#include "kernel/page_tables.h"
 #include "gnu-efi/efi.h"
 #include "logging.h"
 
