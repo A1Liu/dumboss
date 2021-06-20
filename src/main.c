@@ -3,12 +3,13 @@
 #include "logging.h"
 #include <stdint.h>
 
-void main(KernelInfo *info) {
+void main(const KernelInfo *info) {
   kernel_entry _kmain =
       main; // statically assert the function signature of main
   (void)_kmain;
 
   serial__init();
+  page_tables__init(&info->memory_map);
 
   log("--------------------------------------------------");
   log("                    BOOTING UP                    ");

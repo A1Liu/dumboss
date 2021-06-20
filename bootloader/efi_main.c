@@ -65,7 +65,8 @@ EFI_STATUS efi_main(EFI_HANDLE image_handle, EFI_SYSTEM_TABLE *system_table) {
   // asm volatile("jmpq *%0" : : "r"(kernel.data));
 
   // Jump directly to the new kernel
-  KernelInfo info = {.kernel = kernel};
+  MemoryMap memory_map = MemoryMap__new(map_size, descriptor_size, buffer);
+  KernelInfo info = {.kernel = kernel, .memory_map = memory_map};
   kernel_entry kernel_main = (void *)kernel.data;
   kernel_main(&info);
 
