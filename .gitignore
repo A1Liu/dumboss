@@ -1,3 +1,4 @@
 /kernel
 /dump
 /.build
+*.o

@@ -91,27 +91,24 @@ MemoryMap__get(const MemoryMap *memory_map, uint64_t elem) {
   return (EFI_MEMORY_DESCRIPTOR *)&buffer_begin[buffer_index];
 }
 
-static PTE global_table[PT_SIZE];
+static const char *efi_memory_type[] = {"EfiReservedMemoryType",
+                                        "EfiLoaderCode",
+                                        "EfiLoaderData",
+                                        "EfiBootServicesCode",
+                                        "EfiBootServicesData",
+                                        "EfiRuntimeServicesCode",
+                                        "EfiRuntimeServicesData",
+                                        "EfiConventionalMemory",
+                                        "EfiUnusableMemory",
+                                        "EfiACPIReclaimMemory",
+                                        "EfiACPIMemoryNVS",
+                                        "EfiMemoryMappedIO",
+                                        "EfiMemoryMappedIOPortSpace",
+                                        "EfiPalCode"};
 
 void page_tables__init(const MemoryMap *memory_map) {
-  (void)global_table;
   (void)memory_map;
   (void)MemoryMap__get;
-
-  const char *efi_memory_type[] = {"EfiReservedMemoryType",
-                                   "EfiLoaderCode",
-                                   "EfiLoaderData",
-                                   "EfiBootServicesCode",
-                                   "EfiBootServicesData",
-                                   "EfiRuntimeServicesCode",
-                                   "EfiRuntimeServicesData",
-                                   "EfiConventionalMemory",
-                                   "EfiUnusableMemory",
-                                   "EfiACPIReclaimMemory",
-                                   "EfiACPIMemoryNVS",
-                                   "EfiMemoryMappedIO",
-                                   "EfiMemoryMappedIOPortSpace",
-                                   "EfiPalCode"};
 
   int64_t arr_len = sizeof(efi_memory_type) / sizeof(char *);
   for (int64_t i = 0; i < arr_len; i++) {
@@ -128,7 +125,4 @@ void page_tables__init(const MemoryMap *memory_map) {
   //       descriptor->VirtualStart, descriptor->NumberOfPages,
   //       descriptor->Attribute);
   // }
-
-  // for (int32_t i = 0; i < PT_SIZE; i++)
-  //   global_table[i].address = 0;
 }

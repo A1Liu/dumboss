@@ -1,12 +1,13 @@
-FROM alpine:3.13.5
+FROM silkeh/clang:12
 USER root
 WORKDIR /root/dumboss
 
-RUN apk update
-RUN apk add llvm10 clang lld nasm mtools binutils
+RUN apt-get update
+RUN apt-get install -y nasm mtools lld
+# RUN apk add llvm10 clang lld nasm mtools binutils
 
 ENV CFLAGS='-c -Os --std=gnu17 -target x86_64-unknown-elf -ffreestanding \
-        -mno-red-zone -nostdlib -fPIC -Iinclude -static \
+        -mno-red-zone -nostdlib -fPIC -fPIE -Iinclude -static \
         -Wall -Wextra -Werror -Wconversion'
 
 ENV BOOT_CFLAGS='-Os --std=gnu17 -target x86_64-unknown-windows -ffreestanding \
@@ -25,7 +26,7 @@ RUN clang $BOOT_CFLAGS $BOOT_LDFLAGS -o BOOTX64.EFI ./bootloader/*.c ./common/*.
 COPY ./src ./src
 RUN nasm -f elf64 -o kmain.o src/entry.asm
 RUN clang $CFLAGS src/*.c common/*.c
-RUN ld.lld --oformat binary --pie --script src/link.ld -o os ./*.o
+RUN ld.lld --oformat binary --pie --static --script src/link.ld -o os ./*.o
 # RUN llvm-objcopy -I elf64-x86-64 -O binary os.elf os
 
 

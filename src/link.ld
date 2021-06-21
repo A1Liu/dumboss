@@ -1,4 +1,5 @@
 ENTRY(kmain)
+OUTPUT(binary)
 
 SECTIONS {
   .text :
