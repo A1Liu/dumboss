@@ -80,22 +80,6 @@ typedef struct {
 #define PTE_NO_EXECUTE ((uint64_t)(1 << 63))
 
 #define PT_SIZE 512
-static const char *efi_memory_type[] = {
-    "EfiReservedMemoryType",
-    "EfiLoaderCode",
-    "EfiLoaderData",
-    "EfiBootServicesCode",
-    "EfiBootServicesData",
-    "EfiRuntimeServicesCode",
-    "EfiRuntimeServicesData",
-    "EfiConventionalMemory",
-    "EfiUnusableMemory",
-    "EfiACPIReclaimMemory",
-    "EfiACPIMemoryNVS",
-    "EfiMemoryMappedIO",
-    "EfiMemoryMappedIOPortSpace",
-    "EfiPalCode",
-};
 
 static inline const EFI_MEMORY_DESCRIPTOR *
 MemoryMap__get(const MemoryMap *memory_map, uint64_t elem) {
@@ -114,10 +98,24 @@ void page_tables__init(const MemoryMap *memory_map) {
   (void)memory_map;
   (void)MemoryMap__get;
 
+  const char *efi_memory_type[] = {"EfiReservedMemoryType",
+                                   "EfiLoaderCode",
+                                   "EfiLoaderData",
+                                   "EfiBootServicesCode",
+                                   "EfiBootServicesData",
+                                   "EfiRuntimeServicesCode",
+                                   "EfiRuntimeServicesData",
+                                   "EfiConventionalMemory",
+                                   "EfiUnusableMemory",
+                                   "EfiACPIReclaimMemory",
+                                   "EfiACPIMemoryNVS",
+                                   "EfiMemoryMappedIO",
+                                   "EfiMemoryMappedIOPortSpace",
+                                   "EfiPalCode"};
+
   int64_t arr_len = sizeof(efi_memory_type) / sizeof(char *);
   for (int64_t i = 0; i < arr_len; i++) {
-    log_fmt("%: % % %", i, efi_memory_type[0], (uint64_t)efi_memory_type[0],
-            (uint64_t)efi_memory_type[i]);
+    log_fmt("%: %", i, (uint64_t)efi_memory_type[i]);
   }
 
   // uint64_t index = 0;

@@ -6,11 +6,11 @@ RUN apk update
 RUN apk add llvm10 clang lld nasm mtools binutils
 
 ENV CFLAGS='-c -Os --std=gnu17 -target x86_64-unknown-elf -ffreestanding \
-        -mno-red-zone -nostdlib -fPIC -Iinclude \
+        -mno-red-zone -nostdlib -fPIC -Iinclude -static \
         -Wall -Wextra -Werror -Wconversion'
 
 ENV BOOT_CFLAGS='-Os --std=gnu17 -target x86_64-unknown-windows -ffreestanding \
-        -fshort-wchar -mno-red-zone \
+        -fshort-wchar -mno-red-zone -static \
         -nostdlib -Wall -Wextra -Werror -Wconversion \
         -Iinclude'
 
@@ -26,6 +26,8 @@ COPY ./src ./src
 RUN nasm -f elf64 -o kmain.o src/entry.asm
 RUN clang $CFLAGS src/*.c common/*.c
 RUN ld.lld --oformat binary --pie --script src/link.ld -o os ./*.o
+# RUN llvm-objcopy -I elf64-x86-64 -O binary os.elf os
+
 
 RUN dd if=/dev/zero of=kernel bs=1k count=1440
 RUN mformat -i kernel -f 1440 ::

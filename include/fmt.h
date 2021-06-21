@@ -35,23 +35,23 @@ typedef struct {
   type_id type;
 } any;
 
-any inline fmt__make_any_u64(uint64_t value) {
+static any inline fmt__make_any_u64(uint64_t value) {
   return (any){.u64_value = (uint64_t)value, .type = type_id_u64};
 }
 
-any inline fmt__make_any_i64(int64_t value) {
+static any inline fmt__make_any_i64(int64_t value) {
   return (any){.i64_value = (int64_t)value, .type = type_id_i64};
 }
 
-any inline fmt__make_any_char_ptr(const char *value) {
+static any inline fmt__make_any_char_ptr(const char *value) {
   return (any){.ptr = (void *)value, .type = type_id_char_ptr};
 }
 
-any inline fmt__make_any_char(char value) {
+static any inline fmt__make_any_char(char value) {
   return (any){.char_value = value, .type = type_id_char};
 }
 
-any inline fmt__make_any_any(any value) { return value; }
+static any inline fmt__make_any_any(any value) { return value; }
 
 // clang-format off
 #define make_any(value)                                                        \
