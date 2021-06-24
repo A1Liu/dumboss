@@ -14,7 +14,7 @@ import (
 	"path"
 	"path/filepath"
 	"runtime"
-	"strings"
+	_ "strings"
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
@@ -186,12 +186,11 @@ func printImageLogs(rd io.Reader) error {
 		Error       string      `json:"error"`
 		ErrorDetail ErrorDetail `json:"errorDetail"`
 		Value       string      `json:"stream"`
+		Status      string      `json:"status"`
+		Id          string      `json:"id"`
 		Aux         Aux         `json:"aux"`
 	}
 
-	lastStep := make([]byte, 50)[:0]
-	currentStep := make([]byte, 50)[:0]
-	iter := 0
 	scanner := bufio.NewScanner(rd)
 	for scanner.Scan() {
 		buf := scanner.Bytes()
@@ -202,23 +201,16 @@ func printImageLogs(rd io.Reader) error {
 			break
 		}
 
-		fmt.Print(line.Value)
+		if line.Status != "" { // TODO what should we do here?
+			continue
+		}
 
 		if err != nil || line.Value == "" {
-			// fmt.Println("BUILD FAILED")
-			// fmt.Println("Last step: ", string(lastStep))
-			// fmt.Println("Current step: ", string(currentStep))
-
 			errLine := ErrorLine{Error: line.Error, ErrorDetail: line.ErrorDetail}
 			return errors.New(fmt.Sprintf("%#v", errLine))
 		}
 
-		if strings.HasPrefix(line.Value, "Step") {
-			lastStep, currentStep = currentStep, lastStep
-			currentStep = currentStep[:0]
-			iter += 1
-		}
-		currentStep = append(currentStep, []byte(line.Value)...)
+		fmt.Print(line.Value)
 	}
 
 	return scanner.Err()
