@@ -1,5 +1,5 @@
-#include "kernel/serial_communications_port.h"
-#include "kernel/asm.h"
+#include "serial_communications_port.h"
+#include "asm.h"
 
 // https://wiki.osdev.org/Serial_Ports
 

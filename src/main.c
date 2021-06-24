@@ -1,8 +1,8 @@
-#include "kernel/asm.h"
-#include "kernel/bootboot.h"
-#include "kernel/page_tables.h"
-#include "kernel/serial_communications_port.h"
+#include "asm.h"
+#include "bootboot.h"
 #include "logging.h"
+#include "page_tables.h"
+#include "serial_communications_port.h"
 #include <stdint.h>
 
 /******************************************

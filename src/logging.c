@@ -1,6 +1,6 @@
 #include "logging.h"
 #include "basics.h"
-#include "kernel/serial_communications_port.h"
+#include "serial_communications_port.h"
 
 #define BUF_SIZE 200
 

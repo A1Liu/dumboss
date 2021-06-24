@@ -1,4 +1,4 @@
-#include "kernel/page_tables.h"
+#include "page_tables.h"
 #include "logging.h"
 
 typedef struct {
