@@ -80,24 +80,7 @@ typedef struct {
 
 #define PT_SIZE 512
 
-static const char *efi_memory_type[] = {"EfiReservedMemoryType",
-                                        "EfiLoaderCode",
-                                        "EfiLoaderData",
-                                        "EfiBootServicesCode",
-                                        "EfiBootServicesData",
-                                        "EfiRuntimeServicesCode",
-                                        "EfiRuntimeServicesData",
-                                        "EfiConventionalMemory",
-                                        "EfiUnusableMemory",
-                                        "EfiACPIReclaimMemory",
-                                        "EfiACPIMemoryNVS",
-                                        "EfiMemoryMappedIO",
-                                        "EfiMemoryMappedIOPortSpace",
-                                        "EfiPalCode"};
-
 void page_tables__init(void) {
-  int64_t arr_len = sizeof(efi_memory_type) / sizeof(char *);
-  for (int64_t i = 0; i < arr_len; i++) {
-    log_fmt("%: %", i, efi_memory_type[i]);
-  }
+  log("Initializing page tables...");
+  panic();
 }

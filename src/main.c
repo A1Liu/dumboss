@@ -10,13 +10,11 @@
  ******************************************/
 void _start() {
   /*** NOTE: BOOTBOOT runs _start on all cores in parallel ***/
-  cpuid_result result = asm_cpuid(1);
+  const cpuid_result result = asm_cpuid(1);
 
   // ensure only one core does first bit
-  if (bootboot.bspid != (result.ebx >> 24)) {
-    for (;;)
-      asm_hlt();
-  }
+  for (; bootboot.bspid != (result.ebx >> 24);)
+    asm_hlt();
 
   log("--------------------------------------------------");
   log("                    BOOTING UP                    ");
