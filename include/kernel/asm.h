@@ -2,6 +2,17 @@
 #include <stdint.h>
 
 // https://wiki.osdev.org/Inline_Assembly/Examples
+typedef struct {
+  uint32_t eax, ebx, ecx, edx;
+} cpuid_result;
+
+static inline cpuid_result asm_cpuid(int32_t code) {
+  cpuid_result result;
+  asm("cpuid"
+      : "=a"(result.eax), "=b"(result.ebx), "=c"(result.ecx), "=d"(result.edx)
+      : "0"(code));
+  return result;
+}
 
 static inline void asm_outb(uint16_t port, uint8_t val) {
   asm volatile("outb %0, %1" : : "a"(val), "Nd"(port));
@@ -32,3 +43,5 @@ static inline uint32_t asm_inl(uint16_t port) {
   asm volatile("inl %1, %0" : "=a"(ret) : "Nd"(port));
   return ret;
 }
+
+static inline void asm_hlt(void) { asm volatile("hlt"); }

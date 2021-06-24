@@ -1,7 +1,6 @@
 #pragma once
 
 #include "basics.h"
-#include "gnu-efi/efi.h"
 #include <stdint.h>
 
 typedef struct {

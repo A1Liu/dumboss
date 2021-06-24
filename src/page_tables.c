@@ -1,5 +1,4 @@
 #include "kernel/page_tables.h"
-#include "gnu-efi/efi.h"
 #include "logging.h"
 
 typedef struct {
@@ -81,16 +80,6 @@ typedef struct {
 
 #define PT_SIZE 512
 
-static inline const EFI_MEMORY_DESCRIPTOR *
-MemoryMap__get(const MemoryMap *memory_map, uint64_t elem) {
-  uint8_t *buffer_begin = (uint8_t *)memory_map->buffer;
-  uint64_t buffer_index = elem * memory_map->descriptor_size;
-  if (buffer_index > memory_map->size - memory_map->descriptor_size)
-    return NULL;
-
-  return (EFI_MEMORY_DESCRIPTOR *)&buffer_begin[buffer_index];
-}
-
 static const char *efi_memory_type[] = {"EfiReservedMemoryType",
                                         "EfiLoaderCode",
                                         "EfiLoaderData",
@@ -106,23 +95,9 @@ static const char *efi_memory_type[] = {"EfiReservedMemoryType",
                                         "EfiMemoryMappedIOPortSpace",
                                         "EfiPalCode"};
 
-void page_tables__init(const MemoryMap *memory_map) {
-  (void)memory_map;
-  (void)MemoryMap__get;
-
+void page_tables__init(void) {
   int64_t arr_len = sizeof(efi_memory_type) / sizeof(char *);
   for (int64_t i = 0; i < arr_len; i++) {
-    log_fmt("%: %", i, (uint64_t)efi_memory_type[i]);
+    log_fmt("%: %", i, efi_memory_type[i]);
   }
-
-  // uint64_t index = 0;
-  // const EFI_MEMORY_DESCRIPTOR *descriptor;
-  // while ((descriptor = MemoryMap__get(memory_map, index++)) != NULL) {
-  //   log_fmt(
-  //       "%: EFI_MEMORY_DESCRIPTOR { Type=%, PhysicalStart=%, VirtualStart=%,
-  //       " "NumberOfPages=%, Attribute=% }", index - 1,
-  //       efi_memory_type[descriptor->Type], descriptor->PhysicalStart,
-  //       descriptor->VirtualStart, descriptor->NumberOfPages,
-  //       descriptor->Attribute);
-  // }
 }

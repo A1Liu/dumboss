@@ -1,40 +1,28 @@
-FROM silkeh/clang:12
+FROM alpine
 USER root
 WORKDIR /root/dumboss
 
-RUN apt-get update
-RUN apt-get install -y nasm mtools lld
-# RUN apk add llvm10 clang lld nasm mtools binutils
-
-ENV CFLAGS='-c -Os --std=gnu17 -target x86_64-unknown-elf -ffreestanding \
-        -mno-red-zone -nostdlib -fPIC -fPIE -Iinclude -static \
-        -Wall -Wextra -Werror -Wconversion'
-
-ENV BOOT_CFLAGS='-Os --std=gnu17 -target x86_64-unknown-windows -ffreestanding \
-        -fshort-wchar -mno-red-zone -static \
-        -nostdlib -Wall -Wextra -Werror -Wconversion \
-        -Iinclude'
-
-ENV BOOT_LDFLAGS='-target x86_64-unknown-windows -nostdlib -Wl,-entry:efi_main \
-        -Wl,-subsystem:efi_application -fuse-ld=lld-link'
-
-COPY ./include ./include
-COPY ./bootloader ./bootloader
-COPY ./common ./common
-RUN clang $BOOT_CFLAGS $BOOT_LDFLAGS -o BOOTX64.EFI ./bootloader/*.c ./common/*.c
-
-COPY ./src ./src
-RUN nasm -f elf64 -o kmain.o src/entry.asm
-RUN clang $CFLAGS src/*.c common/*.c
-RUN ld.lld --oformat binary --pie --static --script src/link.ld -o os ./*.o
-# RUN llvm-objcopy -I elf64-x86-64 -O binary os.elf os
-
+RUN apk --no-cache add llvm10 clang lld nasm mtools
 
 RUN dd if=/dev/zero of=kernel bs=1k count=1440
 RUN mformat -i kernel -f 1440 ::
 RUN mmd -i kernel ::/EFI
 RUN mmd -i kernel ::/EFI/BOOT
-RUN mcopy -i kernel BOOTX64.EFI ::/EFI/BOOT
-RUN mcopy -i kernel os ::/kernel
+RUN mmd -i kernel ::/BOOTBOOT
+COPY ./bootboot.efi ./bootboot.efi
+RUN mcopy -i kernel bootboot.efi ::/EFI/BOOT/BOOTX64.EFI
+
+ENV CFLAGS='-c -Os --std=gnu17 -target x86_64-unknown-elf -ffreestanding \
+        -mno-red-zone -fno-stack-protector -nostdlib -fPIC -Iinclude \
+        -Wall -Wextra -Werror -Wconversion'
+
+COPY ./include ./include
+COPY ./common ./common
+COPY ./src ./src
+RUN clang $CFLAGS src/*.c common/*.c
+RUN ld.lld -nostdlib --script src/link.ld -o os.elf ./*.o
+RUN llvm-strip -s -K mmio -K fb -K bootboot -K environment -K initstack os.elf
+
+RUN mcopy -i kernel os.elf ::/BOOTBOOT/INITRD
 
 ENTRYPOINT ["cat", "kernel"]

@@ -1,4 +1,4 @@
-FROM alpine:3.13.5
+FROM alpine
 USER root
 WORKDIR /root/dumboss
 
