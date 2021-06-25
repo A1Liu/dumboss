@@ -6,6 +6,16 @@
 #define min(x, y) ((x) > (y) ? (y) : (x))
 #define max(x, y) ((x) < (y) ? (y) : (x))
 
+static inline uint64_t align_up(uint64_t value, uint64_t alignment) {
+  int64_t bits = 64 - __builtin_clzl(alignment - 1);
+  return (((value - 1) >> bits) + 1) << bits;
+}
+
+static inline uint64_t align_down(uint64_t value, uint64_t alignment) {
+  int64_t bits = 64 - __builtin_clzl(alignment - 1);
+  return value >> bits << bits;
+}
+
 typedef struct {
   char *data;
   int64_t size;
@@ -46,6 +56,28 @@ static inline void BitSet__set_all(BitSet bits, bool value) {
     if (value)
       bits.data[i] = ~bits.data[i];
   }
+}
+static inline void BitSet__set_range(BitSet bits, int64_t begin, int64_t end,
+                                     bool value) {
+  if (begin < 0 || end < 0 || end > begin)
+    return;
+  int64_t fast_begin = (int64_t)align_up((uint64_t)begin, 64),
+          fast_end = (int64_t)align_down((uint64_t)end, 64);
+  if (fast_begin >= fast_end) {
+    for (int64_t i = begin; i < end; i++)
+      BitSet__set(bits, i, value);
+    return;
+  }
+
+  for (int64_t i = begin; i < fast_begin; i++)
+    BitSet__set(bits, i, value);
+  for (int64_t i = fast_begin / 64; i < fast_end / 64; i++) {
+    bits.data[i] = 0;
+    if (value)
+      bits.data[i] = ~bits.data[i];
+  }
+  for (int64_t i = fast_end; i < end; i++)
+    BitSet__set(bits, i, value);
 }
 
 // Formats a u64. Returns the length of buffer needed to output this number. If

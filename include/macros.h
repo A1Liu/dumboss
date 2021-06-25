@@ -16,8 +16,10 @@
     _69, _70, count, ...)                                                      \
   count
 
-#define PASTE(a, b) a##b
-#define XPASTE(a, b) PASTE(a, b)
+#define _STRINGIFY(x) #x
+#define STRINGIFY(x) _STRINGIFY(x)
+#define _PASTE(a, b) a##b
+#define PASTE(a, b) _PASTE(a, b)
 
 // function, separator, capture
 #define _FOR_EACH0(func, ...)
@@ -31,6 +33,29 @@
   func(a), func(b), func(c), func(d), func(e), func(f)
 #define _FOR_EACH7(func, a, b, c, d, e, f, g)                                  \
   func(a), func(b), func(c), func(d), func(e), func(f), func(g)
+#define _FOR_EACH8(func, _a0, _a1, _a2, _a3, _a4, _a5, _a6, _a7)               \
+  func(_a0), func(_a1), func(_a2), func(_a3), func(_a4), func(_a5), func(_a6), \
+      func(_a6)
 #define FOR_EACH(func, ...)                                                    \
-  XPASTE(_FOR_EACH, NARG(__VA_ARGS__))                                         \
+  PASTE(_FOR_EACH, NARG(__VA_ARGS__))                                          \
   (func, __VA_ARGS__)
+
+#define _FOR_EACH_SEP0(func, sep, ...)
+#define _FOR_EACH_SEP1(func, sep, a) func(a)
+#define _FOR_EACH_SEP2(func, sep, a, b) func(a) sep() func(b)
+#define _FOR_EACH_SEP3(func, sep, a, b, c) func(a) sep() func(b) sep() func(c)
+#define _FOR_EACH_SEP4(func, sep, a, b, c, d)                                  \
+  func(a) sep() func(b) sep() func(c) sep() func(d)
+#define _FOR_EACH_SEP5(func, sep, a, b, c, d, e)                               \
+  func(a) sep() func(b) sep() func(c) sep() func(d) sep() func(e)
+#define _FOR_EACH_SEP6(func, sep, a, b, c, d, e, f)                            \
+  func(a) sep() func(b) sep() func(c) sep() func(d) sep() func(e) sep() func(f)
+#define _FOR_EACH_SEP7(func, sep, a, b, c, d, e, f, g)                         \
+  func(a) sep() func(b) sep() func(c) sep() func(d) sep() func(e) sep()        \
+      func(f) sep() func(g)
+#define _FOR_EACH_SEP8(func, sep, _a0, _a1, _a2, _a3, _a4, _a5, _a6, _a7)      \
+  func(_a0) sep() func(_a1) sep() func(_a2) sep() func(_a3) sep() func(_a4)    \
+      sep() func(_a5) sep() func(_a6) sep() func(_a6)
+#define FOR_EACH_SEP(func, sep, ...)                                           \
+  PASTE(_FOR_EACH_SEP, NARG(__VA_ARGS__))                                      \
+  (func, sep, __VA_ARGS__)

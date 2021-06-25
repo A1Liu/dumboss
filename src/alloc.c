@@ -17,15 +17,9 @@ typedef struct {
 static SizeClassInfo info[SIZE_CLASS_COUNT];
 static BitSet usable_pages;
 
-static inline uint64_t align_up(uint64_t value, uint64_t alignment) {
-  int bits = 64 - __builtin_clzl(alignment - 1);
-  return (((value - 1) >> bits) + 1) << bits;
+static inline int64_t address_to_page_index(uint64_t address) {
+  return (int64_t)(address / _4KB);
 }
-
-// static inline uint64_t align_down(uint64_t value, uint64_t alignment) {
-//   int bits = 64 - __builtin_clzl(alignment - 1);
-//   return value >> bits << bits;
-// }
 
 static inline uint64_t *alloc_from_entries(MMapEnt *entries,
                                            int64_t entry_count, int64_t _size) {
@@ -33,7 +27,7 @@ static inline uint64_t *alloc_from_entries(MMapEnt *entries,
     return NULL;
 
   uint64_t size = align_up((uint64_t)_size, 8);
-  for (int i = 0; i < entry_count; i++) {
+  for (int64_t i = 0; i < entry_count; i++) {
     MMapEnt *cur = &entries[i];
 
     uint64_t aligned = align_up(cur->ptr, 8);
@@ -55,7 +49,7 @@ static inline uint64_t *alloc_from_entries(MMapEnt *entries,
 int64_t alloc__init(MMapEnt *entries, int64_t entry_count) {
   // bubble-sort the entries so that the free ones are last
   for (int64_t right_bound = entry_count - 1; right_bound > 0; right_bound--) {
-    for (int i = 0; i < right_bound; i++) {
+    for (int64_t i = 0; i < right_bound; i++) {
       if (MMapEnt_IsFree(&entries[i]) && !MMapEnt_IsFree(&entries[i + 1])) {
         MMapEnt e = entries[i + 1];
         entries[i + 1] = entries[i];
@@ -65,7 +59,7 @@ int64_t alloc__init(MMapEnt *entries, int64_t entry_count) {
   }
 
   // Turn entries into an array of only free data
-  int start = 0;
+  int64_t start = 0;
   for (; start < entry_count && !MMapEnt_IsFree(&entries[start]); start++)
     ;
   // First page shouldnt be used for data
@@ -84,14 +78,14 @@ int64_t alloc__init(MMapEnt *entries, int64_t entry_count) {
     }
   }
   // remove weird bit stuff that BOOTBOOT does
-  for (int i = start + 1; i < entry_count; i++)
+  for (int64_t i = start + 1; i < entry_count; i++)
     entries[i].size = MMapEnt_Size(&entries[i]);
 
   entry_count -= start;
   entries += start;
 
   log_fmt("After filtering to only free memory");
-  for (int i = 0; i < entry_count; i++) {
+  for (int64_t i = 0; i < entry_count; i++) {
     MMapEnt *entry = &entries[i];
     log_fmt("%k bytes at %", entry->size / 1024, entry->ptr);
   }
@@ -100,24 +94,37 @@ int64_t alloc__init(MMapEnt *entries, int64_t entry_count) {
   // Build basic buddy system structure
   MMapEnt *last_entry = &entries[entry_count - 1];
   uint64_t max_address = last_entry->ptr + last_entry->size;
-  int64_t max_page_idx = (int64_t)(max_address / _4KB);
+  int64_t max_page_idx = address_to_page_index(max_address);
   uint64_t *data = alloc_from_entries(entries, entry_count, max_page_idx);
-  if (data == NULL) // how do we handle this case?
-    panic();
+  assert(data != NULL);
+
   usable_pages = BitSet__new(data, max_page_idx);
 
   for (int64_t i = 0; i < SIZE_CLASS_COUNT; i++) {
     int64_t num_buddy_pairs = max_page_idx >> (i + 1);
     uint64_t *data = alloc_from_entries(entries, entry_count, num_buddy_pairs);
-    if (data == NULL) // how do we handle this case?
-      panic();
+    assert(data != NULL);
+
     info[i].first = NULL;
     info[i].buddies = BitSet__new(data, num_buddy_pairs);
     BitSet__set_all(info[i].buddies, false);
   }
 
+  for (int64_t i = 0, previous_end = 0; i < entry_count; i++) {
+    MMapEnt *entry = &entries[i];
+    int64_t begin = address_to_page_index(align_up(entry->ptr, _4KB));
+    assert(begin >= previous_end);
+
+    if (begin != previous_end)
+      BitSet__set_range(usable_pages, previous_end, begin, false);
+
+    int64_t end = address_to_page_index(entry->ptr);
+    BitSet__set_range(usable_pages, begin, end, true);
+    previous_end = end;
+  }
+
   log_fmt("After allocating page information");
-  for (int i = 0; i < entry_count; i++) {
+  for (int64_t i = 0; i < entry_count; i++) {
     MMapEnt *entry = &entries[i];
     log_fmt("%k bytes at %", entry->size / 1024, entry->ptr);
   }

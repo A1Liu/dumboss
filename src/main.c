@@ -24,6 +24,9 @@ void _start() {
   log("Logging ", 12, " to port ", 1);
   log_fmt("% %", "Hello", "world!");
 
+  debug(12);
+  debug(13, 14, 15);
+
   // Calculation described in bootboot specification
   int64_t entry_count = (bootboot.size - 128) / 16;
   entry_count = alloc__init(&bootboot.mmap, entry_count);

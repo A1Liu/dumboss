@@ -13,8 +13,7 @@ void logging__log(sloc loc, int32_t count, any *args) {
   for (int32_t i = 0; i < count; i++) {
     int64_t fmt_try =
         fmt__fmt_any(string__suffix(out, min(written, BUF_SIZE)), args[i]);
-    if (fmt_try < 0)
-      panic();
+    assert(fmt_try >= 0);
     written += fmt_try;
   }
 
