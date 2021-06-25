@@ -31,6 +31,8 @@ void _start() {
   int64_t entry_count = (bootboot.size - 128) / 16;
   entry_count = alloc__init(&bootboot.mmap, entry_count);
 
+  log_fmt("Done initializing alloc!");
+
   for (;;)
     asm_hlt();
 }

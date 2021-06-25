@@ -8,6 +8,14 @@ int64_t write_prefix_to_buffer(String out, sloc loc) {
 
 int64_t fmt__fmt_any(String out, any value) {
   switch (value.type) {
+  case type_id_bool: {
+    const char *const src = value.bool_value ? "true" : "false";
+
+    // @Safety there better not be any C-strings that are over 2^63 bytes long
+    int64_t written = (int64_t)strcpy_s(out, src);
+    return written + (int64_t)strlen(src + written);
+  }
+    return (int64_t)fmt_u64(out, value.u64_value);
   case type_id_u8:
     return (int64_t)fmt_u64(out, value.u64_value);
   case type_id_i8:

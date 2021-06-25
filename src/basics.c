@@ -1,4 +1,5 @@
 #include "basics.h"
+#include "logging.h"
 
 String string__new(char *data, int64_t size) {
   if (size < 0)
@@ -18,6 +19,63 @@ String string__suffix(String str, int64_t begin) {
   if (begin < 0 || begin >= len || str.data == NULL)
     return (String){.data = NULL, .size = 0};
   return (String){.data = str.data + begin, .size = len - begin};
+}
+
+BitSet BitSet__new(uint64_t *data, int64_t size) {
+  return (BitSet){.data = data, .size = size};
+}
+
+bool BitSet__get(BitSet bits, int64_t idx) {
+  assert(idx < bits.size);
+
+  const uint64_t v = bits.data[idx / 64];
+  uint32_t bit_offset = idx % 64;
+  return 0 != ((((uint64_t)1) << bit_offset) & v);
+}
+
+void BitSet__set(BitSet bits, int64_t idx, bool value) {
+  assert(idx < bits.size);
+
+  uint64_t *v = &bits.data[idx / 64];
+  uint32_t bit_offset = idx % 64;
+  if (value) {
+    *v |= ((uint64_t)1) << bit_offset;
+  } else {
+    *v &= ~(((uint64_t)1) << bit_offset);
+  }
+}
+
+void BitSet__set_all(BitSet bits, bool value) {
+  for (int64_t i = 0, idx = 0; idx < bits.size; i++, idx += 64) {
+    bits.data[i] = 0;
+    if (value)
+      bits.data[i] = ~bits.data[i];
+  }
+}
+
+void BitSet__set_range(BitSet bits, int64_t begin, int64_t end, bool value) {
+  assert(begin >= 0);
+  assert(end >= 0);
+  assert(begin <= end);
+  assert(end <= bits.size);
+
+  int64_t fast_begin = (int64_t)align_up((uint64_t)begin, 64),
+          fast_end = (int64_t)align_down((uint64_t)end, 64);
+  if (fast_begin >= fast_end) {
+    for (int64_t i = begin; i < end; i++)
+      BitSet__set(bits, i, value);
+    return;
+  }
+
+  for (int64_t i = begin; i < fast_begin; i++)
+    BitSet__set(bits, i, value);
+  for (int64_t i = fast_begin / 64; i < fast_end / 64; i++) {
+    bits.data[i] = 0;
+    if (value)
+      bits.data[i] = ~bits.data[i];
+  }
+  for (int64_t i = fast_end; i < end; i++)
+    BitSet__set(bits, i, value);
 }
 
 // output function type

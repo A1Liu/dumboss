@@ -12,6 +12,7 @@ typedef struct {
   (sloc) { .file = __FILE__, .line = __LINE__ }
 
 typedef enum __attribute__((packed)) {
+  type_id_bool,
   type_id_u8,
   type_id_i8,
   type_id_u16,
@@ -29,10 +30,15 @@ typedef struct {
     uint64_t u64_value;
     int64_t i64_value;
     char char_value;
+    bool bool_value;
     void *ptr;
   };
   type_id type;
 } any;
+
+static any inline fmt__make_any_bool(bool value) {
+  return (any){.bool_value = value, .type = type_id_bool};
+}
 
 static any inline fmt__make_any_u64(uint64_t value) {
   return (any){.u64_value = (uint64_t)value, .type = type_id_u64};
@@ -55,6 +61,7 @@ static any inline fmt__make_any_any(any value) { return value; }
 // clang-format off
 #define make_any(value)                                                        \
   _Generic((value),                                                            \
+          bool  : fmt__make_any_bool,                                           \
        uint8_t  : fmt__make_any_u64,                                           \
         int8_t  : fmt__make_any_i64,                                           \
       uint16_t  : fmt__make_any_u64,                                           \
