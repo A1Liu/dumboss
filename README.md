@@ -9,7 +9,7 @@ you also must have QEMU installed. Use `go run build.go build` to build the proj
 and `go run build.go run` to build and then run it.
 
 ## ToDo
-1. add paging and whatnot.
+1. add page allocation.
 2. add interrupt stuff and update logging to use it.
 3. add support for atomics, as types, and use atomics in interrupt stuff.
 4. add support for running (single threaded) programs!

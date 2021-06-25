@@ -3,21 +3,21 @@
 String string__new(char *data, int64_t size) {
   if (size < 0)
     return (String){.data = NULL, .size = 0};
-  return (String){.data = data, .size = (uint64_t)size};
+  return (String){.data = data, .size = size};
 }
 
 String string__slice(String str, int64_t begin, int64_t end) {
-  int64_t len = (int64_t)str.size;
+  int64_t len = str.size;
   if (begin < 0 || end < 0 || begin >= len || end >= len || begin > end ||
       str.data == NULL)
     return (String){.data = NULL, .size = 0};
-  return (String){.data = str.data + begin, .size = (uint64_t)(end - begin)};
+  return (String){.data = str.data + begin, .size = end - begin};
 }
 String string__suffix(String str, int64_t begin) {
-  int64_t len = (int64_t)str.size;
+  int64_t len = str.size;
   if (begin < 0 || begin >= len || str.data == NULL)
     return (String){.data = NULL, .size = 0};
-  return (String){.data = str.data + begin, .size = (uint64_t)(len - begin)};
+  return (String){.data = str.data + begin, .size = len - begin};
 }
 
 // output function type
@@ -37,21 +37,21 @@ static uint64_t _ntoa_long(out_fct_type out, char *buffer, uint64_t idx,
                            unsigned long base, uint32_t prec, uint32_t width,
                            uint32_t flags);
 
-uint64_t fmt_u64(String out, uint64_t value) {
-  return _ntoa_long(_out_buffer, out.data, 0, out.size, value, false, 10, 0, 0,
-                    0);
+int64_t fmt_u64(String out, uint64_t value) {
+  return (int64_t)_ntoa_long(_out_buffer, out.data, 0, (uint64_t)out.size,
+                             value, false, 10, 0, 0, 0);
 }
-uint64_t fmt_i64(String out, int64_t value) {
-  return _ntoa_long(_out_buffer, out.data, 0, out.size,
-                    (uint64_t)(value < 0 ? -value : value), value < 0, 10, 0, 0,
-                    0);
+int64_t fmt_i64(String out, int64_t value) {
+  return (int64_t)_ntoa_long(_out_buffer, out.data, 0, (uint64_t)out.size,
+                             (uint64_t)(value < 0 ? -value : value), value < 0,
+                             10, 0, 0, 0);
 }
 
-uint64_t strlen(const char *str) {
+int64_t strlen(const char *str) {
   if (str == NULL)
     return 0;
 
-  uint64_t i = 0;
+  int64_t i = 0;
   for (; *str; i++, str++)
     ;
 
@@ -68,11 +68,11 @@ uint64_t strlen(const char *str) {
 //   return dest;
 // }
 
-uint64_t strcpy_s(String dest, const char *src) {
+int64_t strcpy_s(String dest, const char *src) {
   if (src == NULL)
     return 0;
 
-  uint64_t written = 0;
+  int64_t written = 0;
   for (; written < dest.size && src[written]; written++)
     dest.data[written] = src[written];
 

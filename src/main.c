@@ -1,3 +1,4 @@
+#include "alloc.h"
 #include "asm.h"
 #include "bootboot.h"
 #include "logging.h"
@@ -23,7 +24,9 @@ void _start() {
   log("Logging ", 12, " to port ", 1);
   log_fmt("% %", "Hello", "world!");
 
-  page_tables__init();
+  // Calculation described in bootboot specification
+  int64_t entry_count = (bootboot.size - 128) / 16;
+  entry_count = alloc__init(&bootboot.mmap, entry_count);
 
   for (;;)
     asm_hlt();

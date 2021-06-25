@@ -84,10 +84,11 @@ typedef struct {
   uint64_t ptr;
   uint64_t size;
 } _pack MMapEnt;
-#define MMapEnt_Ptr(a) (a->ptr)
-#define MMapEnt_Size(a) (a->size & 0xFFFFFFFFFFFFFFF0)
-#define MMapEnt_Type(a) (a->size & 0xF)
-#define MMapEnt_IsFree(a) ((a->size & 0xF) == 1)
+#define MMapEnt_Ptr(a) ((a)->ptr)
+#define MMapEnt_Size(a) ((a)->size & 0xFFFFFFFFFFFFFFF0)
+#define MMapEnt_Type(a) ((a)->size & 0xF)
+#define MMapEnt_IsFree(a) (((a)->size & 0xF) == 1)
+#define MMapEnt_NULL ((MMapEnt){.ptr = 0, .size = 0})
 
 #define MMAP_USED 0 /* don't use. Reserved or unknown regions */
 #define MMAP_FREE 1 /* usable memory */

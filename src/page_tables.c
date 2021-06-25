@@ -80,7 +80,34 @@ typedef struct {
 
 #define PT_SIZE 512
 
-void page_tables__init(void) {
+static const char *const mmap_entry_type[] = {"MMAP_USED", "MMAP_FREE",
+                                              "MMAP_ACPI", "MMAP_MMIO"};
+
+void page_tables__init(MMapEnt *entries, int64_t entry_count) {
   log("Initializing page tables...");
+
+  uint64_t total = 0, highest_address = 0;
+  for (int64_t i = 0; i < entry_count; i++) {
+    MMapEnt *entry = &entries[i];
+
+    uint64_t ptr = MMapEnt_Ptr(entry);
+    if (highest_address > ptr) // TODO lmao what the heck
+      panic();
+    if (highest_address < ptr) {
+      uint64_t size = ptr - highest_address;
+      log_fmt("HOLE: %k (%) bytes at %", size / 1024, size, highest_address);
+    }
+
+    uint64_t size = MMapEnt_Size(entry);
+    highest_address = ptr + size;
+    total += MMapEnt_IsFree(entry) * size;
+
+    log_fmt("%: %k bytes at % is of type %", i, size / 1024, ptr,
+            mmap_entry_type[MMapEnt_Type(entry)]);
+  }
+
+  log_fmt("Total free memory is: %k", total / 1024);
+  log_fmt("Total free memory is: %m", total / 1024 / 1024);
+
   panic();
 }
