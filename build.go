@@ -14,12 +14,14 @@ import (
 	_ "flag"
 	"fmt"
 	"io"
+	"io/fs"
 	"os"
 	"os/exec"
 	"path"
 	"path/filepath"
 	"runtime"
-	_ "strings"
+	"strings"
+	"time"
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
@@ -62,6 +64,7 @@ func main() {
 }
 
 func compileTarget(cli *client.Client, ctx context.Context, target string) int {
+	begin := time.Now()
 	tarOptions := archive.TarOptions{IncludeFiles: []string{}}
 	buildImage(cli, ctx, "alpine.Dockerfile", "dumboss/alpine", &tarOptions)
 	tarOptions.IncludeFiles = []string{".build"}
@@ -85,18 +88,16 @@ func compileTarget(cli *client.Client, ctx context.Context, target string) int {
 	resp, err := cli.ContainerCreate(ctx, &containerConfig, &hostConfig, nil, nil, "")
 	checkErr(err)
 
-	// Run container
-	fmt.Println("Running container")
 	err = cli.ContainerStart(ctx, resp.ID, types.ContainerStartOptions{})
 	checkErr(err)
 
+	fmt.Printf("docker stuff took %v seconds\n", time.Since(begin).Seconds())
 	statusCh, errCh := cli.ContainerWait(ctx, resp.ID, container.WaitConditionNotRunning)
 	var commandStatus int64
 	select {
 	case err := <-errCh:
 		checkErr(err)
 	case resp := <-statusCh:
-		fmt.Printf("%#v\n", resp)
 		commandStatus = resp.StatusCode
 	}
 
@@ -108,13 +109,45 @@ func compileTarget(cli *client.Client, ctx context.Context, target string) int {
 	return int(commandStatus)
 }
 
-func buildImage(cli *client.Client, ctx context.Context, path string, imageName string, tarOptions *archive.TarOptions) {
-	tar, err := archive.TarWithOptions(".", tarOptions)
+func needBuild(dockerfilePath, imageName string) bool {
+	outDir := filepath.Join(projectDir, ".build", "out")
+	err := os.MkdirAll(outDir, fs.ModeDir|fs.ModePerm)
+	checkErr(err)
+
+	escapedName := strings.Replace(imageName, string(os.PathSeparator), ".", -1)
+	placeholder := filepath.Join(outDir, ".image-"+escapedName)
+	dockerfilePath = filepath.Join(projectDir, dockerfilePath)
+
+	dockerfileStat, err := os.Stat(dockerfilePath)
+	checkErr(err)
+	placeholderStat, err := os.Stat(placeholder)
+
+	if os.IsNotExist(err) {
+		file, err := os.Create(placeholder)
+		checkErr(err)
+		file.Close()
+		return true
+	} else {
+		currentTime := time.Now().Local()
+		err = os.Chtimes(placeholder, currentTime, currentTime)
+		checkErr(err)
+
+		return dockerfileStat.ModTime().After(placeholderStat.ModTime())
+	}
+}
+
+func buildImage(cli *client.Client, ctx context.Context, dockerfilePath, imageName string, tarOptions *archive.TarOptions) {
+	dockerfilePath = filepath.Join(".build", dockerfilePath)
+	if !needBuild(dockerfilePath, imageName) {
+		return
+	}
+
+	tar, err := archive.TarWithOptions(projectDir, tarOptions)
 	checkErr(err)
 
 	// Build image
 	opts := types.ImageBuildOptions{
-		Dockerfile: filepath.Join(".build", path),
+		Dockerfile: dockerfilePath,
 		Tags:       []string{imageName},
 		Remove:     true,
 	}
@@ -138,8 +171,8 @@ func runCmd(ctx context.Context) {
 		os.Exit(commandStatus)
 	}
 
-	args := []string{"-smp", "4", "-pflash", ".build/OVMF.bin", "-serial", "stdio",
-		"-hda", ".build/out/kernel"}
+	args := []string{"-smp", "4", "-pflash", filepath.Join(projectDir, ".build/OVMF.bin"),
+		"-serial", "stdio", "-hda", filepath.Join(projectDir, ".build/out/kernel")}
 	cmd := exec.Command("qemu-system-x86_64", args...)
 
 	stdout, err := cmd.StdoutPipe()

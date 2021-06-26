@@ -58,7 +58,7 @@ void logging__panic(sloc loc, const char *message) {
   serial__write('\n');
 
   for (;;)
-    asm volatile("hlt");
+    asm_hlt();
 }
 
 // Largely copy-pasted from

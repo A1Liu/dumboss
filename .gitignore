@@ -1,4 +1,9 @@
+# Holds object files and stuff like that
 /.build/out
+
+# Holds outputs of build process
 /.build/obj
-/.garbage
+
+# Golang project script as a binary
+/dumboss
 

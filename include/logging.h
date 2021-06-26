@@ -4,7 +4,7 @@
 
 void logging__log(sloc loc, int32_t count, any *args);
 void logging__log_fmt(sloc loc, const char *fmt, int32_t count, any *args);
-void logging__panic(sloc loc, const char *message);
+_Noreturn void logging__panic(sloc loc, const char *message);
 
 #define __DEBUG_STRINGIFY(x) "`" #x "` = %"
 #define __COMMA_STRING() ", "
