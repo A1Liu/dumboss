@@ -14,11 +14,10 @@ in the same way (`dumboss build` to build and `dumboss run` to run)
 
 ## ToDo
 1. add IDT and GDT stuff and update logging to use it.
-2. add support for atomics, as types, and use atomics in interrupt stuff.
-3. add file system?
-4. add shared memory system?
-5. add stuffs?
-6. add support for running (single threaded) programs!
+2. add paging.
+3. add file system.
+4. add shared memory system.
+5. add support for running (single threaded) programs!
 
 ## Ideas
 1. 16-byte messages passed through `io_uring`-like interface
