@@ -1,6 +1,7 @@
 #include "serial_communications_port.h"
 #include "asm.h"
 
+// Largely copy-pasted from
 // https://wiki.osdev.org/Serial_Ports
 
 #define COM1 ((uint16_t)0x3f8)

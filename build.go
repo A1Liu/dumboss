@@ -1,5 +1,10 @@
 package main
 
+// This code is a wrapper around Docker functionality, in the hopes that it won't
+// be that much of a pain to set up on windows. We will have to see though. It's
+// been cobbled together using a random assortment of blogs and auto-generated
+// Docker documentation.
+
 import (
 	"bufio"
 	_ "bytes"

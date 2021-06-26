@@ -2,17 +2,16 @@
 I'm making a stupid operating system. The goal is to be compatible with nobody,
 and to break as much existing code as possible.
 
-
 ## Building This Project
 You must have Docker and Go installed to build this project. To run this project
 you also must have QEMU installed. Use `go run build.go build` to build the project,
 and `go run build.go run` to build and then run it.
 
 ## ToDo
-1. add page allocation.
-2. add interrupt stuff and update logging to use it.
-3. add support for atomics, as types, and use atomics in interrupt stuff.
-4. add support for running (single threaded) programs!
+1. add IDT and GDT stuff and update logging to use it.
+2. add support for atomics, as types, and use atomics in interrupt stuff.
+3. add support for running (single threaded) programs!
+4. 
 
 ## Ideas
 1. 16-byte messages passed through `io_uring`-like interface

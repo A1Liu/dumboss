@@ -1,5 +1,9 @@
 #include "alloc.h"
 
+// There's some amount of resources online for this. None of them were terribly
+// helpful or clear, I just kinda futzed about for a few days until the
+// explanations made sense
+
 #define ENTRY_ALLOC_FAILURE ((void *)~0ULL)
 
 typedef struct alloc__FreeBlock {
@@ -17,7 +21,8 @@ typedef struct {
 typedef struct {
   int64_t heap_size;
   int64_t free_memory;
-  BitSet usable_pages;
+  BitSet usable_pages; // TODO this isn't strictly necessary. It's not even used
+                       // right now lmao.
   SizeClassInfo size_classes[SIZE_CLASS_COUNT];
 } GlobalState;
 

@@ -1,6 +1,8 @@
 #include "basics.h"
 #include "logging.h"
 
+// Cobbled together from stack overflow and some previous project.
+
 int64_t smallest_greater_power2(int64_t _value) {
   assert(_value >= 0);
   uint64_t value = (uint64_t)_value;
