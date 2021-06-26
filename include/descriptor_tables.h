@@ -41,5 +41,14 @@ typedef struct {
   IdtEntry interrupts[];
 } __attribute__((packed)) Idt;
 
+static inline void asm_lidt(void *base, uint16_t size) {
+  struct {
+    uint16_t length;
+    void *base;
+  } __attribute__((packed)) IDTR = {size, base};
+
+  asm("lidt %0" : : "m"(IDTR)); // let the compiler choose an addressing mode
+}
+
 uint16_t IdtEntry__minimal_options(void);
 IdtEntry IdtEntry__missing(void);

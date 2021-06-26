@@ -5,9 +5,10 @@ OUT_DIR := $(BUILD_DIR)/out
 SRC_FILES := $(wildcard $(SRC_DIR)/*.c)
 OBJ_FILES := $(patsubst $(SRC_DIR)/%.c,$(OBJ_DIR)/%.o,$(SRC_FILES))
 LDFLAGS := -nostdlib --script src/link.ld
-CXXFLAGS := -c -Os --std=gnu17 -target x86_64-unknown-elf -ffreestanding \
-        -mno-red-zone -fno-stack-protector -nostdlib -fPIC -Iinclude \
-        -Wall -Wextra -Werror -Wconversion
+CXXFLAGS := -c -Os --std=gnu17 -target x86_64-unknown-elf -Iinclude            \
+            -ffreestanding -fno-stack-protector -fmerge-all-constants -fPIC    \
+            -mno-red-zone -nostdlib                                            \
+            -Wall -Wextra -Werror -Wconversion
 
 kernel: $(OUT_DIR)/kernel
 

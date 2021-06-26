@@ -1,16 +1,13 @@
 #pragma once
 
-#include "fmt.h"
-#include "macros.h"
-#include <stdbool.h>
-#include <stdint.h>
+#include "basics.h"
 
 void logging__log(sloc loc, int32_t count, any *args);
 void logging__log_fmt(sloc loc, const char *fmt, int32_t count, any *args);
 void logging__panic(sloc loc, const char *message);
 
 #define __DEBUG_STRINGIFY(x) "`" #x "` = %"
-#define COMMA_STRING() ", "
+#define __COMMA_STRING() ", "
 
 #define log(...)                                                               \
   do {                                                                         \
@@ -22,7 +19,7 @@ void logging__panic(sloc loc, const char *message);
   do {                                                                         \
     any args[] = {FOR_EACH(make_any, __VA_ARGS__)};                            \
     logging__log_fmt(__LOC__,                                                  \
-                     "debug(" FOR_EACH_SEP(__DEBUG_STRINGIFY, COMMA_STRING,    \
+                     "debug(" FOR_EACH_SEP(__DEBUG_STRINGIFY, __COMMA_STRING,  \
                                            __VA_ARGS__) ")",                   \
                      NARG(__VA_ARGS__), args);                                 \
   } while (false);

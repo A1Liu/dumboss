@@ -1,10 +1,18 @@
-#include "alloc.h"
-#include "asm.h"
 #include "bootboot.h"
 #include "logging.h"
-#include "page_tables.h"
-#include "serial_communications_port.h"
-#include "sync.h"
+#include "memory.h"
+
+typedef struct {
+  uint32_t eax, ebx, ecx, edx;
+} cpuid_result;
+
+static inline cpuid_result asm_cpuid(int32_t code) {
+  cpuid_result result;
+  asm("cpuid"
+      : "=a"(result.eax), "=b"(result.ebx), "=c"(result.ecx), "=d"(result.edx)
+      : "0"(code));
+  return result;
+}
 
 /******************************************
  * Entry point, called by BOOTBOOT Loader *
