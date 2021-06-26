@@ -106,6 +106,12 @@ void BitSet__set_range(const BitSet bits, int64_t begin, int64_t end,
     BitSet__set(bits, i, value);
 }
 
+void memset(void *_buffer, uint8_t byte, int64_t len) {
+  uint8_t *buffer = _buffer;
+  for (int64_t i = 0; i < len; i++)
+    buffer[i] = byte;
+}
+
 // output function type
 typedef void (*out_fct_type)(char character, void *buffer, uint64_t idx,
                              uint64_t maxlen);

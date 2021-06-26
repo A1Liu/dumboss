@@ -30,6 +30,8 @@ void BitSet__set(BitSet bits, int64_t idx, bool value);
 void BitSet__set_all(BitSet bits, bool value);
 void BitSet__set_range(BitSet bits, int64_t begin, int64_t end, bool value);
 
+void memset(void *buffer, uint8_t byte, int64_t len);
+
 // Formats a u64. Returns the length of buffer needed to output this number. If
 // return value is smaller than `size`, then the writing succedded
 int64_t fmt_u64(String out, uint64_t value);
