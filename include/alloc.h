@@ -4,7 +4,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#define _4KB 4096LL
+#define _4KB ((uint64_t)4096)
 // #define _2MB 2097152LL
 // #define _1GB 1073741824LL
 
@@ -15,3 +15,7 @@ void *alloc(int64_t count);
 
 // Free contiguous pages starting at data
 void free(void *data, int64_t count);
+
+void alloc__validate_heap(void);
+
+void alloc__assert_heap_empty(void);

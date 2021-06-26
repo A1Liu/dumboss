@@ -5,6 +5,7 @@
 typedef struct alloc__FreeBlock {
   struct alloc__FreeBlock *next;
   struct alloc__FreeBlock *prev;
+  int64_t size_class;
 } FreeBlock;
 
 typedef struct {
@@ -13,9 +14,9 @@ typedef struct {
 } SizeClassInfo;
 
 #define SIZE_CLASS_COUNT 10
+static int64_t heap_size = 0;
 static int64_t free_memory = 0;
-static FreeBlock *max_size_freelist = NULL;
-static SizeClassInfo size_classes[SIZE_CLASS_COUNT];
+static SizeClassInfo size_classes[SIZE_CLASS_COUNT + 1];
 static BitSet usable_pages;
 
 static inline int64_t address_to_page(uint64_t address) {
@@ -26,8 +27,13 @@ static inline uint64_t page_to_address(int64_t page) {
   return ((uint64_t)page) * _4KB;
 }
 
+static inline bool valid_page_for_size_class(int64_t page, int64_t size_class) {
+  return (page >> size_class << size_class) == page;
+}
+
 static inline int64_t buddy_page_for_page(int64_t page_index,
                                           int64_t size_class) {
+  assert(valid_page_for_size_class(page_index, size_class));
   return page_index ^ (((int64_t)1) << size_class);
 }
 
@@ -35,9 +41,33 @@ static inline int64_t page_to_buddy(int64_t page_index, int64_t size_class) {
   return page_index >> (size_class + 1);
 }
 
+static inline void remove_from_freelist(int64_t size_class, FreeBlock *block) {
+  assert(block->size_class == size_class);
+  SizeClassInfo *info = &size_classes[size_class];
+  FreeBlock *const prev = block->prev, *const next = block->next;
+  if (next != NULL)
+    next->prev = prev;
+  if (prev != NULL) {
+    prev->next = next;
+  } else {
+    assert(info->freelist == block);
+    info->freelist = next;
+  }
+}
+
+static inline void add_to_freelist(int64_t size_class, FreeBlock *block) {
+  SizeClassInfo *info = &size_classes[size_class];
+  block->size_class = size_class;
+  block->prev = NULL;
+  block->next = info->freelist;
+  if (block->next != NULL)
+    block->next->prev = block;
+  info->freelist = block;
+}
+
 static inline uint64_t *alloc_from_entries(MMapEnt *entries,
                                            int64_t entry_count, int64_t _size) {
-  if (_size < 0)
+  if (_size <= 0)
     return ENTRY_ALLOC_FAILURE;
 
   uint64_t size = align_up((uint64_t)_size, 8);
@@ -109,6 +139,8 @@ int64_t alloc__init(MMapEnt *entries, int64_t entry_count) {
     size_classes[i].buddies = BitSet__new(data, num_buddy_pairs);
     BitSet__set_all(size_classes[i].buddies, false);
   }
+  size_classes[SIZE_CLASS_COUNT].freelist = NULL;
+  size_classes[SIZE_CLASS_COUNT].buddies = BitSet__new(NULL, 0);
 
   for (int64_t i = 0, previous_end = 0; i < entry_count; i++) {
     MMapEnt *entry = &entries[i];
@@ -137,13 +169,90 @@ int64_t alloc__init(MMapEnt *entries, int64_t entry_count) {
     free((void *)entries[i].ptr, entries[i].size / _4KB);
 
   assert(available_memory == free_memory);
+  heap_size = available_memory;
+  alloc__validate_heap();
 
   return start;
 }
 
+void alloc__validate_heap(void) {
+
+  int64_t calculated_free_memory = 0;
+  for (int64_t i = 0; i < SIZE_CLASS_COUNT + 1; i++) {
+    int64_t size = (int64_t)((1 << i) * _4KB);
+    FreeBlock *block = size_classes[i].freelist;
+    for (; block != NULL; block = block->next) {
+      assert(block->size_class == i);
+      calculated_free_memory += size;
+    }
+  }
+
+  assert(calculated_free_memory == free_memory);
+}
+
+void alloc__assert_heap_empty(void) {
+  alloc__validate_heap();
+
+  assert(heap_size == free_memory);
+}
+
 void *alloc(int64_t count) {
-  (void)count;
-  return NULL;
+  if (count <= 0)
+    return NULL;
+
+  int64_t size_class = smallest_greater_power2(count);
+  for (; size_class <= SIZE_CLASS_COUNT; size_class++)
+    if (size_classes[size_class].freelist != NULL)
+      break;
+
+  if (size_class > SIZE_CLASS_COUNT) // tried to allocate too much data
+    return NULL;
+
+  free_memory -= count * (int64_t)_4KB;
+
+  FreeBlock *const free_block = size_classes[size_class].freelist;
+  assert(free_block->prev == NULL);
+  remove_from_freelist(size_class, free_block);
+  void *const data = free_block;
+  int64_t page = address_to_page((uint64_t)data);
+  assert(BitSet__get(usable_pages, page));
+
+  if (size_class != SIZE_CLASS_COUNT) {
+    int64_t buddy_index = page_to_buddy(page, size_class);
+    assert(BitSet__get(size_classes[size_class].buddies, buddy_index));
+    BitSet__set(size_classes[size_class].buddies, buddy_index, false);
+  }
+
+  if (size_class == 0)
+    return data;
+
+  for (int64_t i = size_class - 1; i >= 0; i--) {
+    if ((1 << (i + 1)) == count) {
+      log("lmao");
+      return data;
+    }
+
+    log_fmt("What man");
+
+    SizeClassInfo *info = &size_classes[i];
+    int64_t size = 1 << i, buddy_index = page_to_buddy(page, i);
+    assert(!BitSet__get(info->buddies, buddy_index));
+
+    if (count <= size) {
+      FreeBlock *block = (void *)(page + size);
+      assert(page + size == buddy_index);
+      add_to_freelist(i, block);
+      BitSet__set(info->buddies, buddy_index, true);
+    } else {
+      count -= size;
+      page += size;
+    }
+  }
+
+  assert(false);
+
+  // TODO this is probably unreachable
+  return data;
 }
 
 static void free_at_size_class(int64_t page, int64_t size_class);
@@ -162,40 +271,30 @@ void free(void *data, int64_t count) {
 
 static void free_at_size_class(int64_t page, int64_t size_class) {
   assert(BitSet__get(usable_pages, page));
+  assert(valid_page_for_size_class(page, size_class));
+  free_memory += (1 << size_class) * _4KB;
 
   for (int64_t i = size_class; i < SIZE_CLASS_COUNT; i++) {
-    assert((page >> i << i) == page);
+    assert(valid_page_for_size_class(page, i));
 
-    int64_t buddy_index = page_to_buddy(page, i);
     SizeClassInfo *info = &size_classes[i];
-    int64_t buddy_page = buddy_page_for_page(page, i);
-    bool buddy_is_valid = BitSet__get(usable_pages, buddy_page);
-    bool buddy_is_free = BitSet__get(info->buddies, buddy_index);
-    BitSet__set(info->buddies, buddy_index, !buddy_is_valid || !buddy_is_free);
+    const int64_t buddy_index = page_to_buddy(page, i);
+    const int64_t buddy_page = buddy_page_for_page(page, i);
+    // bool buddy_is_valid = BitSet__get(usable_pages, buddy_page);
+    const bool buddy_is_free = BitSet__get(info->buddies, buddy_index);
+    BitSet__set(info->buddies, buddy_index, !buddy_is_free);
 
-    if (!buddy_is_valid || !buddy_is_free) {
-      FreeBlock *block = (void *)page_to_address(page);
-      block->prev = NULL;
-      block->next = info->freelist;
-      info->freelist = block;
-      break;
-    }
+    if (!buddy_is_free)
+      return add_to_freelist(i, (void *)page_to_address(page));
 
-    FreeBlock *buddy = (void *)page_to_address(buddy_page);
-    FreeBlock *prev = buddy->prev;
-    FreeBlock *next = buddy->next;
-    if (next != NULL)
-      next->prev = prev;
-    if (prev != NULL) {
-      prev->next = next;
-    } else {
-      assert(info->freelist == buddy);
-      info->freelist = next;
-    }
+    FreeBlock *const buddy = (void *)page_to_address(buddy_page);
+    assert(valid_page_for_size_class(buddy_page, i));
+    remove_from_freelist(i, buddy);
 
     page = min(page, buddy_page);
   }
 
-  (void)max_size_freelist;
-  free_memory += (1 << size_class) * _4KB;
+  assert(valid_page_for_size_class(page, SIZE_CLASS_COUNT));
+  FreeBlock *block = (void *)page_to_address(page);
+  add_to_freelist(SIZE_CLASS_COUNT, block);
 }

@@ -37,5 +37,5 @@ void logging__panic(sloc loc, const char *message);
 
 #define assert(expression)                                                     \
   if (!(expression)) {                                                         \
-    logging__panic(__LOC__, "assertion failed: `" #expression "` was false");  \
+    logging__panic(__LOC__, "assertion failed: `" #expression "` = false");    \
   }

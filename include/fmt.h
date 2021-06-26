@@ -70,6 +70,7 @@ static any inline fmt__make_any_any(any value) { return value; }
        int32_t  : fmt__make_any_i64,                                           \
       uint64_t  : fmt__make_any_u64,                                           \
        int64_t  : fmt__make_any_i64,                                           \
+     long long  : fmt__make_any_i64,                                           \
           char  : fmt__make_any_char,                                          \
           char* : fmt__make_any_char_ptr,                                      \
     const char* : fmt__make_any_char_ptr,                                      \

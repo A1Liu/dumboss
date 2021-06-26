@@ -6,15 +6,9 @@
 #define min(x, y) ((x) > (y) ? (y) : (x))
 #define max(x, y) ((x) < (y) ? (y) : (x))
 
-static inline uint64_t align_up(uint64_t value, uint64_t alignment) {
-  int64_t bits = 64 - __builtin_clzl(alignment - 1);
-  return (((value - 1) >> bits) + 1) << bits;
-}
-
-static inline uint64_t align_down(uint64_t value, uint64_t alignment) {
-  int64_t bits = 64 - __builtin_clzl(alignment - 1);
-  return value >> bits << bits;
-}
+int64_t smallest_greater_power2(int64_t value);
+uint64_t align_up(uint64_t value, uint64_t alignment);
+uint64_t align_down(uint64_t value, uint64_t alignment);
 
 typedef struct {
   char *data;

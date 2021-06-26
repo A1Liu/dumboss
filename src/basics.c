@@ -1,6 +1,31 @@
 #include "basics.h"
 #include "logging.h"
 
+int64_t smallest_greater_power2(int64_t _value) {
+  assert(_value >= 0);
+  uint64_t value = (uint64_t)_value;
+
+  if (value <= 1)
+    return 0;
+  return 64 - __builtin_clzl(value - 1);
+}
+
+uint64_t align_up(uint64_t value, uint64_t alignment) {
+  alignment = max(alignment, 1);
+  assert(__builtin_popcountl(alignment) == 1);
+
+  int64_t bits = 64 - __builtin_clzl(alignment - 1);
+  return (((value - 1) >> bits) + 1) << bits;
+}
+
+uint64_t align_down(uint64_t value, uint64_t alignment) {
+  alignment = max(alignment, 1);
+  assert(__builtin_popcountl(alignment) == 1);
+
+  int64_t bits = 64 - __builtin_clzl(alignment - 1);
+  return value >> bits << bits;
+}
+
 String string__new(char *data, int64_t size) {
   if (size < 0)
     return (String){.data = NULL, .size = 0};
@@ -25,7 +50,8 @@ BitSet BitSet__new(uint64_t *data, int64_t size) {
   return (BitSet){.data = data, .size = size};
 }
 
-bool BitSet__get(BitSet bits, int64_t idx) {
+bool BitSet__get(const BitSet bits, int64_t idx) {
+  assert(0 <= idx);
   assert(idx < bits.size);
 
   const uint64_t v = bits.data[idx / 64];
@@ -33,7 +59,8 @@ bool BitSet__get(BitSet bits, int64_t idx) {
   return 0 != ((((uint64_t)1) << bit_offset) & v);
 }
 
-void BitSet__set(BitSet bits, int64_t idx, bool value) {
+void BitSet__set(const BitSet bits, int64_t idx, bool value) {
+  assert(0 <= idx);
   assert(idx < bits.size);
 
   uint64_t *v = &bits.data[idx / 64];
@@ -45,7 +72,7 @@ void BitSet__set(BitSet bits, int64_t idx, bool value) {
   }
 }
 
-void BitSet__set_all(BitSet bits, bool value) {
+void BitSet__set_all(const BitSet bits, bool value) {
   for (int64_t i = 0, idx = 0; idx < bits.size; i++, idx += 64) {
     bits.data[i] = 0;
     if (value)
@@ -53,14 +80,15 @@ void BitSet__set_all(BitSet bits, bool value) {
   }
 }
 
-void BitSet__set_range(BitSet bits, int64_t begin, int64_t end, bool value) {
-  assert(begin >= 0);
-  assert(end >= 0);
+void BitSet__set_range(const BitSet bits, int64_t begin, int64_t end,
+                       bool value) {
+  assert(0 <= begin);
   assert(begin <= end);
   assert(end <= bits.size);
 
   int64_t fast_begin = (int64_t)align_up((uint64_t)begin, 64),
           fast_end = (int64_t)align_down((uint64_t)end, 64);
+
   if (fast_begin >= fast_end) {
     for (int64_t i = begin; i < end; i++)
       BitSet__set(bits, i, value);
