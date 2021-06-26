@@ -1,4 +1,4 @@
-module a1liu.com/build-dumboss
+module a1liu.com/.garbage
 
 go 1.16
 
