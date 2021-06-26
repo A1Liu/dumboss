@@ -7,6 +7,9 @@ You must have Docker and Go installed to build this project. To run this project
 you also must have QEMU installed. Use `go run build.go build` to build the project,
 and `go run build.go run` to build and then run it.
 
+You can also use `go install` to create a build script called `dumboss` that works
+in the same way (`dumboss build` to build and `dumboss run` to run)
+
 ## ToDo
 1. add IDT and GDT stuff and update logging to use it.
 2. add support for atomics, as types, and use atomics in interrupt stuff.
