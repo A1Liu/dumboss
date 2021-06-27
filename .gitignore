@@ -4,6 +4,6 @@
 # Holds outputs of build process
 /.build/obj
 
-# Golang project script as a binary
+# Golang project script as a binary (could be created as a result of go build)
 /dumboss
 

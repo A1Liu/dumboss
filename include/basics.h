@@ -126,6 +126,23 @@ typedef struct {
   )(value)
 // clang-format on
 
+#define make_any_array(...)                                                    \
+  (any[]) { FOR_EACH(make_any, __VA_ARGS__) }
+
+#define read_register(reg)                                                     \
+  ({                                                                           \
+    uint64_t value;                                                            \
+    asm("mov %%" #reg ", %0" : "=g"(value));                                   \
+    value;                                                                     \
+  })
+
+#define write_register(reg, value)                                             \
+  ({                                                                           \
+    uint64_t v = value;                                                        \
+    asm("mov %0, %%" #reg::"g"(v) : #reg);                                     \
+    v;                                                                         \
+  })
+
 #define min(x, y) ((x) > (y) ? (y) : (x))
 #define max(x, y) ((x) < (y) ? (y) : (x))
 int64_t smallest_greater_power2(int64_t value);
@@ -166,8 +183,6 @@ static any inline basics__make_any_char(char value) {
 
 static any inline basics__make_any_any(any value) { return value; }
 
-int64_t write_prefix_to_buffer(String out, sloc loc);
-
 // If return value is positive, formatter tried to write that many bytes to
 // provided buffer; If negative, the formatter to format the argument
 int64_t basics__fmt_any(String out, any value);
@@ -176,6 +191,9 @@ int64_t basics__fmt_any(String out, any value);
 // provided buffer; If negative, the formatter failed on that argument
 // (one-indexed)
 int64_t basics__fmt(String out, const char *fmt, int32_t count, any *args);
+
+// Panic the kernel
+_Noreturn void exit(void);
 
 void memset(void *buffer, uint8_t byte, int64_t len);
 

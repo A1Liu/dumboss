@@ -108,11 +108,6 @@ void BitSet__set_range(const BitSet bits, int64_t begin, int64_t end,
     BitSet__set(bits, i, value);
 }
 
-int64_t write_prefix_to_buffer(String out, sloc loc) {
-  any args[] = {make_any(loc.file), make_any(loc.line)};
-  return basics__fmt(out, "[%:%]: ", 2, args);
-}
-
 int64_t basics__fmt_any(String out, any value) {
   switch (value.type) {
   case type_id_bool: {
@@ -201,6 +196,11 @@ int64_t basics__fmt(String out, const char *fmt, int32_t count, any *args) {
   if (format_count != count)
     return -format_count - 1;
   return written;
+}
+
+_Noreturn void exit(void) {
+  for (;;)
+    asm_hlt();
 }
 
 void memset(void *_buffer, uint8_t byte, int64_t len) {

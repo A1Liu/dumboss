@@ -5,6 +5,11 @@
 static char buffer[BUF_SIZE];
 void serial__write(char a);
 
+static int64_t write_prefix_to_buffer(String out, sloc loc) {
+  any args[] = {make_any(loc.file), make_any(loc.line)};
+  return basics__fmt(out, "[%:%]: ", 2, args);
+}
+
 void logging__log(sloc loc, int32_t count, any *args) {
   String out = Str__new(buffer, BUF_SIZE);
   int64_t written = write_prefix_to_buffer(out, loc);
@@ -31,8 +36,17 @@ void logging__log_fmt(sloc loc, const char *fmt, int32_t count, any *args) {
   String out = Str__new(buffer, BUF_SIZE);
   int64_t written = write_prefix_to_buffer(out, loc);
   int64_t fmt_try = basics__fmt(Str__suffix(out, written), fmt, count, args);
-  if (fmt_try < 0)
-    logging__panic(loc, "failed to log data due to invalid parameters");
+  if (fmt_try < 0) {
+    if (fmt_try < -count - 1) {
+      logging__log_fmt(loc, "too many parameters (expected %, got %)", 2,
+                       make_any_array(-fmt_try, count));
+      exit();
+    } else {
+      logging__log_fmt(loc, "failed to log parameter at index %", 1,
+                       make_any_array(-fmt_try - 1));
+      exit();
+    }
+  }
 
   written += fmt_try;
 
@@ -45,20 +59,6 @@ void logging__log_fmt(sloc loc, const char *fmt, int32_t count, any *args) {
   for (int64_t i = 0; i < written; i++)
     serial__write(buffer[i]);
   serial__write('\n');
-}
-
-void logging__panic(sloc loc, const char *message) {
-  String out = Str__new(buffer, BUF_SIZE);
-  int64_t written = write_prefix_to_buffer(out, loc);
-  written += (int64_t)strcpy_s(Str__suffix(out, written), message);
-  written = min(written, BUF_SIZE);
-
-  for (int64_t i = 0; i < written; i++)
-    serial__write(buffer[i]);
-  serial__write('\n');
-
-  for (;;)
-    asm_hlt();
 }
 
 // Largely copy-pasted from

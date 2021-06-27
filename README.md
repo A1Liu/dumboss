@@ -13,11 +13,13 @@ You can also use `go install` to create a build script called `dumboss` that wor
 in the same way (`dumboss build` to build and `dumboss run` to run)
 
 ## ToDo
-1. add IDT and GDT stuff and update logging to use it.
-2. add paging.
-3. add file system.
-4. add shared memory system.
-5. add support for running (single threaded) programs!
+1. add GDT stuff
+2. Update logging to use serial interrupts instead of whatever whacky-dacky thing
+   it uses now.
+3. add paging.
+4. add file system.
+5. add shared memory system.
+6. add support for running (single threaded) programs!
 
 ## Ideas
 1. 16-byte messages passed through `io_uring`-like interface

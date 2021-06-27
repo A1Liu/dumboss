@@ -30,8 +30,8 @@ void _start(void) {
   const cpuid_result result = asm_cpuid(1);
 
   // ensure only one core does first bit
-  for (; bootboot.bspid != (result.ebx >> 24);)
-    asm_hlt();
+  if (bootboot.bspid != (result.ebx >> 24))
+    exit();
 
   log("--------------------------------------------------");
   log("                    BOOTING UP                    ");
@@ -40,6 +40,11 @@ void _start(void) {
   // Calculation described in bootboot specification
   int64_t entry_count = (bootboot.size - 128) / 16;
   entry_count = alloc__init(&bootboot.mmap, entry_count);
+
+  uint64_t cs = read_register(cs);
+  dbg(cs, 1);
+  dbg(write_register(rax, 12));
+  dbg(read_register(rax));
 
   Idt *idt = Idt__new(alloc(1), 1 * _4KB);
   IdtEntry__set_handler(&idt->double_fault, Idt__double_fault);
@@ -53,6 +58,5 @@ void _start(void) {
   alloc__validate_heap();
 
   log_fmt("Kernel main end");
-  for (;;)
-    asm_hlt();
+  exit();
 }
