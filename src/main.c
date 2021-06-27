@@ -1,4 +1,5 @@
 #include "bootboot.h"
+#include "descriptor_tables.h"
 #include "logging.h"
 #include "memory.h"
 
@@ -12,6 +13,13 @@ static inline cpuid_result asm_cpuid(int32_t code) {
       : "=a"(result.eax), "=b"(result.ebx), "=c"(result.ecx), "=d"(result.edx)
       : "0"(code));
   return result;
+}
+
+__attribute__((interrupt, noreturn)) void
+Idt__double_fault(ExceptionStackFrame *frame, uint64_t error_code) {
+  log_fmt("double fault error_code: %", error_code);
+  Idt__log_fmt(frame);
+  panic();
 }
 
 /******************************************
@@ -33,13 +41,18 @@ void _start(void) {
   int64_t entry_count = (bootboot.size - 128) / 16;
   entry_count = alloc__init(&bootboot.mmap, entry_count);
 
+  Idt *idt = Idt__new(alloc(1), 1 * _4KB);
+  IdtEntry__set_handler(&idt->double_fault, Idt__double_fault);
+  asm_lidt(idt);
+
+  // divide_by_zero();
+
   void *hello = alloc(5);
   alloc__validate_heap();
   free(hello, 3);
   alloc__validate_heap();
 
   log_fmt("Kernel main end");
-
   for (;;)
     asm_hlt();
 }
