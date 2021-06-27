@@ -80,6 +80,4 @@ IdtEntry IdtEntry__missing(void) {
   };
 }
 
-void divide_by_zero(void) {
-  asm volatile("movq $12, %rax; movq $0, %rdx; divq %rdx");
-}
+void divide_by_zero(void) { asm volatile("movq $0, %rdx; divq %rdx"); }
