@@ -29,7 +29,5 @@ in the same way (`dumboss build` to build and `dumboss run` to run)
 4. C support for async-await?
 5. How lightweight can processes and threads be?
    [https://www.youtube.com/watch?v=KXuZi9aeGTw](https://www.youtube.com/watch?v=KXuZi9aeGTw)
-6. Distinction between server-like and single-shot applications? Maybe not worth it,
-   Can just build in fast syscall to check if process already exists
-7. How much can be done in userspace drivers?
+6. Microkernel with monolithic kernel manager thingy in userspace.
 
