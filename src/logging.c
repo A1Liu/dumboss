@@ -40,11 +40,11 @@ void logging__log_fmt(sloc loc, const char *fmt, int32_t count, any *args) {
     if (fmt_try < -count - 1) {
       logging__log_fmt(loc, "too many parameters (expected %, got %)", 2,
                        make_any_array(-fmt_try, count));
-      exit();
+      shutdown();
     } else {
       logging__log_fmt(loc, "failed to log parameter at index %", 1,
                        make_any_array(-fmt_try - 1));
-      exit();
+      shutdown();
     }
   }
 

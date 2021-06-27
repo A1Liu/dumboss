@@ -198,7 +198,16 @@ int64_t basics__fmt(String out, const char *fmt, int32_t count, any *args) {
   return written;
 }
 
-_Noreturn void exit(void) {
+static inline void asm_outw(uint16_t port, uint16_t val) {
+  asm volatile("outw %0, %1" : : "a"(val), "Nd"(port));
+}
+
+_Noreturn void shutdown(void) {
+  // Cause immediate shutdown when in a virtual machine
+  asm_outw(0xB004, 0x2000);
+  asm_outw(0x604, 0x2000);
+  asm_outw(0x4004, 0x3400);
+
   for (;;)
     asm_hlt();
 }

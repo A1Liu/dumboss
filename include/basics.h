@@ -193,7 +193,7 @@ int64_t basics__fmt_any(String out, any value);
 int64_t basics__fmt(String out, const char *fmt, int32_t count, any *args);
 
 // Panic the kernel
-_Noreturn void exit(void);
+_Noreturn void shutdown(void);
 
 void memset(void *buffer, uint8_t byte, int64_t len);
 

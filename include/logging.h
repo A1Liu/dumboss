@@ -15,7 +15,8 @@ void logging__log_fmt(sloc loc, const char *fmt, int32_t count, any *args);
   logging__log_fmt(__LOC__, fmt, NARG(__VA_ARGS__), make_any_array(__VA_ARGS__))
 
 #define panic(...)                                                             \
-  ((NARG(__VA_ARGS__) ? log_fmt("" __VA_ARGS__) : log_fmt("panicked!")), exit())
+  ((NARG(__VA_ARGS__) ? log_fmt("" __VA_ARGS__) : log_fmt("panicked!")),       \
+   shutdown())
 
 #define assert(expression, ...)                                                \
   ((expression)                                                                \

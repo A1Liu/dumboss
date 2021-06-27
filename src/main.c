@@ -30,8 +30,8 @@ void _start(void) {
   const cpuid_result result = asm_cpuid(1);
 
   // ensure only one core does first bit
-  if (bootboot.bspid != (result.ebx >> 24))
-    exit();
+  while (bootboot.bspid != (result.ebx >> 24))
+    asm_hlt();
 
   log("--------------------------------------------------");
   log("                    BOOTING UP                    ");
@@ -58,5 +58,5 @@ void _start(void) {
   alloc__validate_heap();
 
   log_fmt("Kernel main end");
-  exit();
+  shutdown();
 }
