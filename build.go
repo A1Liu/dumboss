@@ -84,6 +84,9 @@ func compileTarget(cli *client.Client, ctx context.Context, target string) int {
 		},
 	}
 	resp, err := cli.ContainerCreate(ctx, &containerConfig, &hostConfig, nil, nil, "")
+	if resp.Warnings != nil && len(resp.Warnings) != 0 {
+		fmt.Printf("%#v\n", resp.Warnings)
+	}
 	checkErr(err)
 
 	// TODO if someone docker prunes without also removing the cache flag, this will
@@ -91,7 +94,8 @@ func compileTarget(cli *client.Client, ctx context.Context, target string) int {
 	err = cli.ContainerStart(ctx, resp.ID, types.ContainerStartOptions{})
 	checkErr(err)
 
-	fmt.Printf("docker stuff took %v seconds\n", time.Since(begin).Seconds())
+	compileBegin := time.Now()
+	fmt.Printf("docker stuff took %v seconds\n", compileBegin.Sub(begin).Seconds())
 	statusCh, errCh := cli.ContainerWait(ctx, resp.ID, container.WaitConditionNotRunning)
 	var commandStatus int64
 	select {
@@ -106,6 +110,15 @@ func compileTarget(cli *client.Client, ctx context.Context, target string) int {
 	checkErr(err)
 
 	stdcopy.StdCopy(os.Stdout, os.Stderr, out)
+
+	removeOptions := types.ContainerRemoveOptions{
+		RemoveVolumes: true,
+		Force:         true,
+	}
+	err = cli.ContainerRemove(ctx, resp.ID, removeOptions)
+	checkErr(err)
+
+	fmt.Printf("the target `%v` took %v seconds\n", target, time.Since(compileBegin).Seconds())
 	return int(commandStatus)
 }
 
