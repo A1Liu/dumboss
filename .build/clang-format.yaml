@@ -2,3 +2,4 @@ Language: Cpp
 
 AllowShortFunctionsOnASingleLine: None
 AllowShortIfStatementsOnASingleLine: Always
+AllowShortBlocksOnASingleLine: Never

@@ -45,11 +45,11 @@ $(OUT_DIR)/kernel: $(OBJ_FILES) $(OUT_DIR)/.dir
 	@# copies from image to mount
 	mv /root/kernel $(OUT_DIR)/kernel
 
-$(OBJ_DIR)/%.c.format: $(SRC_DIR)/%.c $(OBJ_DIR)/.dir
+$(OBJ_DIR)/%.c.format: $(SRC_DIR)/%.c $(BUILD_DIR)/clang-format.yaml $(OBJ_DIR)/.dir
 	clang-format -style='{$(FORMAT_STYLE)}' -i $<
 	touch $@
 
-$(OBJ_DIR)/%.h.format: $(INCLUDE_DIR)/%.h $(OBJ_DIR)/.dir
+$(OBJ_DIR)/%.h.format: $(INCLUDE_DIR)/%.h $(BUILD_DIR)/clang-format.yaml $(OBJ_DIR)/.dir
 	clang-format -style='{$(FORMAT_STYLE)}' -i $<
 	touch $@
 
