@@ -49,7 +49,9 @@ typedef struct {
 } any;
 
 #define __LOC__                                                                \
-  (sloc) { .file = __FILE__, .line = __LINE__ }
+  (sloc) {                                                                     \
+    .file = __FILE__, .line = __LINE__                                         \
+  }
 
 #define NARG(...)                                                              \
   NARG_INTERNAL_PRIVATE(0, ##__VA_ARGS__, 70, 69, 68, 67, 66, 65, 64, 63, 62,  \
@@ -132,7 +134,9 @@ typedef struct {
 // clang-format on
 
 #define make_any_array(...)                                                    \
-  (any[]) { FOR_EACH(make_any, __VA_ARGS__) }
+  (any[]) {                                                                    \
+    FOR_EACH(make_any, __VA_ARGS__)                                            \
+  }
 
 #define read_register(reg)                                                     \
   ({                                                                           \
@@ -164,7 +168,9 @@ void BitSet__set(BitSet bits, int64_t idx, bool value);
 void BitSet__set_all(BitSet bits, bool value);
 void BitSet__set_range(BitSet bits, int64_t begin, int64_t end, bool value);
 
-static inline void asm_hlt(void) { asm volatile("hlt"); }
+static inline void asm_hlt(void) {
+  asm volatile("hlt");
+}
 
 static any inline basics__make_any_bool(bool value) {
   return (any){.bool_value = value, .type = type_id_bool};
@@ -186,7 +192,9 @@ static any inline basics__make_any_char(char value) {
   return (any){.char_value = value, .type = type_id_char};
 }
 
-static any inline basics__make_any_any(any value) { return value; }
+static any inline basics__make_any_any(any value) {
+  return value;
+}
 
 // If return value is positive, formatter tried to write that many bytes to
 // provided buffer; If negative, the formatter to format the argument

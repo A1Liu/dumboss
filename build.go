@@ -167,8 +167,8 @@ func runCmd(ctx context.Context) {
 		os.Exit(commandStatus)
 	}
 
-	args := []string{"-smp", "4", "-pflash", filepath.Join(projectDir, ".build/OVMF.bin"),
-		"-serial", "stdio", "-hda", filepath.Join(projectDir, ".build/out/kernel")}
+	args := []string{"-smp", "4", "-bios", filepath.Join(projectDir, ".build/OVMF.bin"),
+		"-serial", "stdio", "-drive", "file=" + filepath.Join(projectDir, ".build/out/kernel") + ",format=raw"}
 	cmd := exec.Command("qemu-system-x86_64", args...)
 
 	stdout, err := cmd.StdoutPipe()

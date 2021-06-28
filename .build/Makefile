@@ -6,6 +6,7 @@
 
 # Directories
 SRC_DIR := ./src
+INCLUDE_DIR := ./include
 BUILD_DIR := ./.build
 OBJ_DIR := $(BUILD_DIR)/obj
 OUT_DIR := $(BUILD_DIR)/out
@@ -13,7 +14,10 @@ DIRS := $(OBJ_DIR) $(OUT_DIR)
 
 # Files
 SRC_FILES := $(wildcard $(SRC_DIR)/*.c)
+HEADER_FILES := $(wildcard $(INCLUDE_DIR)/*.h)
 OBJ_FILES := $(patsubst $(SRC_DIR)/%.c,$(OBJ_DIR)/%.o,$(SRC_FILES))
+FORMAT_FILES := $(OBJ_FILES:%.o=%.c.format) \
+  $(patsubst $(INCLUDE_DIR)/%.h,$(OBJ_DIR)/%.h.format,$(HEADER_FILES))
 
 # Changing these flags sometimes seem to result in hard-to-understand compiler
 # errors.
@@ -28,10 +32,11 @@ CXXFLAGS := -c -Os --std=gnu17 -target x86_64-unknown-elf -Iinclude -MD        \
 
 build: $(OUT_DIR)/kernel
 
+.PHONY: clean
 clean: ;
 	rm -rf $(OUT_DIR) $(OBJ_DIR)
 
-format: $(OBJ_FILES:%.o=%.format)
+format: $(FORMAT_FILES)
 
 $(OUT_DIR)/kernel: $(OBJ_FILES) $(OUT_DIR)/.dir
 	ld.lld $(LDFLAGS) -o $(OUT_DIR)/os.elf $(OBJ_FILES)
@@ -40,7 +45,11 @@ $(OUT_DIR)/kernel: $(OBJ_FILES) $(OUT_DIR)/.dir
 	@# copies from image to mount
 	mv /root/kernel $(OUT_DIR)/kernel
 
-$(OBJ_DIR)/%.format: $(SRC_DIR)/%.c $(OBJ_DIR)/.dir
+$(OBJ_DIR)/%.c.format: $(SRC_DIR)/%.c $(OBJ_DIR)/.dir
+	clang-format -style='{$(FORMAT_STYLE)}' -i $<
+	touch $@
+
+$(OBJ_DIR)/%.h.format: $(INCLUDE_DIR)/%.h $(OBJ_DIR)/.dir
 	clang-format -style='{$(FORMAT_STYLE)}' -i $<
 	touch $@
 
