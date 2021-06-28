@@ -47,7 +47,7 @@ var (
 
 func main() {
 	if len(os.Args) < 2 {
-		fmt.Println("expected 'run' or 'build' subcommands")
+		fmt.Println("expected 'run' subcommand, or a Makefile target")
 		os.Exit(1)
 	}
 
@@ -55,11 +55,8 @@ func main() {
 	switch os.Args[1] {
 	case "run":
 		runCmd(ctx)
-	case "build":
-		buildCmd(ctx)
 	default:
-		fmt.Println("expected 'run' or 'build' subcommands")
-		os.Exit(1)
+		runMakeCmd(ctx, os.Args[1])
 	}
 }
 
@@ -72,8 +69,9 @@ func compileTarget(cli *client.Client, ctx context.Context, target string) int {
 
 	// Build container
 	containerConfig := container.Config{
-		Image:      toolsImage,
-		Cmd:        []string{"make", "-f", ".build/Makefile", "kernel"},
+		Image: toolsImage,
+		Cmd:   []string{"make", "-f", ".build/Makefile", target},
+		// Cmd:        []string{"make", "-d", "-f", ".build/Makefile", target},
 		WorkingDir: "/root/dumboss",
 	}
 	hostConfig := container.HostConfig{
@@ -161,14 +159,10 @@ func buildImage(cli *client.Client, ctx context.Context, dockerfilePath, imageNa
 }
 
 func runCmd(ctx context.Context) {
-	// if f.NArg() > 0 {
-	// 	panic("run doesn't take any parameters right now")
-	// }
-
 	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
 	checkErr(err)
 
-	commandStatus := compileTarget(cli, ctx, "kernel")
+	commandStatus := compileTarget(cli, ctx, "build")
 	if commandStatus != 0 {
 		os.Exit(commandStatus)
 	}
@@ -188,15 +182,11 @@ func runCmd(ctx context.Context) {
 	os.Exit(0)
 }
 
-func buildCmd(ctx context.Context) {
-	// if f.NArg() > 0 {
-	// 	panic("build doesn't take any parameters right now")
-	// }
-
+func runMakeCmd(ctx context.Context, target string) {
 	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
 	checkErr(err)
 
-	commandStatus := compileTarget(cli, ctx, "kernel")
+	commandStatus := compileTarget(cli, ctx, target)
 
 	os.Exit(commandStatus)
 }

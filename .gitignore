@@ -7,3 +7,7 @@
 # Golang project script as a binary (could be created as a result of go build)
 /dumboss
 
+# Because clang-format files aren't forwards or backwards compatible and also
+# don't really work with like, files named anything other than .clang-format
+.clang-format
+

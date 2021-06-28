@@ -46,16 +46,13 @@ _Static_assert(sizeof(Queue) == 64,
 
 Queue *Queue__create(const Buffer buffer, const int32_t elem_size) {
   const uint64_t address = (uint64_t)buffer.data;
-  if (address == align_down(address, 8))
-    return NULL;
+  if (address == align_down(address, 8)) return NULL;
 
   const int64_t buffer_bytes = buffer.size - (int64_t)sizeof(Queue);
-  if (buffer_bytes <= 0 || elem_size == 0)
-    return NULL;
+  if (buffer_bytes <= 0 || elem_size == 0) return NULL;
 
   const int64_t elem_count = buffer_bytes / elem_size;
-  if (elem_count <= 0)
-    return NULL;
+  if (elem_count <= 0) return NULL;
 
   Queue *queue = (Queue *)buffer.data;
   __c11_atomic_init(&queue->begin, 0);
@@ -96,11 +93,9 @@ int64_t Queue__read(Queue *queue, void *buffer, int64_t count) {
 }
 
 int64_t Queue__len(const Queue *queue) {
-  (void)queue;
-  return 0;
+  return queue->end_read - queue->begin;
 }
 
 int64_t Queue__capacity(const Queue *queue) {
-  (void)queue;
-  return 0;
+  return queue->elem_count;
 }

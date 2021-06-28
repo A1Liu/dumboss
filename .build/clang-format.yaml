@@ -1,0 +1,4 @@
+Language: Cpp
+
+AllowShortFunctionsOnASingleLine: None
+AllowShortIfStatementsOnASingleLine: Always

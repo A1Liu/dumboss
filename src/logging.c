@@ -75,7 +75,9 @@ static inline uint8_t asm_inb(uint16_t port) {
   return ret;
 }
 
-int is_transmit_empty() { return asm_inb(COM1 + 5) & 0x20; }
+int is_transmit_empty() {
+  return asm_inb(COM1 + 5) & 0x20;
+}
 
 void serial__write(char a) {
   while (is_transmit_empty() == 0)

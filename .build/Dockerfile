@@ -2,9 +2,9 @@ FROM dumboss/alpine
 USER root
 WORKDIR /root
 
-# --no-cache here makes the image smaller and also removes the need to first run
-# apk update
-RUN apk --no-cache add make llvm10 clang lld nasm mtools
+# The `--no-cache` here makes the image smaller and also removes the need to first
+# run `apk update`
+RUN apk --no-cache add make llvm10 clang lld nasm mtools yq
 
 RUN dd if=/dev/zero of=kernel bs=1k count=1440
 RUN mformat -i kernel -f 1440 ::

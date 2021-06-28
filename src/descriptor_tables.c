@@ -23,7 +23,9 @@ void Idt__log_fmt(ExceptionStackFrame *frame) {
           frame->stack_pointer, frame->stack_segment);
 }
 
-uint16_t IdtEntry__minimal_options(void) { return 0xe00; }
+uint16_t IdtEntry__minimal_options(void) {
+  return 0xe00;
+}
 
 static uint16_t IdtEntry__set_present(uint16_t opts) {
   return opts | (1 << 15);
@@ -80,4 +82,6 @@ IdtEntry IdtEntry__missing(void) {
   };
 }
 
-void divide_by_zero(void) { asm volatile("movq $0, %rdx; divq %rdx"); }
+void divide_by_zero(void) {
+  asm volatile("movq $0, %rdx; divq %rdx");
+}

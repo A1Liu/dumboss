@@ -7,8 +7,7 @@ int64_t smallest_greater_power2(int64_t _value) {
   assert(_value >= 0);
   uint64_t value = (uint64_t)_value;
 
-  if (value <= 1)
-    return 0;
+  if (value <= 1) return 0;
   return 64 - __builtin_clzl(value - 1);
 }
 
@@ -29,8 +28,7 @@ uint64_t align_down(uint64_t value, uint64_t alignment) {
 }
 
 String Str__new(char *data, int64_t size) {
-  if (size < 0)
-    return (String){.data = NULL, .size = 0};
+  if (size < 0) return (String){.data = NULL, .size = 0};
   return (String){.data = data, .size = size};
 }
 
@@ -77,8 +75,7 @@ void BitSet__set(const BitSet bits, int64_t idx, bool value) {
 void BitSet__set_all(const BitSet bits, bool value) {
   for (int64_t i = 0, idx = 0; idx < bits.size; i++, idx += 64) {
     bits.data[i] = 0;
-    if (value)
-      bits.data[i] = ~bits.data[i];
+    if (value) bits.data[i] = ~bits.data[i];
   }
 }
 
@@ -101,8 +98,7 @@ void BitSet__set_range(const BitSet bits, int64_t begin, int64_t end,
     BitSet__set(bits, i, value);
   for (int64_t i = fast_begin / 64; i < fast_end / 64; i++) {
     bits.data[i] = 0;
-    if (value)
-      bits.data[i] = ~bits.data[i];
+    if (value) bits.data[i] = ~bits.data[i];
   }
   for (int64_t i = fast_end; i < end; i++)
     BitSet__set(bits, i, value);
@@ -136,15 +132,13 @@ int64_t basics__fmt_any(String out, any value) {
     return (int64_t)fmt_i64(out, value.i64_value);
 
   case type_id_char: {
-    if (out.size >= 1)
-      *out.data = value.char_value;
+    if (out.size >= 1) *out.data = value.char_value;
     return 1;
   }
 
   case type_id_char_ptr: {
     char *src = (char *)value.ptr;
-    if (src == NULL)
-      return 0;
+    if (src == NULL) return 0;
 
     // @Safety there better not be any C-strings that are over 2^63 bytes long
     int64_t written = (int64_t)strcpy_s(out, src);
@@ -163,8 +157,7 @@ int64_t basics__fmt(String out, const char *fmt, int32_t count, any *args) {
 
   while (*fmt) {
     if (*fmt != '%') {
-      if (written < len)
-        out.data[written] = *fmt;
+      if (written < len) out.data[written] = *fmt;
       written++;
       fmt++;
       continue;
@@ -172,8 +165,7 @@ int64_t basics__fmt(String out, const char *fmt, int32_t count, any *args) {
 
     fmt++;
     if (*fmt == '%') {
-      if (written < len)
-        out.data[written] = '%';
+      if (written < len) out.data[written] = '%';
       written++;
       fmt++;
       continue;
@@ -181,20 +173,17 @@ int64_t basics__fmt(String out, const char *fmt, int32_t count, any *args) {
 
     // TODO how should we handle this? It's definitely a bug, and this case is
     // the scary one we don't ever want to happen
-    if (format_count >= count)
-      return -format_count - 1;
+    if (format_count >= count) return -format_count - 1;
 
     int64_t fmt_try = basics__fmt_any(Str__suffix(out, min(written, len)),
                                       args[format_count]);
-    if (fmt_try < 0)
-      return -format_count - 1;
+    if (fmt_try < 0) return -format_count - 1;
     written += fmt_try;
     format_count++;
   }
 
   // TODO how should we handle this? It's a bug, but it's kinda fine
-  if (format_count != count)
-    return -format_count - 1;
+  if (format_count != count) return -format_count - 1;
   return written;
 }
 
@@ -280,8 +269,7 @@ int64_t fmt_i64(String out, int64_t value) {
 }
 
 int64_t strlen(const char *str) {
-  if (str == NULL)
-    return 0;
+  if (str == NULL) return 0;
 
   int64_t i = 0;
   for (; *str; i++, str++)
@@ -301,8 +289,7 @@ int64_t strlen(const char *str) {
 // }
 
 int64_t strcpy_s(String dest, const char *src) {
-  if (src == NULL)
-    return 0;
+  if (src == NULL) return 0;
 
   int64_t written = 0;
   for (; written < dest.size && src[written]; written++)

@@ -130,8 +130,7 @@ static void *pop_freelist(int64_t size_class) {
   assert(block->prev == NULL);
 
   info->freelist = block->next;
-  if (info->freelist != NULL)
-    info->freelist->prev = NULL;
+  if (info->freelist != NULL) info->freelist->prev = NULL;
   return block;
 }
 
@@ -144,8 +143,7 @@ static inline void remove_from_freelist(int64_t page, int64_t size_class) {
 
   SizeClassInfo *info = &GLOBAL->size_classes[size_class];
   FreeBlock *prev = block->prev, *next = block->next;
-  if (next != NULL)
-    next->prev = prev;
+  if (next != NULL) next->prev = prev;
   if (prev != NULL) {
     prev->next = next;
   } else {
@@ -172,15 +170,13 @@ static inline void add_to_freelist(int64_t page, int64_t size_class) {
   block->size_class = size_class;
   block->prev = NULL;
   block->next = info->freelist;
-  if (block->next != NULL)
-    block->next->prev = block;
+  if (block->next != NULL) block->next->prev = block;
   info->freelist = block;
 }
 
 static void *alloc_from_entries(MMapEnt *entries, int64_t entry_count,
                                 int64_t _size) {
-  if (_size <= 0)
-    return ENTRY_ALLOC_FAILURE;
+  if (_size <= 0) return ENTRY_ALLOC_FAILURE;
 
   uint64_t size = align_up((uint64_t)_size, 8);
   for (int64_t i = 0; i < entry_count; i++) {
@@ -190,8 +186,7 @@ static void *alloc_from_entries(MMapEnt *entries, int64_t entry_count,
     cur->size -= aligned - cur->ptr;
     cur->ptr = aligned;
 
-    if (cur->size < size)
-      continue;
+    if (cur->size < size) continue;
 
     uint64_t ptr = cur->ptr;
     cur->ptr += size;
@@ -229,8 +224,7 @@ int64_t alloc__init(MMapEnt *entries, int64_t entry_count) {
 
   // Safety bytes
   GLOBAL = alloc_from_entries(entries, entry_count, sizeof(*GLOBAL));
-  if (GLOBAL == NULL)
-    memset(GLOBAL, 42, sizeof(*GLOBAL));
+  if (GLOBAL == NULL) memset(GLOBAL, 42, sizeof(*GLOBAL));
   GLOBAL = alloc_from_entries(entries, entry_count, sizeof(*GLOBAL));
   assert(GLOBAL != NULL);
   memset(GLOBAL, 0, sizeof(*GLOBAL));
@@ -306,13 +300,11 @@ void alloc__validate_heap(void) {
 }
 
 void *alloc(int64_t count) {
-  if (count <= 0)
-    return NULL;
+  if (count <= 0) return NULL;
 
   int64_t size_class = smallest_greater_power2(count);
   for (; size_class < SIZE_CLASS_COUNT; size_class++)
-    if (GLOBAL->size_classes[size_class].freelist != NULL)
-      break;
+    if (GLOBAL->size_classes[size_class].freelist != NULL) break;
 
   if (size_class >= SIZE_CLASS_COUNT) // tried to allocate too much data
     return NULL;
@@ -329,12 +321,10 @@ void *alloc(int64_t count) {
     BitSet__set(GLOBAL->size_classes[size_class].buddies, buddy_index, false);
   }
 
-  if (size_class == 0)
-    return data;
+  if (size_class == 0) return data;
 
   for (int64_t i = size_class - 1; i >= 0; i--) {
-    if ((1 << (i + 1)) == count)
-      return data;
+    if ((1 << (i + 1)) == count) return data;
 
     SizeClassInfo *info = &GLOBAL->size_classes[i];
     int64_t size = 1 << i, buddy_index = page_to_buddy(page, i);
@@ -382,8 +372,7 @@ static void free_at_size_class(int64_t page, int64_t size_class) {
     const bool buddy_is_free = BitSet__get(info->buddies, buddy_index);
     BitSet__set(info->buddies, buddy_index, !buddy_is_free);
 
-    if (!buddy_is_free)
-      return add_to_freelist(page, i);
+    if (!buddy_is_free) return add_to_freelist(page, i);
 
     remove_from_freelist(buddy_page, i);
     page = min(page, buddy_page);
