@@ -9,6 +9,11 @@ typedef struct {
 } sloc;
 
 typedef struct {
+  uint8_t *data;
+  int64_t size;
+} Buffer;
+
+typedef struct {
   char *data;
   int64_t size;
 } String;
