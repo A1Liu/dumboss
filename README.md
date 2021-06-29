@@ -14,15 +14,17 @@ in the same way (`dumboss build` to build and `dumboss run` to run)
 
 ## ToDo
 1. add GDT stuff
-2. Update logging to use serial interrupts instead of whatever whacky-dacky thing
-   it uses now.
-3. add paging.
-4. add file system.
-5. add shared memory system.
-6. add support for running (single threaded) programs!
+2. Update logging to use serial interrupts instead of like busy-waiting
+3. add paging, make alloc return Buffer
+4. add file system
+5. add support for running programs! (syscalls or something idk)
+6. Modified round robin scheduling
+7. Hardware resource permissions? Capabilites?
+8. Lightweight thread creation and user-level scheduling?
+9. Process shared memory and simple thread sleeps and wakeups
 
 ## Ideas
-1. 16-byte messages passed through `io_uring`-like interface
+1. ?-byte messages passed through `io_uring`-like interface
 2. Larger messages passed through shared memory
 3. Default program code is LLVM bitcode, certain included programs are flat binaries
    (LLVM bitcode is `.bc`, executables will probably be `.opq` for "opaque")
