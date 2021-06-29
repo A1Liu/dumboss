@@ -39,7 +39,7 @@ void _start(void) {
 
   // Calculation described in bootboot specification
   int64_t entry_count = (bootboot.size - 128) / 16;
-  entry_count = alloc__init(&bootboot.mmap, entry_count);
+  entry_count = memory__init(&bootboot.mmap, entry_count);
 
   uint64_t cs = read_register(cs);
   dbg(cs, 1);
@@ -53,9 +53,9 @@ void _start(void) {
   // divide_by_zero();
 
   void *hello = alloc(5);
-  alloc__validate_heap();
+  memory__validate_heap();
   free(hello, 3);
-  alloc__validate_heap();
+  memory__validate_heap();
 
   log_fmt("Kernel main end");
   shutdown();

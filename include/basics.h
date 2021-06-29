@@ -159,6 +159,7 @@ uint64_t align_up(uint64_t value, uint64_t alignment);
 uint64_t align_down(uint64_t value, uint64_t alignment);
 
 String Str__new(char *data, int64_t size);
+bool Str__is_null(String str);
 String Str__slice(String str, int64_t begin, int64_t end);
 String Str__suffix(String str, int64_t begin);
 

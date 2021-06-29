@@ -75,9 +75,9 @@
 /// the EFER register.
 #define PTE_NO_EXECUTE ((uint64_t)(1 << 63))
 
-typedef struct alloc__FreeBlock {
-  struct alloc__FreeBlock *next;
-  struct alloc__FreeBlock *prev;
+typedef struct memory__FreeBlock {
+  struct memory__FreeBlock *next;
+  struct memory__FreeBlock *prev;
   int64_t size_class;
 } FreeBlock;
 
@@ -197,7 +197,7 @@ static void *alloc_from_entries(MMapEnt *entries, int64_t entry_count,
   return ENTRY_ALLOC_FAILURE;
 }
 
-int64_t alloc__init(MMapEnt *entries, int64_t entry_count) {
+int64_t memory__init(MMapEnt *entries, int64_t entry_count) {
   assert(GLOBAL == NULL);
 
   // bubble-sort the entries so that the free ones are last
@@ -279,12 +279,12 @@ int64_t alloc__init(MMapEnt *entries, int64_t entry_count) {
 
   assert(available_memory == GLOBAL->free_memory);
   GLOBAL->heap_size = available_memory;
-  alloc__validate_heap();
+  memory__validate_heap();
 
   return start;
 }
 
-void alloc__validate_heap(void) {
+void memory__validate_heap(void) {
 
   int64_t calculated_free_memory = 0;
   for (int64_t i = 0; i < SIZE_CLASS_COUNT; i++) {

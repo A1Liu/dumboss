@@ -32,18 +32,23 @@ String Str__new(char *data, int64_t size) {
   return (String){.data = data, .size = size};
 }
 
+bool Str__is_null(String str) {
+  return str.data == NULL || str.size == 0;
+}
+
 String Str__slice(String str, int64_t begin, int64_t end) {
-  int64_t len = str.size;
-  if (begin < 0 || end < 0 || begin >= len || end >= len || begin > end ||
-      str.data == NULL)
-    return (String){.data = NULL, .size = 0};
+  assert(0 <= begin);
+  assert(begin <= end);
+  assert(end <= str.size);
+
   return (String){.data = str.data + begin, .size = end - begin};
 }
+
 String Str__suffix(String str, int64_t begin) {
-  int64_t len = str.size;
-  if (begin < 0 || begin >= len || str.data == NULL)
-    return (String){.data = NULL, .size = 0};
-  return (String){.data = str.data + begin, .size = len - begin};
+  assert(0 <= begin);
+  assert(begin <= str.size);
+
+  return (String){.data = str.data + begin, .size = str.size - begin};
 }
 
 BitSet BitSet__new(uint64_t *data, int64_t size) {

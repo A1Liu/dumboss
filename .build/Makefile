@@ -31,32 +31,38 @@ CXXFLAGS := -c -Os --std=gnu17 -target x86_64-unknown-elf -Iinclude -MD        \
 -include $(OBJ_FILES:%.o=%.d)
 
 build: $(OUT_DIR)/kernel
+	@# This silences make's "nothing to be done for target" message
 
 .PHONY: clean
 clean: ;
-	rm -rf $(OUT_DIR) $(OBJ_DIR)
+	@rm -rf $(OUT_DIR) $(OBJ_DIR)
 
 format: $(FORMAT_FILES)
+	@# This silences make's "nothing to be done for target" message
 
 $(OUT_DIR)/kernel: $(OBJ_FILES) $(OUT_DIR)/.dir
-	ld.lld $(LDFLAGS) -o $(OUT_DIR)/os.elf $(OBJ_FILES)
-	llvm-strip -s -K mmio -K fb -K bootboot -K environment -K initstack $(OUT_DIR)/os.elf
-	mcopy -i /root/kernel $(OUT_DIR)/os.elf ::/BOOTBOOT/INITRD
+	@ld.lld $(LDFLAGS) -o $(OUT_DIR)/os.elf $(OBJ_FILES)
+	@llvm-strip -s -K mmio -K fb -K bootboot -K environment -K initstack $(OUT_DIR)/os.elf
+	@mcopy -i /root/kernel $(OUT_DIR)/os.elf ::/BOOTBOOT/INITRD
 	@# copies from image to mount
-	mv /root/kernel $(OUT_DIR)/kernel
+	@mv /root/kernel $(OUT_DIR)/kernel
+	@echo "compiled kernel"
 
 $(OBJ_DIR)/%.c.format: $(SRC_DIR)/%.c $(BUILD_DIR)/clang-format.yaml $(OBJ_DIR)/.dir
-	clang-format -style='{$(FORMAT_STYLE)}' -i $<
-	touch $@
+	@clang-format -style='{$(FORMAT_STYLE)}' -i $<
+	@touch $@
+	@echo "formatted $<"
 
 $(OBJ_DIR)/%.h.format: $(INCLUDE_DIR)/%.h $(BUILD_DIR)/clang-format.yaml $(OBJ_DIR)/.dir
-	clang-format -style='{$(FORMAT_STYLE)}' -i $<
-	touch $@
+	@clang-format -style='{$(FORMAT_STYLE)}' -i $<
+	@touch $@
+	@echo "formatted $<"
 
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c $(OBJ_DIR)/.dir
-	clang $(CXXFLAGS) -c -o $@ $<
+	@clang $(CXXFLAGS) -c -o $@ $<
+	@echo "compiled $<"
 
 $(DIRS:%=%/.dir):
-	mkdir -p $(@:%/.dir=%)
-	touch $@
+	@mkdir -p $(@:%/.dir=%)
+	@touch $@
 
