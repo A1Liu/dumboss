@@ -184,6 +184,8 @@ func runCmd(ctx context.Context) {
 		os.Exit(commandStatus)
 	}
 
+	// TODO In 20 years when this OS finally has a GUI, we'll need this to make
+	// serial write to stdout again: "-serial", "stdio",
 	args := []string{"-bios", filepath.Join(projectDir, ".build/OVMF.bin"),
 		"-drive", "file=" + filepath.Join(projectDir, ".build/out/kernel") + ",format=raw",
 		"-smp", "4", "-nographic"}
