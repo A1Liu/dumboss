@@ -63,9 +63,9 @@ func main() {
 func compileTarget(cli *client.Client, ctx context.Context, target string) int {
 	begin := time.Now()
 	tarOptions := archive.TarOptions{IncludeFiles: []string{}}
-	buildImage(cli, ctx, "alpine.Dockerfile", "dumboss/alpine", &tarOptions)
+	buildImage(cli, ctx, "alpine.Dockerfile", "dumboss/alpine", &tarOptions, false)
 	tarOptions.IncludeFiles = []string{".build"}
-	buildImage(cli, ctx, "Dockerfile", "dumboss/tools", &tarOptions)
+	buildImage(cli, ctx, "Dockerfile", "dumboss/tools", &tarOptions, false)
 
 	// Build container
 	containerConfig := container.Config{
@@ -89,6 +89,18 @@ func compileTarget(cli *client.Client, ctx context.Context, target string) int {
 	resp, err := cli.ContainerCreate(ctx, &containerConfig, &hostConfig, nil, nil, "")
 	if resp.Warnings != nil && len(resp.Warnings) != 0 {
 		fmt.Printf("%#v\n", resp.Warnings)
+	}
+
+	if err != nil {
+		tarOptions := archive.TarOptions{IncludeFiles: []string{}}
+		buildImage(cli, ctx, "alpine.Dockerfile", "dumboss/alpine", &tarOptions, true)
+		tarOptions.IncludeFiles = []string{".build"}
+		buildImage(cli, ctx, "Dockerfile", "dumboss/tools", &tarOptions, true)
+
+		resp, err = cli.ContainerCreate(ctx, &containerConfig, &hostConfig, nil, nil, "")
+		if resp.Warnings != nil && len(resp.Warnings) != 0 {
+			fmt.Printf("%#v\n", resp.Warnings)
+		}
 	}
 	checkErr(err)
 
@@ -153,9 +165,9 @@ func needBuild(dockerfilePath, imageName string) bool {
 	}
 }
 
-func buildImage(cli *client.Client, ctx context.Context, dockerfilePath, imageName string, tarOptions *archive.TarOptions) {
+func buildImage(cli *client.Client, ctx context.Context, dockerfilePath, imageName string, tarOptions *archive.TarOptions, forceBuild bool) {
 	dockerfilePath = filepath.Join(".build", dockerfilePath)
-	if !needBuild(dockerfilePath, imageName) {
+	if !needBuild(dockerfilePath, imageName) && !forceBuild {
 		return
 	}
 
