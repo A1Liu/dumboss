@@ -40,13 +40,24 @@ clean: ;
 format: $(FORMAT_FILES)
 	@# This silences make's "nothing to be done for target" message
 
-$(OUT_DIR)/kernel: $(OBJ_FILES) $(OUT_DIR)/.dir
-	@ld.lld $(LDFLAGS) -o $(OUT_DIR)/os.elf $(OBJ_FILES)
-	@llvm-strip -s -K mmio -K fb -K bootboot -K environment -K initstack $(OUT_DIR)/os.elf
-	@mcopy -i /root/kernel $(OUT_DIR)/os.elf ::/BOOTBOOT/INITRD
-	@# copies from image to mount
-	@mv /root/kernel $(OUT_DIR)/kernel
+.PHONY: objdump
+objdump: $(OUT_DIR)/dump
+	@echo "----------------------------------------------------------"
+	@echo "OBJDUMP: file written to $(OUT_DIR)/dump"
+	@echo "----------------------------------------------------------"
+
+$(OUT_DIR)/dump: $(OUT_DIR)/os.elf
+	@llvm-objdump --arch=x86-64 -D $(OUT_DIR)/os.elf > $(OUT_DIR)/dump
+
+$(OUT_DIR)/kernel: $(OUT_DIR)/os.elf $(OUT_DIR)/.dir
+	@cp $(OUT_DIR)/os.elf $(OUT_DIR)/os
+	@llvm-strip -s -K mmio -K fb -K bootboot -K environment -K initstack $(OUT_DIR)/os
+	@mcopy -i /root/kernel $(OUT_DIR)/os ::/BOOTBOOT/INITRD && rm $(OUT_DIR)/os
+	@mv /root/kernel $(OUT_DIR)/kernel # copies from image to mount
 	@echo "compiled kernel"
+
+$(OUT_DIR)/os.elf: $(OBJ_FILES) $(OUT_DIR)/.dir
+	@ld.lld $(LDFLAGS) -o $(OUT_DIR)/os.elf $(OBJ_FILES)
 
 $(OBJ_DIR)/%.c.format: $(SRC_DIR)/%.c $(BUILD_DIR)/clang-format.yaml $(OBJ_DIR)/.dir
 	@clang-format -style='{$(FORMAT_STYLE)}' -i $<

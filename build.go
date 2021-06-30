@@ -83,6 +83,9 @@ func compileTarget(cli *client.Client, ctx context.Context, target string) int {
 			},
 		},
 	}
+
+	// MAYBE-TODO Support interacting with conatiner's interactive tools at some point
+	// https://stackoverflow.com/questions/58732588/accept-user-input-os-stdin-to-container-using-golang-docker-sdk-interactive-co
 	resp, err := cli.ContainerCreate(ctx, &containerConfig, &hostConfig, nil, nil, "")
 	if resp.Warnings != nil && len(resp.Warnings) != 0 {
 		fmt.Printf("%#v\n", resp.Warnings)
@@ -96,6 +99,7 @@ func compileTarget(cli *client.Client, ctx context.Context, target string) int {
 
 	compileBegin := time.Now()
 	fmt.Printf("docker stuff took %v seconds\n", compileBegin.Sub(begin).Seconds())
+
 	statusCh, errCh := cli.ContainerWait(ctx, resp.ID, container.WaitConditionNotRunning)
 	var commandStatus int64
 	select {
@@ -180,8 +184,9 @@ func runCmd(ctx context.Context) {
 		os.Exit(commandStatus)
 	}
 
-	args := []string{"-smp", "4", "-bios", filepath.Join(projectDir, ".build/OVMF.bin"),
-		"-serial", "stdio", "-drive", "file=" + filepath.Join(projectDir, ".build/out/kernel") + ",format=raw"}
+	args := []string{"-bios", filepath.Join(projectDir, ".build/OVMF.bin"),
+		"-drive", "file=" + filepath.Join(projectDir, ".build/out/kernel") + ",format=raw",
+		"-smp", "4", "-nographic"}
 	cmd := exec.Command("qemu-system-x86_64", args...)
 
 	stdout, err := cmd.StdoutPipe()

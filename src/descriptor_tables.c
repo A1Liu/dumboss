@@ -23,7 +23,8 @@ void Idt__log_fmt(ExceptionStackFrame *frame) {
           frame->stack_pointer, frame->stack_segment);
 }
 
-uint16_t IdtEntry__minimal_options(void) {
+// This disables IRQs by default
+static uint16_t IdtEntry__minimal_options(void) {
   return 0xe00;
 }
 

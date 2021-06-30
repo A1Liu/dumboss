@@ -15,7 +15,7 @@ static inline cpuid_result asm_cpuid(int32_t code) {
   return result;
 }
 
-__attribute__((interrupt, noreturn)) void
+__attribute__((interrupt("IRQ"), noreturn)) void
 Idt__double_fault(ExceptionStackFrame *frame, uint64_t error_code) {
   log_fmt("double fault error_code: %", error_code);
   Idt__log_fmt(frame);

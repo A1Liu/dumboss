@@ -16,12 +16,13 @@ in the same way (`dumboss build` to build and `dumboss run` to run)
 1. add GDT stuff
 2. Update logging to use serial interrupts instead of like busy-waiting
 3. add paging, make alloc return Buffer
-4. add file system
-5. add support for running programs! (syscalls or something idk)
+4. add support for running programs! (syscalls or something idk)
+5. add file system (https://wiki.osdev.org/AHCI)
 6. Modified round robin scheduling
-7. Hardware resource permissions? Capabilites?
-8. Lightweight thread creation and user-level scheduling?
-9. Process shared memory and simple thread sleeps and wakeups
+7. Some drivers baby! (https://wiki.osdev.org/Virtio)
+8. Hardware resource permissions? Capabilites?
+9. Lightweight thread creation and user-level scheduling?
+0. Process shared memory and simple thread sleeps and wakeups
 
 ## Ideas
 1. ?-byte messages passed through `io_uring`-like interface
@@ -34,4 +35,5 @@ in the same way (`dumboss build` to build and `dumboss run` to run)
 6. Microkernel with monolithic kernel manager thingy in userspace.
 7. Switch to C++ because honestly some light template use would probably help
    with correctness.
+8. Maybe don't map all of phyiscal memory lmao
 
