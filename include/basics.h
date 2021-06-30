@@ -116,20 +116,20 @@ typedef struct {
 // clang-format off
 #define make_any(value)                                                        \
   _Generic((value),                                                            \
-          bool  : basics__make_any_bool,                                           \
-       uint8_t  : basics__make_any_u64,                                           \
-        int8_t  : basics__make_any_i64,                                           \
-      uint16_t  : basics__make_any_u64,                                           \
-       int16_t  : basics__make_any_i64,                                           \
-      uint32_t  : basics__make_any_u64,                                           \
-       int32_t  : basics__make_any_i64,                                           \
-      uint64_t  : basics__make_any_u64,                                           \
-       int64_t  : basics__make_any_i64,                                           \
-     long long  : basics__make_any_i64,                                           \
-          char  : basics__make_any_char,                                          \
-          char* : basics__make_any_char_ptr,                                      \
-    const char* : basics__make_any_char_ptr,                                      \
-           any  : basics__make_any_any                                            \
+          bool  : basics__make_any_bool,                                       \
+       uint8_t  : basics__make_any_u64,                                        \
+        int8_t  : basics__make_any_i64,                                        \
+      uint16_t  : basics__make_any_u64,                                        \
+       int16_t  : basics__make_any_i64,                                        \
+      uint32_t  : basics__make_any_u64,                                        \
+       int32_t  : basics__make_any_i64,                                        \
+      uint64_t  : basics__make_any_u64,                                        \
+       int64_t  : basics__make_any_i64,                                        \
+     long long  : basics__make_any_i64,                                        \
+          char  : basics__make_any_char,                                       \
+          char* : basics__make_any_char_ptr,                                   \
+    const char* : basics__make_any_char_ptr,                                   \
+           any  : basics__make_any_any                                         \
   )(value)
 // clang-format on
 
@@ -147,8 +147,8 @@ typedef struct {
 
 #define write_register(reg, value)                                             \
   ({                                                                           \
-    uint64_t v = value;                                                        \
-    asm("mov %0, %%" #reg::"g"(v) : #reg);                                     \
+    typeof(value) v = value;                                                   \
+    asm("mov %0, %%" #reg : : "g"(v) : #reg);                                  \
     v;                                                                         \
   })
 

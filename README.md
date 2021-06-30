@@ -32,4 +32,6 @@ in the same way (`dumboss build` to build and `dumboss run` to run)
 5. How lightweight can processes and threads be?
    [https://www.youtube.com/watch?v=KXuZi9aeGTw](https://www.youtube.com/watch?v=KXuZi9aeGTw)
 6. Microkernel with monolithic kernel manager thingy in userspace.
+7. Switch to C++ because honestly some light template use would probably help
+   with correctness.
 
