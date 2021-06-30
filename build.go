@@ -104,8 +104,6 @@ func compileTarget(cli *client.Client, ctx context.Context, target string) int {
 	}
 	checkErr(err)
 
-	// TODO if someone docker prunes without also removing the cache flag, this will
-	// fail because the docker image doesnt exist but the build script thinks it does
 	err = cli.ContainerStart(ctx, resp.ID, types.ContainerStartOptions{})
 	checkErr(err)
 
