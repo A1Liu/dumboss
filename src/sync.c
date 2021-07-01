@@ -39,7 +39,7 @@ struct Queue {
   int64_t _unused2;
   int64_t _unused3;
   uint8_t buffer[];
-} __attribute__((packed, aligned(8)));
+};
 
 _Static_assert(sizeof(Queue) == 64,
                "Queue should have 64 byte control structure");
@@ -55,14 +55,11 @@ Queue *Queue__create(const Buffer buffer, const int32_t elem_size) {
   if (elem_count <= 0) return NULL;
 
   Queue *queue = (Queue *)buffer.data;
-  __c11_atomic_init(&queue->begin, 0);
-  __c11_atomic_init(&queue->end_read, 0);
-  __c11_atomic_init(&queue->end_write, 0);
   queue->begin = 0;
   queue->end_read = 0;
   queue->end_write = 0;
-  queue->elem_size = elem_size;
   queue->elem_count = elem_count;
+  queue->elem_size = elem_size;
   queue->_unused0 = 0xbeef;
   queue->_unused1 = 0xdeadbeef;
   queue->_unused2 = 0xdeadbeef;

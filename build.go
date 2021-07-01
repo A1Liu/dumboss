@@ -84,8 +84,6 @@ func compileTarget(cli *client.Client, ctx context.Context, target string) int {
 		},
 	}
 
-	// MAYBE-TODO Support interacting with conatiner's interactive tools at some point
-	// https://stackoverflow.com/questions/58732588/accept-user-input-os-stdin-to-container-using-golang-docker-sdk-interactive-co
 	resp, err := cli.ContainerCreate(ctx, &containerConfig, &hostConfig, nil, nil, "")
 	if resp.Warnings != nil && len(resp.Warnings) != 0 {
 		fmt.Printf("%#v\n", resp.Warnings)

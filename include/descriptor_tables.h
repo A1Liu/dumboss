@@ -11,17 +11,17 @@ typedef struct {
   uint16_t pointer_middle;
   uint32_t pointer_high;
   uint32_t reserved;
-} __attribute__((packed)) IdtEntry;
+} IdtEntry;
 
 typedef struct {
   IdtEntry inner;
-} __attribute__((packed)) IdtEntry__ForExt;
+} IdtEntry__ForExt;
 typedef struct {
   IdtEntry inner;
-} __attribute__((packed)) IdtEntry__ForDiverging;
+} IdtEntry__ForDiverging;
 typedef struct {
   IdtEntry inner;
-} __attribute__((packed)) IdtEntry__ForDivergingExt;
+} IdtEntry__ForDivergingExt;
 
 typedef struct {
   IdtEntry divide_error;
@@ -49,7 +49,7 @@ typedef struct {
   IdtEntry__ForExt security_exception;
   IdtEntry reserved_3;
   IdtEntry user_defined[256 - 32];
-} __attribute__((packed)) Idt;
+} Idt;
 
 typedef struct {
   uint64_t instruction_pointer;
@@ -84,10 +84,10 @@ uint64_t IdtEntry__handler_addr(IdtEntry entry);
 // clang-format off
 #define IdtEntry__set_handler(entry, handler)                                  \
   _Generic((entry),                                                            \
-      IdtEntry*                   : IdtEntry__Default__set_handler,            \
-      IdtEntry__ForExt*           : IdtEntry__ForExt__set_handler,             \
-      IdtEntry__ForDiverging*     : IdtEntry__ForDiverging__set_handler,       \
-      IdtEntry__ForDivergingExt*  : IdtEntry__ForDivergingExt__set_handler     \
+                        IdtEntry* : IdtEntry__Default__set_handler,            \
+                IdtEntry__ForExt* : IdtEntry__ForExt__set_handler,             \
+          IdtEntry__ForDiverging* : IdtEntry__ForDiverging__set_handler,       \
+       IdtEntry__ForDivergingExt* : IdtEntry__ForDivergingExt__set_handler     \
   )(entry, handler)
 // clang-format on
 
