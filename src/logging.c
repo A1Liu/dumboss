@@ -67,12 +67,12 @@ void logging__log_fmt(sloc loc, const char *fmt, int32_t count,
 #define COM1 ((uint16_t)0x3f8)
 
 int is_transmit_empty() {
-  return inb(COM1 + 5) & 0x20;
+  return in8(COM1 + 5) & 0x20;
 }
 
 void serial__write(char a) {
   while (is_transmit_empty() == 0)
     ;
 
-  outb(COM1, (uint8_t)a);
+  out8(COM1, (uint8_t)a);
 }

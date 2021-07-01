@@ -152,18 +152,18 @@ typedef struct {
     v;                                                                         \
   })
 
-#define outb(port, val)                                                        \
+#define out8(port, val)                                                        \
   ({                                                                           \
     uint8_t v = val;                                                           \
-    asm volatile("out %0, %1" : : "a"(v), "Nd"(port));                         \
+    asm volatile("outb %0, %1" : : "a"(v), "Nd"(port));                        \
     v;                                                                         \
   })
 
-#define inb(port)                                                              \
+#define in8(port)                                                              \
   ({                                                                           \
     uint8_t ret;                                                               \
     uint16_t p = port;                                                         \
-    asm volatile("in %1, %0" : "=a"(ret) : "Nd"(p));                           \
+    asm volatile("inb %1, %0" : "=a"(ret) : "Nd"(p));                          \
     ret;                                                                       \
   })
 
