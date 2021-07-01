@@ -66,23 +66,13 @@ void logging__log_fmt(sloc loc, const char *fmt, int32_t count,
 // https://wiki.osdev.org/Serial_Ports
 #define COM1 ((uint16_t)0x3f8)
 
-static inline void asm_outb(uint16_t port, uint8_t val) {
-  asm volatile("outb %0, %1" : : "a"(val), "Nd"(port));
-}
-
-static inline uint8_t asm_inb(uint16_t port) {
-  uint8_t ret;
-  asm volatile("inb %1, %0" : "=a"(ret) : "Nd"(port));
-  return ret;
-}
-
 int is_transmit_empty() {
-  return asm_inb(COM1 + 5) & 0x20;
+  return inb(COM1 + 5) & 0x20;
 }
 
 void serial__write(char a) {
   while (is_transmit_empty() == 0)
     ;
 
-  asm_outb(COM1, (uint8_t)a);
+  outb(COM1, (uint8_t)a);
 }

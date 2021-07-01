@@ -152,6 +152,21 @@ typedef struct {
     v;                                                                         \
   })
 
+#define outb(port, val)                                                        \
+  ({                                                                           \
+    uint8_t v = val;                                                           \
+    asm volatile("out %0, %1" : : "a"(v), "Nd"(port));                         \
+    v;                                                                         \
+  })
+
+#define inb(port)                                                              \
+  ({                                                                           \
+    uint8_t ret;                                                               \
+    uint16_t p = port;                                                         \
+    asm volatile("in %1, %0" : "=a"(ret) : "Nd"(p));                           \
+    ret;                                                                       \
+  })
+
 #define min(x, y) ((x) > (y) ? (y) : (x))
 #define max(x, y) ((x) < (y) ? (y) : (x))
 int64_t smallest_greater_power2(int64_t value);
