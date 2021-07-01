@@ -60,10 +60,10 @@ Queue *Queue__create(const Buffer buffer, const int32_t elem_size) {
   queue->end_write = 0;
   queue->elem_count = elem_count;
   queue->elem_size = elem_size;
-  queue->_unused0 = 0xbeef;
-  queue->_unused1 = 0xdeadbeef;
-  queue->_unused2 = 0xdeadbeef;
-  queue->_unused3 = 0xdeadbeef;
+  queue->_unused0 = 0x1eadbeef;
+  queue->_unused1 = 0x1eadbeef1eadbeef;
+  queue->_unused2 = 0x1eadbeef1eadbeef;
+  queue->_unused3 = 0x1eadbeef1eadbeef;
 
   return queue;
 }

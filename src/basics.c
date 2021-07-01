@@ -155,7 +155,8 @@ int64_t basics__fmt_any(String out, any value) {
   }
 }
 
-int64_t basics__fmt(String out, const char *fmt, int32_t count, any *args) {
+int64_t basics__fmt(String out, const char *fmt, int32_t count,
+                    const any *args) {
   // TODO why would a string be larger than int64_t's max value?
   const int64_t len = (int64_t)out.size;
   int64_t format_count = 0, written = 0;

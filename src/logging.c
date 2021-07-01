@@ -10,7 +10,7 @@ static int64_t write_prefix_to_buffer(String out, sloc loc) {
   return basics__fmt(out, "[%:%]: ", 2, args);
 }
 
-void logging__log(sloc loc, int32_t count, any *args) {
+void logging__log(sloc loc, int32_t count, const any *args) {
   String out = Str__new(buffer, BUF_SIZE);
   int64_t written = write_prefix_to_buffer(out, loc);
 
@@ -32,7 +32,8 @@ void logging__log(sloc loc, int32_t count, any *args) {
   serial__write('\n');
 }
 
-void logging__log_fmt(sloc loc, const char *fmt, int32_t count, any *args) {
+void logging__log_fmt(sloc loc, const char *fmt, int32_t count,
+                      const any *args) {
   String out = Str__new(buffer, BUF_SIZE);
   int64_t written = write_prefix_to_buffer(out, loc);
   int64_t fmt_try = basics__fmt(Str__suffix(out, written), fmt, count, args);
