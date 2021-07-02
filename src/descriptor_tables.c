@@ -77,6 +77,11 @@ IdtEntry IdtEntry__missing(void) {
   };
 }
 
+// Used Phil Opperman's x86_64 rust code to figure out how to do this
+// https://github.com/rust-osdev/x86_64/blob/master/src/structures/gdt.rs
+// https://github.com/rust-osdev/x86_64/blob/master/src/instructions/segmentation.rs
+
+// TODO the full definition of the GDT should probably be entirely in this file.
 void load_gdt(Gdt *base, uint16_t selector) {
   uint16_t size = base->index * sizeof(uint64_t) - 1;
   struct {
@@ -85,14 +90,11 @@ void load_gdt(Gdt *base, uint16_t selector) {
   } __attribute__((packed)) GDTR = {.size = size, .base = base};
 
   // let the compiler choose an addressing mode
+  uint64_t tmp = selector;
   asm volatile("lgdt %0" : : "m"(GDTR));
-
-  extern void _x86_64_asm_set_cs(uint64_t);
-  _x86_64_asm_set_cs(selector);
-  // asm volatile("pushq %0; leaq 1f(%%rip), %%rax; pushq %%rax; lretq; 1:"
-  //              :
-  //              : "r"(tmp)
-  //              : "rax");
+  asm volatile("pushq %0; pushq %1; lretq" : : "r"(tmp), "r"(&&exit));
+exit:
+  return;
 }
 
 Gdt Gdt__new(void) {

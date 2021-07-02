@@ -102,8 +102,9 @@ void IdtEntry__ForDivergingExt__set_handler(IdtEntry__ForDivergingExt *entry,
 
 void divide_by_zero(void);
 
-// Figured out how to do this from reading
+// Used Phil Opperman's x86_64 rust code to figure out how to do this
 // https://github.com/rust-osdev/x86_64/blob/master/src/structures/gdt.rs
+// https://github.com/rust-osdev/x86_64/blob/master/src/instructions/segmentation.rs
 
 _Static_assert(sizeof(1ull) == 8, "unsigned long long should be 64 bit");
 
@@ -127,6 +128,7 @@ _Static_assert(sizeof(1ull) == 8, "unsigned long long should be 64 bit");
    GDT__LIMIT_0_15 | GDT__LIMIT_16_19 | GDT__GRANULARITY)
 #define GDT__KERNEL_CODE (GDT__COMMON | GDT__EXECUTABLE | GDT__LONG_MODE)
 #define GDT__USER_CODE (GDT__KERNEL_CODE | GDT__DPL_RING_3)
+
 _Static_assert(GDT__KERNEL_CODE == 0x00af9b000000ffffULL,
                "GDT__KERNEL_CODE has incorrect value");
 _Static_assert(GDT__USER_CODE == 0x00affb000000ffffULL,

@@ -194,6 +194,7 @@ func runCmd(ctx context.Context) {
 
 	// TODO In 20 years when this OS finally has a GUI, we'll need this to make
 	// serial write to stdout again: "-serial", "stdio",
+	// TODO We should be able to modify these parameters without editing the build script
 	args := []string{"-bios", filepath.Join(projectDir, ".build", "OVMF.bin"),
 		"-drive", "file=" + filepath.Join(projectDir, ".build", "out", "kernel") + ",format=raw",
 		"-D", filepath.Join(projectDir, ".build", "out", "qemu-logs.txt"),

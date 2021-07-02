@@ -1,8 +1,8 @@
 # Holds object files and stuff like that
-/.build/out
+/.build/obj
 
 # Holds outputs of build process
-/.build/obj
+/.build/out
 
 # Golang project script as a binary (could be created as a result of go build)
 /dumboss

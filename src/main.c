@@ -46,13 +46,9 @@ void _start(void) {
   uint16_t segment = Gdt__add_entry(gdt, GDT__KERNEL_CODE);
   load_gdt(gdt, segment);
 
-  log("after gdt load");
-
   Idt *idt = Idt__new(alloc(1), 1 * _4KB);
   IdtEntry__set_handler(&idt->double_fault, Idt__double_fault);
   asm_lidt(idt);
-
-  log("after idt load");
 
   // divide_by_zero();
 

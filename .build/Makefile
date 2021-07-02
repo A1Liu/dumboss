@@ -15,7 +15,7 @@ DIRS := $(OBJ_DIR) $(OUT_DIR)
 # Files
 SRC_FILES := $(wildcard $(SRC_DIR)/*.c)
 HEADER_FILES := $(wildcard $(INCLUDE_DIR)/*.h)
-OBJ_FILES := $(patsubst $(SRC_DIR)/%.c,$(OBJ_DIR)/%.o,$(SRC_FILES)) $(OBJ_DIR)/asm.S.o
+OBJ_FILES := $(patsubst $(SRC_DIR)/%.c,$(OBJ_DIR)/%.o,$(SRC_FILES))
 FORMAT_FILES := $(OBJ_FILES:%.o=%.c.format) \
   $(patsubst $(INCLUDE_DIR)/%.h,$(OBJ_DIR)/%.h.format,$(HEADER_FILES))
 
@@ -68,10 +68,6 @@ $(OBJ_DIR)/%.h.format: $(INCLUDE_DIR)/%.h $(BUILD_DIR)/clang-format.yaml $(OBJ_D
 	@clang-format -style='{$(FORMAT_STYLE)}' -i $<
 	@touch $@
 	@echo "formatted $<"
-
-$(OBJ_DIR)/asm.S.o: $(SRC_DIR)/asm.S $(OBJ_DIR)/.dir
-	@clang $(CXXFLAGS) -c -o $@ $<
-	@echo "compiled $<"
 
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c $(OBJ_DIR)/.dir
 	@clang $(CXXFLAGS) -c -o $@ $<
