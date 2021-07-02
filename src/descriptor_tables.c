@@ -38,19 +38,13 @@ uint64_t IdtEntry__handler_addr(IdtEntry entry) {
          (((uint64_t)entry.pointer_high) << 32);
 }
 
-static inline uint16_t asm_cs_reg(void) {
-  uint16_t value = 0;
-  asm("mov %%cs, %0" : "=r"(value));
-  return value;
-}
-
 #undef IdtEntry__set_handler
 static void IdtEntry__set_handler(IdtEntry *entry, void *handler) {
   uint64_t addr = (uint64_t)handler;
   entry->pointer_low = (uint16_t)addr;
   entry->pointer_middle = (uint16_t)(addr >> 16);
   entry->pointer_high = (uint32_t)(addr >> 32);
-  entry->gdt_selector = asm_cs_reg();
+  entry->gdt_selector = read_register(cs, uint16_t);
   entry->options = IdtEntry__set_present(entry->options);
 }
 
@@ -81,6 +75,42 @@ IdtEntry IdtEntry__missing(void) {
       .pointer_high = 0,
       .reserved = 0,
   };
+}
+
+void load_gdt(Gdt *base, uint16_t selector) {
+  uint16_t size = base->index * sizeof(uint64_t) - 1;
+  struct {
+    uint16_t size;
+    void *base;
+  } __attribute__((packed)) GDTR = {.size = size, .base = base};
+
+  // let the compiler choose an addressing mode
+  asm volatile("lgdt %0" : : "m"(GDTR));
+
+  extern void _x86_64_asm_set_cs(uint64_t);
+  _x86_64_asm_set_cs(selector);
+  // asm volatile("pushq %0; leaq 1f(%%rip), %%rax; pushq %%rax; lretq; 1:"
+  //              :
+  //              : "r"(tmp)
+  //              : "rax");
+}
+
+Gdt Gdt__new(void) {
+  Gdt gdt;
+  gdt.table[0] = 0;
+  gdt.index = 1;
+  return gdt;
+}
+
+uint16_t Gdt__add_entry(Gdt *gdt, uint64_t entry) {
+  uint8_t index = gdt->index;
+  assert(index < 8);
+
+  gdt->table[index] = entry;
+  gdt->index = index + 1;
+
+  uint8_t priviledge_level = (entry & GDT__DPL_RING_3) ? 3 : 0;
+  return (uint16_t)((index << 3) | priviledge_level);
 }
 
 void divide_by_zero(void) {

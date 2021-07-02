@@ -91,7 +91,7 @@ typedef struct {
       func(_a6)
 #define FOR_EACH(func, ...)                                                    \
   PASTE(_FOR_EACH, NARG(__VA_ARGS__))                                          \
-  (func, __VA_ARGS__)
+  (func, ##__VA_ARGS__)
 
 #define _FOR_EACH_SEP0(func, sep, ...)
 #define _FOR_EACH_SEP1(func, sep, a) func(a)
@@ -111,7 +111,7 @@ typedef struct {
       sep() func(_a5) sep() func(_a6) sep() func(_a6)
 #define FOR_EACH_SEP(func, sep, ...)                                           \
   PASTE(_FOR_EACH_SEP, NARG(__VA_ARGS__))                                      \
-  (func, sep, __VA_ARGS__)
+  (func, sep, ##__VA_ARGS__)
 
 // clang-format off
 #define make_any(value)                                                        \
@@ -138,12 +138,14 @@ typedef struct {
     FOR_EACH(make_any, __VA_ARGS__)                                            \
   }
 
-#define read_register(reg)                                                     \
+#define _read_register1(reg) _read_register2(reg, uint64_t)
+#define _read_register2(reg, ty)                                               \
   ({                                                                           \
-    uint64_t value;                                                            \
+    ty value;                                                                  \
     asm("mov %%" #reg ", %0" : "=g"(value));                                   \
     value;                                                                     \
   })
+#define read_register(...) PASTE(_read_register, NARG(__VA_ARGS__))(__VA_ARGS__)
 
 #define write_register(reg, value)                                             \
   ({                                                                           \

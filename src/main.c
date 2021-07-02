@@ -41,14 +41,18 @@ void _start(void) {
   int64_t entry_count = (bootboot.size - 128) / 16;
   entry_count = memory__init(&bootboot.mmap, entry_count);
 
-  uint64_t cs = read_register(cs);
-  dbg(cs, 1);
-  dbg(write_register(rax, 12));
-  dbg(read_register(rax));
+  Gdt *gdt = alloc(1);
+  *gdt = Gdt__new();
+  uint16_t segment = Gdt__add_entry(gdt, GDT__KERNEL_CODE);
+  load_gdt(gdt, segment);
+
+  log("after gdt load");
 
   Idt *idt = Idt__new(alloc(1), 1 * _4KB);
   IdtEntry__set_handler(&idt->double_fault, Idt__double_fault);
   asm_lidt(idt);
+
+  log("after idt load");
 
   // divide_by_zero();
 

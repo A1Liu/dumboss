@@ -194,9 +194,11 @@ func runCmd(ctx context.Context) {
 
 	// TODO In 20 years when this OS finally has a GUI, we'll need this to make
 	// serial write to stdout again: "-serial", "stdio",
-	args := []string{"-bios", filepath.Join(projectDir, ".build/OVMF.bin"),
-		"-drive", "file=" + filepath.Join(projectDir, ".build/out/kernel") + ",format=raw",
-		"-smp", "4", "-nographic"}
+	args := []string{"-bios", filepath.Join(projectDir, ".build", "OVMF.bin"),
+		"-drive", "file=" + filepath.Join(projectDir, ".build", "out", "kernel") + ",format=raw",
+		"-D", filepath.Join(projectDir, ".build", "out", "qemu-logs.txt"),
+		"-d", "cpu_reset,int",
+		"-smp", "4", "-no-reboot", "-nographic"}
 	cmd := exec.Command("qemu-system-x86_64", args...)
 
 	stdout, err := cmd.StdoutPipe()
