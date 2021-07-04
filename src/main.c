@@ -54,7 +54,7 @@ void _start(void) {
 
   void *hello = alloc(5);
   memory__validate_heap();
-  free(hello, 3);
+  free(hello, 5);
   memory__validate_heap();
 
   log_fmt("Kernel main end");
