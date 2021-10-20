@@ -36,4 +36,6 @@ in the same way (`dumboss build` to build and `dumboss run` to run)
 7. Switch to C++ because honestly some light template use would probably help
    with correctness.
 8. Maybe don't map all of phyiscal memory lmao
+9. No file-system. Just a k-v store, 128-bit key that maps to a set of blocks on the disk.
+10. Permissions are based on programs, not users.
 
