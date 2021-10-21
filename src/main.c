@@ -1,3 +1,4 @@
+#include "alloc.h"
 #include "bootboot.h"
 #include "descriptor_tables.h"
 #include "logging.h"
@@ -40,6 +41,7 @@ void _start(void) {
   // Calculation described in bootboot specification
   int64_t entry_count = (bootboot.size - 128) / 16;
   entry_count = memory__init(&bootboot.mmap, entry_count);
+  alloc__init(&bootboot.mmap, entry_count);
 
   GdtInfo gdt_info = current_gdt();
 
@@ -57,9 +59,9 @@ void _start(void) {
   // divide_by_zero();
 
   void *hello = alloc(5);
-  memory__validate_heap();
+  alloc__validate_heap();
   free(hello, 5);
-  memory__validate_heap();
+  alloc__validate_heap();
 
   log_fmt("Kernel main end");
   shutdown();

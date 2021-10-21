@@ -76,4 +76,3 @@ $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c $(OBJ_DIR)/.dir
 $(DIRS:%=%/.dir):
 	@mkdir -p $(@:%/.dir=%)
 	@touch $@
-
