@@ -1,6 +1,6 @@
 #include "memory.h"
 
-#define ENTRY_ALLOC_FAILURE ((void *)~0ULL)
+#define MMapEnt_ALLOC_FAILURE ((void *)~0ULL)
 
 /// Specifies whether the mapped frame or page table is loaded in memory.
 #define PTE_PRESENT ((uint64_t)(1))
@@ -183,7 +183,7 @@ static inline void add_to_freelist(int64_t page, int64_t size_class) {
 static void *alloc_from_entries(MMapEnt *entries, int64_t entry_count,
                                 int64_t _size) {
   if (_size <= 0)
-    return ENTRY_ALLOC_FAILURE;
+    return MMapEnt_ALLOC_FAILURE;
 
   uint64_t size = align_up((uint64_t)_size, 8);
   for (int64_t i = 0; i < entry_count; i++) {
@@ -202,7 +202,7 @@ static void *alloc_from_entries(MMapEnt *entries, int64_t entry_count,
     return (void *)ptr;
   }
 
-  return ENTRY_ALLOC_FAILURE;
+  return MMapEnt_ALLOC_FAILURE;
 }
 
 char *memory__bootboot_mmap_typename[] = {"Used", "Free", "ACPI", "MMIO"};
@@ -253,14 +253,14 @@ int64_t memory__init(MMapEnt *entries, int64_t entry_count) {
   max_address = align_up(max_address, _4KB << SIZE_CLASS_COUNT);
   int64_t max_page_idx = address_to_page(max_address);
   uint64_t *data = alloc_from_entries(entries, entry_count, max_page_idx);
-  assert(data != ENTRY_ALLOC_FAILURE);
+  assert(data != MMapEnt_ALLOC_FAILURE);
 
   GLOBAL->usable_pages = BitSet__new(data, max_page_idx);
 
   for (int64_t i = 0; i < SIZE_CLASS_COUNT - 1; i++) {
     int64_t num_buddy_pairs = page_to_buddy(max_page_idx, i);
     uint64_t *data = alloc_from_entries(entries, entry_count, num_buddy_pairs);
-    assert(data != ENTRY_ALLOC_FAILURE);
+    assert(data != MMapEnt_ALLOC_FAILURE);
 
     GLOBAL->size_classes[i].freelist = NULL;
     GLOBAL->size_classes[i].buddies = BitSet__new(data, num_buddy_pairs);

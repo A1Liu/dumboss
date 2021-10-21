@@ -4,6 +4,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#define MEMORY__KERNEL_BEGIN 0x2000000000000000ull
+
 #define _4KB ((uint64_t)4096)
 // #define _2MB ((uint64_t)2097152)
 // #define _1GB ((uint64_t)1073741824)
