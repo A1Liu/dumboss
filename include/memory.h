@@ -9,6 +9,11 @@
 // #define _2MB ((uint64_t)2097152)
 // #define _1GB ((uint64_t)1073741824)
 
+typedef struct {
+  MMapEnt *entries;
+  int64_t count;
+} MMap;
+
 extern char *memory__bootboot_mmap_typename[];
 
 void *alloc_from_entries(MMapEnt *entries, int64_t entry_count, int64_t size,

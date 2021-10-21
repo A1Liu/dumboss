@@ -78,8 +78,51 @@
 
 char *memory__bootboot_mmap_typename[] = {"Used", "Free", "ACPI", "MMIO"};
 
-static int64_t sort_entries(MMapEnt *entries, int64_t entry_count) {
+typedef struct {
+  uint64_t entries[512];
+} PageTable;
 
+// TODO maybe we could get benefits from making these bitfields or whatever.
+typedef struct {
+  uint16_t p1_index;
+  uint16_t p2_index;
+  uint16_t p3_index;
+  uint16_t p4_index;
+} PageTableIndices;
+
+static PageTableIndices page_table_indices(uint64_t address) {
+  uint64_t p1 = address >> 12;
+  uint64_t p2 = p1 >> 9;
+  uint64_t p3 = p2 >> 9;
+  uint64_t p4 = p3 >> 9;
+
+  return (PageTableIndices){
+      .p1_index = (uint16_t)p1,
+      .p2_index = (uint16_t)p2,
+      .p3_index = (uint16_t)p3,
+      .p4_index = (uint16_t)p4,
+  };
+}
+
+static void build_page_tables(void) {}
+static bool lazy_build_page_tables(void) { return true; }
+
+static int64_t sort_entries(MMapEnt *entries, int64_t entry_count);
+int64_t memory__init(MMapEnt *entries, int64_t entry_count) {
+  entry_count = sort_entries(entries, entry_count);
+
+  uint64_t first_ptr = MMapEnt_Ptr(&entries[0]);
+  if (first_ptr < _4KB) {
+    int64_t safety_size = _4KB - (int64_t)first_ptr;
+    void *safety_alloc =
+        alloc_from_entries(entries, entry_count, safety_size, 1);
+    memset(safety_alloc, 42, safety_size);
+  }
+
+  return entry_count;
+}
+
+static int64_t sort_entries(MMapEnt *entries, int64_t entry_count) {
   // bubble-sort the entries so that the free ones are first
   for (int64_t right_bound = entry_count - 1; right_bound > 0; right_bound--) {
     for (int64_t i = 0; i < right_bound; i++) {
@@ -122,7 +165,6 @@ static int64_t sort_entries(MMapEnt *entries, int64_t entry_count) {
 void *alloc_from_entries(MMapEnt *entries, int64_t entry_count, int64_t _size,
                          int64_t _align) {
   if (_size <= 0 || _align < 0) {
-    log("wtf");
     return MMapEnt_ALLOC_FAILURE;
   }
 
@@ -141,20 +183,5 @@ void *alloc_from_entries(MMapEnt *entries, int64_t entry_count, int64_t _size,
     return (void *)aligned_ptr;
   }
 
-  log("none found");
   return MMapEnt_ALLOC_FAILURE;
-}
-
-int64_t memory__init(MMapEnt *entries, int64_t entry_count) {
-  entry_count = sort_entries(entries, entry_count);
-
-  uint64_t first_ptr = MMapEnt_Ptr(&entries[0]);
-  if (first_ptr < _4KB) {
-    int64_t safety_size = _4KB - (int64_t)first_ptr;
-    void *safety_alloc =
-        alloc_from_entries(entries, entry_count, safety_size, 1);
-    memset(safety_alloc, 42, safety_size);
-  }
-
-  return entry_count;
 }

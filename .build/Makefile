@@ -26,7 +26,7 @@ LDFLAGS := -nostdlib --script src/link.ld
 CXXFLAGS := -c -Os --std=gnu17 -target x86_64-unknown-elf -Iinclude -MD        \
             -ffreestanding -fno-stack-protector -fmerge-all-constants -fPIC    \
             -mno-red-zone -nostdlib                                            \
-            -Wall -Wextra -Werror -Wconversion
+            -Wall -Wextra -Werror -Wconversion -Wno-unused-function
 
 -include $(OBJ_FILES:%.o=%.d)
 
