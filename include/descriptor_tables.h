@@ -66,7 +66,7 @@ typedef __attribute__((noreturn, interrupt)) void (*Idt__DivergingHandler)(
 typedef __attribute__((noreturn, interrupt)) void (*Idt__DivergingHandlerExt)(
     ExceptionStackFrame *, uint64_t);
 
-static inline void asm_lidt(Idt *base) {
+static inline void load_idt(Idt *base) {
   struct {
     uint16_t size;
     void *base;
@@ -78,9 +78,20 @@ static inline void asm_lidt(Idt *base) {
 
 Idt *Idt__new(void *buffer, int64_t size);
 void Idt__log_fmt(ExceptionStackFrame *frame);
-
-IdtEntry IdtEntry__missing(void);
 uint64_t IdtEntry__handler_addr(IdtEntry entry);
+
+static inline IdtEntry IdtEntry__missing(void) {
+  // Options disable IRQs by default
+
+  return (IdtEntry){
+      .pointer_low = 0,
+      .gdt_selector = 0,
+      .options = 0xe00,
+      .pointer_middle = 0,
+      .pointer_high = 0,
+      .reserved = 0,
+  };
+}
 
 // clang-format off
 #define IdtEntry__set_handler(entry, handler)                                  \
@@ -135,10 +146,16 @@ _Static_assert(GDT__USER_CODE == 0x00affb000000ffffULL,
                "GDT__USER_CODE has incorrect value");
 
 typedef struct {
+  uint64_t *gdt;
+  uint16_t size;
+} GdtInfo;
+
+typedef struct {
   uint64_t table[8];
   uint8_t index;
 } Gdt;
 
+GdtInfo current_gdt(void);
 void load_gdt(Gdt *base, uint16_t selector);
 
 Gdt Gdt__new(void);

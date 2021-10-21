@@ -23,11 +23,6 @@ void Idt__log_fmt(ExceptionStackFrame *frame) {
           frame->stack_pointer, frame->stack_segment);
 }
 
-// This disables IRQs by default
-static uint16_t IdtEntry__minimal_options(void) {
-  return 0xe00;
-}
-
 static uint16_t IdtEntry__set_present(uint16_t opts) {
   return opts | (1 << 15);
 }
@@ -60,21 +55,9 @@ void IdtEntry__ForDiverging__set_handler(IdtEntry__ForDiverging *entry,
                                          Idt__DivergingHandler handler) {
   IdtEntry__set_handler(&entry->inner, handler);
 }
-
 void IdtEntry__ForDivergingExt__set_handler(IdtEntry__ForDivergingExt *entry,
                                             Idt__DivergingHandlerExt handler) {
   IdtEntry__set_handler(&entry->inner, handler);
-}
-
-IdtEntry IdtEntry__missing(void) {
-  return (IdtEntry){
-      .pointer_low = 0,
-      .gdt_selector = 0,
-      .options = IdtEntry__minimal_options(),
-      .pointer_middle = 0,
-      .pointer_high = 0,
-      .reserved = 0,
-  };
 }
 
 // Used Phil Opperman's x86_64 rust code to figure out how to do this
@@ -82,6 +65,20 @@ IdtEntry IdtEntry__missing(void) {
 // https://github.com/rust-osdev/x86_64/blob/master/src/instructions/segmentation.rs
 
 // TODO the full definition of the GDT should probably be entirely in this file.
+
+GdtInfo current_gdt(void) {
+  struct {
+    uint16_t size;
+    void *base;
+  } __attribute__((packed)) GDTR;
+
+  asm volatile("sgdt %0" : "=m"(GDTR));
+  return (GdtInfo){
+      .gdt = GDTR.base,
+      .size = GDTR.size,
+  };
+}
+
 void load_gdt(Gdt *base, uint16_t selector) {
   uint16_t size = base->index * sizeof(uint64_t) - 1;
   struct {
@@ -115,6 +112,4 @@ uint16_t Gdt__add_entry(Gdt *gdt, uint64_t entry) {
   return (uint16_t)((index << 3) | priviledge_level);
 }
 
-void divide_by_zero(void) {
-  asm volatile("movq $0, %rdx; divq %rdx");
-}
+void divide_by_zero(void) { asm volatile("movq $0, %rdx; divq %rdx"); }

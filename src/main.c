@@ -41,6 +41,10 @@ void _start(void) {
   int64_t entry_count = (bootboot.size - 128) / 16;
   entry_count = memory__init(&bootboot.mmap, entry_count);
 
+  GdtInfo gdt_info = current_gdt();
+
+  log_fmt("GDT: % %", gdt_info.size, (uint64_t)gdt_info.gdt);
+
   Gdt *gdt = alloc(1);
   *gdt = Gdt__new();
   uint16_t segment = Gdt__add_entry(gdt, GDT__KERNEL_CODE);
@@ -48,7 +52,7 @@ void _start(void) {
 
   Idt *idt = Idt__new(alloc(1), 1 * _4KB);
   IdtEntry__set_handler(&idt->double_fault, Idt__double_fault);
-  asm_lidt(idt);
+  load_idt(idt);
 
   // divide_by_zero();
 

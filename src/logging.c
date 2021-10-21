@@ -66,9 +66,7 @@ void logging__log_fmt(sloc loc, const char *fmt, int32_t count,
 // https://wiki.osdev.org/Serial_Ports
 #define COM1 ((uint16_t)0x3f8)
 
-int is_transmit_empty() {
-  return in8(COM1 + 5) & 0x20;
-}
+int is_transmit_empty() { return in8(COM1 + 5) & 0x20; }
 
 void serial__write(char a) {
   while (is_transmit_empty() == 0)

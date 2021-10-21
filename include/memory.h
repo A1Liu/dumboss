@@ -18,3 +18,9 @@ void free(void *data, int64_t count);
 
 // Check that the heap is in a valid state
 void memory__validate_heap(void);
+
+// get physical address from kernel address
+uint64_t physical_address(void *ptr);
+
+// get kernel address from physical address
+void *kernel_address(uint64_t);

@@ -13,16 +13,17 @@ You can also use `go install` to create a build script called `dumboss` that wor
 in the same way (`dumboss build` to build and `dumboss run` to run)
 
 ## ToDo
-1. add GDT stuff
-2. Update logging to use serial interrupts instead of like busy-waiting
-3. add paging, make alloc return Buffer
-4. add support for running programs! (syscalls or something idk)
-5. add file system (https://wiki.osdev.org/AHCI)
-6. Modified round robin scheduling
-7. Some drivers baby! (https://wiki.osdev.org/Virtio)
-8. Hardware resource permissions? Capabilites?
-9. Lightweight thread creation and user-level scheduling?
-0. Process shared memory and simple thread sleeps and wakeups
+1. add GDT stuff (pseudo-done?)
+2. add real kernel panic stuff
+3. update logging to use serial interrupts instead of like busy-waiting
+4. add paging, make alloc return Buffer
+5. add support for running programs! (syscalls or something idk)
+6. add file system (https://wiki.osdev.org/AHCI)
+7. add modified round robin scheduling
+8. some drivers baby! (https://wiki.osdev.org/Virtio)
+9. hardware resource permissions? Capabilites?
+0. lightweight thread creation and user-level scheduling?
+1. process shared memory and simple thread sleeps and wakeups
 
 ## Ideas
 1. ?-byte messages passed through `io_uring`-like interface
@@ -38,4 +39,5 @@ in the same way (`dumboss build` to build and `dumboss run` to run)
 8. Maybe don't map all of phyiscal memory lmao
 9. No file-system. Just a k-v store, 128-bit key that maps to a set of blocks on the disk.
 10. Permissions are based on programs, not users.
+11. Integer divide-by-zero always results in a zero.
 
