@@ -43,13 +43,13 @@
 #define BOOTBOOT_MAGIC "BOOT"
 
 /* default virtual addresses for level 0 and 1 static loaders */
-#define BOOTBOOT_MMIO                                                          \
-  0xfffffffff8000000                     /* memory mapped IO virtual address   \
+#define BOOTBOOT_MMIO                                                                              \
+  0xfffffffff8000000                     /* memory mapped IO virtual address                       \
                                           */
 #define BOOTBOOT_FB 0xfffffffffc000000   /* frame buffer virtual address */
 #define BOOTBOOT_INFO 0xffffffffffe00000 /* bootboot struct virtual address */
-#define BOOTBOOT_ENV                                                           \
-  0xffffffffffe01000                     /* environment string virtual address \
+#define BOOTBOOT_ENV                                                                               \
+  0xffffffffffe01000                     /* environment string virtual address                     \
                                           */
 #define BOOTBOOT_CORE 0xffffffffffe02000 /* core loadable segment start */
 
@@ -99,10 +99,10 @@ typedef struct {
 
 typedef struct {
   /* first 64 bytes is platform independent */
-  uint8_t magic[4]; /* 'BOOT' magic */
-  uint32_t size;    /* length of bootboot structure, minimum 128 */
-  uint8_t protocol; /* 1, static addresses, see PROTOCOL_* and LOADER_* above */
-  uint8_t fb_type;  /* framebuffer type, see FB_* above */
+  uint8_t magic[4];    /* 'BOOT' magic */
+  uint32_t size;       /* length of bootboot structure, minimum 128 */
+  uint8_t protocol;    /* 1, static addresses, see PROTOCOL_* and LOADER_* above */
+  uint8_t fb_type;     /* framebuffer type, see FB_* above */
   uint16_t numcores;   /* number of processor cores */
   uint16_t bspid;      /* Bootsrap processor ID (Local APIC Id on x86_64) */
   int16_t timezone;    /* in minutes -1440..1440 */

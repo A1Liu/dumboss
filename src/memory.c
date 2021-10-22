@@ -138,11 +138,9 @@ typedef struct {
 } TableBuilderStatus;
 
 static TableBuilderStatus lazy_build_page_table(MMap mmap, uint64_t table_entry,
-                                                PageTableIndices indices,
-                                                uint16_t table_level) {
+                                                PageTableIndices indices, uint16_t table_level) {
   assert(table_level < 5);
-  TableBuilderStatus status = {
-      .was_lazy = true, .was_empty = false, .address = 0};
+  TableBuilderStatus status = {.was_lazy = true, .was_empty = false, .address = 0};
 
   if (table_level == 0) // its not a page table
     return status;
@@ -166,8 +164,7 @@ static TableBuilderStatus lazy_build_page_table(MMap mmap, uint64_t table_entry,
     status = lazy_build_page_table(mmap, entry, indices_param, table_level - 1);
   }
 
-  if (status.was_lazy)
-    return status;
+  if (status.was_lazy) return status;
   status.was_lazy = false;
 
   // PageTable *new_table =
@@ -222,8 +219,7 @@ static MMap sort_entries(MMapEnt *entries, int64_t entry_count) {
         right->size = l_type;
       }
 
-      if (!swap)
-        continue;
+      if (!swap) continue;
 
       MMapEnt e = entries[i + 1];
       entries[i + 1] = entries[i];
@@ -254,8 +250,7 @@ void *alloc_from_entries(MMap mmap, int64_t _size, int64_t _align) {
 
     uint64_t aligned_ptr = align_up(cur->ptr, align);
     uint64_t aligned_size = cur->size + cur->ptr - aligned_ptr;
-    if (aligned_size < size)
-      continue;
+    if (aligned_size < size) continue;
 
     cur->ptr = aligned_ptr + size;
     cur->size = aligned_size - size;

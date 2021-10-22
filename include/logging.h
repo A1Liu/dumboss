@@ -6,23 +6,20 @@
 #include "basics.h"
 
 void logging__log(sloc loc, int32_t count, const any *args);
-void logging__log_fmt(sloc loc, const char *fmt, int32_t count,
-                      const any *args);
+void logging__log_fmt(sloc loc, const char *fmt, int32_t count, const any *args);
 
-#define log(...)                                                               \
-  logging__log(__LOC__, NARG(__VA_ARGS__), make_any_array(__VA_ARGS__))
+#define log(...) logging__log(__LOC__, NARG(__VA_ARGS__), make_any_array(__VA_ARGS__))
 
-#define log_fmt(fmt, ...)                                                      \
+#define log_fmt(fmt, ...)                                                                          \
   logging__log_fmt(__LOC__, fmt, NARG(__VA_ARGS__), make_any_array(__VA_ARGS__))
 
-#define panic(...)                                                             \
-  ((NARG(__VA_ARGS__) ? log_fmt("" __VA_ARGS__) : log_fmt("panicked!")),       \
-   shutdown())
+#define panic(...)                                                                                 \
+  ((NARG(__VA_ARGS__) ? log_fmt("" __VA_ARGS__) : log_fmt("panicked!")), shutdown())
 
-#define assert(expression, ...)                                                \
-  ((expression)                                                                \
-       ?: ((NARG(__VA_ARGS__) ? panic("assertion failed:" __VA_ARGS__)         \
-                              : panic("assertion failed: `%`", #expression)),  \
+#define assert(expression, ...)                                                                    \
+  ((expression)                                                                                    \
+       ?: ((NARG(__VA_ARGS__) ? panic("assertion failed:" __VA_ARGS__)                             \
+                              : panic("assertion failed: `%`", #expression)),                      \
            expression))
 
 #define __DEBUG_FORMAT(x) "%"

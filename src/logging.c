@@ -15,8 +15,7 @@ void logging__log(sloc loc, int32_t count, const any *args) {
   int64_t written = write_prefix_to_buffer(out, loc);
 
   for (int32_t i = 0; i < count; i++) {
-    int64_t fmt_try =
-        basics__fmt_any(Str__suffix(out, min(written, BUF_SIZE)), args[i]);
+    int64_t fmt_try = basics__fmt_any(Str__suffix(out, min(written, BUF_SIZE)), args[i]);
     assert(fmt_try >= 0);
     written += fmt_try;
   }
@@ -32,8 +31,7 @@ void logging__log(sloc loc, int32_t count, const any *args) {
   serial__write('\n');
 }
 
-void logging__log_fmt(sloc loc, const char *fmt, int32_t count,
-                      const any *args) {
+void logging__log_fmt(sloc loc, const char *fmt, int32_t count, const any *args) {
   String out = Str__new(buffer, BUF_SIZE);
   int64_t written = write_prefix_to_buffer(out, loc);
   int64_t fmt_try = basics__fmt(Str__suffix(out, written), fmt, count, args);
@@ -43,8 +41,7 @@ void logging__log_fmt(sloc loc, const char *fmt, int32_t count,
                        make_any_array(-fmt_try, count));
       shutdown();
     } else {
-      logging__log_fmt(loc, "failed to log parameter at index %", 1,
-                       make_any_array(-fmt_try - 1));
+      logging__log_fmt(loc, "failed to log parameter at index %", 1, make_any_array(-fmt_try - 1));
       shutdown();
     }
   }
@@ -66,7 +63,9 @@ void logging__log_fmt(sloc loc, const char *fmt, int32_t count,
 // https://wiki.osdev.org/Serial_Ports
 #define COM1 ((uint16_t)0x3f8)
 
-int is_transmit_empty() { return in8(COM1 + 5) & 0x20; }
+int is_transmit_empty() {
+  return in8(COM1 + 5) & 0x20;
+}
 
 void serial__write(char a) {
   while (is_transmit_empty() == 0)

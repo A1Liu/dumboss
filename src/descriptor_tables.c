@@ -18,9 +18,8 @@ Idt *Idt__new(void *buffer, int64_t size) {
 }
 
 void Idt__log_fmt(ExceptionStackFrame *frame) {
-  log_fmt("ExceptionStackFrame{ip=%,cs=%,flags=%,sp=%,ss=%}",
-          frame->instruction_pointer, frame->code_segment, frame->cpu_flags,
-          frame->stack_pointer, frame->stack_segment);
+  log_fmt("ExceptionStackFrame{ip=%,cs=%,flags=%,sp=%,ss=%}", frame->instruction_pointer,
+          frame->code_segment, frame->cpu_flags, frame->stack_pointer, frame->stack_segment);
 }
 
 static uint16_t IdtEntry__set_present(uint16_t opts) {
@@ -28,8 +27,7 @@ static uint16_t IdtEntry__set_present(uint16_t opts) {
 }
 
 uint64_t IdtEntry__handler_addr(IdtEntry entry) {
-  return ((uint64_t)entry.pointer_low) |
-         (((uint64_t)entry.pointer_middle) << 16) |
+  return ((uint64_t)entry.pointer_low) | (((uint64_t)entry.pointer_middle) << 16) |
          (((uint64_t)entry.pointer_high) << 32);
 }
 
@@ -47,8 +45,7 @@ void IdtEntry__Default__set_handler(IdtEntry *entry, Idt__Handler handler) {
   IdtEntry__set_handler(entry, handler);
 }
 
-void IdtEntry__ForExt__set_handler(IdtEntry__ForExt *entry,
-                                   Idt__HandlerExt handler) {
+void IdtEntry__ForExt__set_handler(IdtEntry__ForExt *entry, Idt__HandlerExt handler) {
   IdtEntry__set_handler(&entry->inner, handler);
 }
 void IdtEntry__ForDiverging__set_handler(IdtEntry__ForDiverging *entry,
@@ -112,4 +109,6 @@ uint16_t Gdt__add_entry(Gdt *gdt, uint64_t entry) {
   return (uint16_t)((index << 3) | priviledge_level);
 }
 
-void divide_by_zero(void) { asm volatile("movq $0, %rdx; divq %rdx"); }
+void divide_by_zero(void) {
+  asm volatile("movq $0, %rdx; divq %rdx");
+}

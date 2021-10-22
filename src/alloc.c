@@ -40,8 +40,7 @@ static inline bool valid_page_for_size_class(int64_t page, int64_t size_class) {
   return (page >> size_class << size_class) == page;
 }
 
-static inline int64_t buddy_page_for_page(int64_t page_index,
-                                          int64_t size_class) {
+static inline int64_t buddy_page_for_page(int64_t page_index, int64_t size_class) {
   assert(valid_page_for_size_class(page_index, size_class));
   return page_index ^ (((int64_t)1) << size_class);
 }
@@ -83,8 +82,7 @@ void alloc__init(MMap mmap) {
     int64_t begin = address_to_page(entry->ptr);
     assert(begin >= previous_end);
 
-    if (begin != previous_end)
-      BitSet__set_range(GLOBAL->usable_pages, previous_end, begin, false);
+    if (begin != previous_end) BitSet__set_range(GLOBAL->usable_pages, previous_end, begin, false);
 
     int64_t end = address_to_page(end_address);
     entry->size = end_address - entry->ptr;
@@ -118,8 +116,7 @@ static void *pop_freelist(int64_t size_class) {
   assert(block->prev == NULL);
 
   info->freelist = block->next;
-  if (info->freelist != NULL)
-    info->freelist->prev = NULL;
+  if (info->freelist != NULL) info->freelist->prev = NULL;
   return block;
 }
 
@@ -132,14 +129,13 @@ static inline void remove_from_freelist(int64_t page, int64_t size_class) {
 
   SizeClassInfo *info = &GLOBAL->size_classes[size_class];
   FreeBlock *prev = block->prev, *next = block->next;
-  if (next != NULL)
-    next->prev = prev;
+  if (next != NULL) next->prev = prev;
   if (prev != NULL) {
     prev->next = next;
   } else {
     if (info->freelist != block) {
-      log_fmt("in size class %: freelist=% and block=%", size_class,
-              (uint64_t)info->freelist, (uint64_t)block);
+      log_fmt("in size class %: freelist=% and block=%", size_class, (uint64_t)info->freelist,
+              (uint64_t)block);
       int64_t counter = 0;
       for (FreeBlock *i = info->freelist; i != NULL; i = i->next, counter++) {
         log_fmt("%: block=%", counter, (uint64_t)i);
@@ -160,8 +156,7 @@ static inline void add_to_freelist(int64_t page, int64_t size_class) {
   block->size_class = size_class;
   block->prev = NULL;
   block->next = info->freelist;
-  if (block->next != NULL)
-    block->next->prev = block;
+  if (block->next != NULL) block->next->prev = block;
   info->freelist = block;
 }
 
@@ -180,13 +175,11 @@ void alloc__validate_heap(void) {
 }
 
 void *alloc(int64_t count) {
-  if (count <= 0)
-    return NULL;
+  if (count <= 0) return NULL;
 
   int64_t size_class = smallest_greater_power2(count);
   for (; size_class < SIZE_CLASS_COUNT; size_class++)
-    if (GLOBAL->size_classes[size_class].freelist != NULL)
-      break;
+    if (GLOBAL->size_classes[size_class].freelist != NULL) break;
 
   if (size_class >= SIZE_CLASS_COUNT) // tried to allocate too much data
     return NULL;
@@ -203,12 +196,10 @@ void *alloc(int64_t count) {
     BitSet__set(GLOBAL->size_classes[size_class].buddies, buddy_index, false);
   }
 
-  if (size_class == 0)
-    return data;
+  if (size_class == 0) return data;
 
   for (int64_t i = size_class - 1; i >= 0; i--) {
-    if ((1 << (i + 1)) == count)
-      return data;
+    if ((1 << (i + 1)) == count) return data;
 
     SizeClassInfo *info = &GLOBAL->size_classes[i];
     int64_t size = 1 << i, buddy_index = page_to_buddy(page, i);
@@ -255,8 +246,7 @@ static void free_at_size_class(int64_t page, int64_t size_class) {
     const bool buddy_is_free = BitSet__get(info->buddies, buddy_index);
     BitSet__set(info->buddies, buddy_index, !buddy_is_free);
 
-    if (!buddy_is_free)
-      return add_to_freelist(page, i);
+    if (!buddy_is_free) return add_to_freelist(page, i);
 
     remove_from_freelist(buddy_page, i);
     page = min(page, buddy_page);

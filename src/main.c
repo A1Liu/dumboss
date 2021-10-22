@@ -10,14 +10,12 @@ typedef struct {
 
 static inline cpuid_result asm_cpuid(int32_t code) {
   cpuid_result result;
-  asm("cpuid"
-      : "=a"(result.eax), "=b"(result.ebx), "=c"(result.ecx), "=d"(result.edx)
-      : "0"(code));
+  asm("cpuid" : "=a"(result.eax), "=b"(result.ebx), "=c"(result.ecx), "=d"(result.edx) : "0"(code));
   return result;
 }
 
-__attribute__((interrupt, noreturn)) void
-Idt__double_fault(ExceptionStackFrame *frame, uint64_t error_code) {
+__attribute__((interrupt, noreturn)) void Idt__double_fault(ExceptionStackFrame *frame,
+                                                            uint64_t error_code) {
   log_fmt("double fault error_code: %", error_code);
   Idt__log_fmt(frame);
   panic();

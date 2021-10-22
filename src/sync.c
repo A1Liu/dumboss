@@ -41,8 +41,7 @@ struct Queue {
   uint8_t buffer[];
 };
 
-_Static_assert(sizeof(Queue) == 64,
-               "Queue should have 64 byte control structure");
+_Static_assert(sizeof(Queue) == 64, "Queue should have 64 byte control structure");
 
 Queue *Queue__create(const Buffer buffer, const int32_t elem_size) {
   const uint64_t address = (uint64_t)buffer.data;

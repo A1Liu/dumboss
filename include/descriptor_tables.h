@@ -61,10 +61,9 @@ typedef struct {
 
 typedef void (*Idt__Handler)(ExceptionStackFrame *);
 typedef void (*Idt__HandlerExt)(ExceptionStackFrame *, uint64_t);
-typedef __attribute__((noreturn, interrupt)) void (*Idt__DivergingHandler)(
-    ExceptionStackFrame *);
-typedef __attribute__((noreturn, interrupt)) void (*Idt__DivergingHandlerExt)(
-    ExceptionStackFrame *, uint64_t);
+typedef __attribute__((noreturn, interrupt)) void (*Idt__DivergingHandler)(ExceptionStackFrame *);
+typedef __attribute__((noreturn, interrupt)) void (*Idt__DivergingHandlerExt)(ExceptionStackFrame *,
+                                                                              uint64_t);
 
 static inline void load_idt(Idt *base) {
   struct {
@@ -104,8 +103,7 @@ static inline IdtEntry IdtEntry__missing(void) {
 // clang-format on
 
 void IdtEntry__Default__set_handler(IdtEntry *entry, Idt__Handler handler);
-void IdtEntry__ForExt__set_handler(IdtEntry__ForExt *entry,
-                                   Idt__HandlerExt handler);
+void IdtEntry__ForExt__set_handler(IdtEntry__ForExt *entry, Idt__HandlerExt handler);
 void IdtEntry__ForDiverging__set_handler(IdtEntry__ForDiverging *entry,
                                          Idt__DivergingHandler handler);
 void IdtEntry__ForDivergingExt__set_handler(IdtEntry__ForDivergingExt *entry,
@@ -134,16 +132,14 @@ _Static_assert(sizeof(1ull) == 8, "unsigned long long should be 64 bit");
 #define GDT__LIMIT_16_19 ((uint64_t)(0xfULL << 48))
 #define GDT__BASE_0_23 ((uint64_t)(0xffffffULL << 16))
 #define GDT__BASE_24_31 ((uint64_t)(0xffULL << 56))
-#define GDT__COMMON                                                            \
-  (GDT__USER_SEGMENT | GDT__ACCESSED | GDT__PRESENT | GDT__WRITABLE |          \
-   GDT__LIMIT_0_15 | GDT__LIMIT_16_19 | GDT__GRANULARITY)
+#define GDT__COMMON                                                                                \
+  (GDT__USER_SEGMENT | GDT__ACCESSED | GDT__PRESENT | GDT__WRITABLE | GDT__LIMIT_0_15 |            \
+   GDT__LIMIT_16_19 | GDT__GRANULARITY)
 #define GDT__KERNEL_CODE (GDT__COMMON | GDT__EXECUTABLE | GDT__LONG_MODE)
 #define GDT__USER_CODE (GDT__KERNEL_CODE | GDT__DPL_RING_3)
 
-_Static_assert(GDT__KERNEL_CODE == 0x00af9b000000ffffULL,
-               "GDT__KERNEL_CODE has incorrect value");
-_Static_assert(GDT__USER_CODE == 0x00affb000000ffffULL,
-               "GDT__USER_CODE has incorrect value");
+_Static_assert(GDT__KERNEL_CODE == 0x00af9b000000ffffULL, "GDT__KERNEL_CODE has incorrect value");
+_Static_assert(GDT__USER_CODE == 0x00affb000000ffffULL, "GDT__USER_CODE has incorrect value");
 
 typedef struct {
   uint64_t *gdt;

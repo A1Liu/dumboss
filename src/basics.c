@@ -7,8 +7,7 @@ int64_t smallest_greater_power2(int64_t _value) {
   assert(_value >= 0);
   uint64_t value = (uint64_t)_value;
 
-  if (value <= 1)
-    return 0;
+  if (value <= 1) return 0;
   return 64 - __builtin_clzl(value - 1);
 }
 
@@ -29,12 +28,13 @@ uint64_t align_down(uint64_t value, uint64_t alignment) {
 }
 
 String Str__new(char *data, int64_t size) {
-  if (size < 0)
-    return (String){.data = NULL, .size = 0};
+  if (size < 0) return (String){.data = NULL, .size = 0};
   return (String){.data = data, .size = size};
 }
 
-bool Str__is_null(String str) { return str.data == NULL || str.size == 0; }
+bool Str__is_null(String str) {
+  return str.data == NULL || str.size == 0;
+}
 
 String Str__slice(String str, int64_t begin, int64_t end) {
   assert(0 <= begin);
@@ -80,13 +80,11 @@ void BitSet__set(const BitSet bits, int64_t idx, bool value) {
 void BitSet__set_all(const BitSet bits, bool value) {
   for (int64_t i = 0, idx = 0; idx < bits.size; i++, idx += 64) {
     bits.data[i] = 0;
-    if (value)
-      bits.data[i] = ~bits.data[i];
+    if (value) bits.data[i] = ~bits.data[i];
   }
 }
 
-void BitSet__set_range(const BitSet bits, int64_t begin, int64_t end,
-                       bool value) {
+void BitSet__set_range(const BitSet bits, int64_t begin, int64_t end, bool value) {
   assert(0 <= begin);
   assert(begin <= end);
   assert(end <= bits.size);
@@ -104,8 +102,7 @@ void BitSet__set_range(const BitSet bits, int64_t begin, int64_t end,
     BitSet__set(bits, i, value);
   for (int64_t i = fast_begin / 64; i < fast_end / 64; i++) {
     bits.data[i] = 0;
-    if (value)
-      bits.data[i] = ~bits.data[i];
+    if (value) bits.data[i] = ~bits.data[i];
   }
   for (int64_t i = fast_end; i < end; i++)
     BitSet__set(bits, i, value);
@@ -139,15 +136,13 @@ int64_t basics__fmt_any(String out, any value) {
     return (int64_t)fmt_i64(out, value.i64_value);
 
   case type_id_char: {
-    if (out.size >= 1)
-      *out.data = value.char_value;
+    if (out.size >= 1) *out.data = value.char_value;
     return 1;
   }
 
   case type_id_char_ptr: {
     char *src = (char *)value.ptr;
-    if (src == NULL)
-      return 0;
+    if (src == NULL) return 0;
 
     // @Safety there better not be any C-strings that are over 2^63 bytes long
     int64_t written = (int64_t)strcpy_s(out, src);
@@ -159,16 +154,14 @@ int64_t basics__fmt_any(String out, any value) {
   }
 }
 
-int64_t basics__fmt(String out, const char *fmt, int32_t count,
-                    const any *args) {
+int64_t basics__fmt(String out, const char *fmt, int32_t count, const any *args) {
   // TODO why would a string be larger than int64_t's max value?
   const int64_t len = (int64_t)out.size;
   int64_t format_count = 0, written = 0;
 
   while (*fmt) {
     if (*fmt != '%') {
-      if (written < len)
-        out.data[written] = *fmt;
+      if (written < len) out.data[written] = *fmt;
       written++;
       fmt++;
       continue;
@@ -176,8 +169,7 @@ int64_t basics__fmt(String out, const char *fmt, int32_t count,
 
     fmt++;
     if (*fmt == '%') {
-      if (written < len)
-        out.data[written] = '%';
+      if (written < len) out.data[written] = '%';
       written++;
       fmt++;
       continue;
@@ -185,20 +177,16 @@ int64_t basics__fmt(String out, const char *fmt, int32_t count,
 
     // TODO how should we handle this? It's definitely a bug, and this case is
     // the scary one we don't ever want to happen
-    if (format_count >= count)
-      return -format_count - 1;
+    if (format_count >= count) return -format_count - 1;
 
-    int64_t fmt_try = basics__fmt_any(Str__suffix(out, min(written, len)),
-                                      args[format_count]);
-    if (fmt_try < 0)
-      return -format_count - 1;
+    int64_t fmt_try = basics__fmt_any(Str__suffix(out, min(written, len)), args[format_count]);
+    if (fmt_try < 0) return -format_count - 1;
     written += fmt_try;
     format_count++;
   }
 
   // TODO how should we handle this? It's a bug, but it's kinda fine
-  if (format_count != count)
-    return -format_count - 1;
+  if (format_count != count) return -format_count - 1;
   return written;
 }
 
@@ -257,35 +245,30 @@ void memset(void *_buffer, uint8_t byte, int64_t len) {
 ///////////////////////////////////////////////////////////////////////////////
 
 // output function type
-typedef void (*out_fct_type)(char character, void *buffer, uint64_t idx,
-                             uint64_t maxlen);
+typedef void (*out_fct_type)(char character, void *buffer, uint64_t idx, uint64_t maxlen);
 
 // internal buffer output
-static inline void _out_buffer(char character, void *buffer, uint64_t idx,
-                               uint64_t maxlen) {
+static inline void _out_buffer(char character, void *buffer, uint64_t idx, uint64_t maxlen) {
   if (idx < maxlen) {
     ((char *)buffer)[idx] = character;
   }
 }
 
-static uint64_t _ntoa_long(out_fct_type out, char *buffer, uint64_t idx,
-                           uint64_t maxlen, uint64_t value, bool negative,
-                           unsigned long base, uint32_t prec, uint32_t width,
-                           uint32_t flags);
+static uint64_t _ntoa_long(out_fct_type out, char *buffer, uint64_t idx, uint64_t maxlen,
+                           uint64_t value, bool negative, unsigned long base, uint32_t prec,
+                           uint32_t width, uint32_t flags);
 
 int64_t fmt_u64(String out, uint64_t value) {
-  return (int64_t)_ntoa_long(_out_buffer, out.data, 0, (uint64_t)out.size,
-                             value, false, 10, 0, 0, 0);
+  return (int64_t)_ntoa_long(_out_buffer, out.data, 0, (uint64_t)out.size, value, false, 10, 0, 0,
+                             0);
 }
 int64_t fmt_i64(String out, int64_t value) {
   return (int64_t)_ntoa_long(_out_buffer, out.data, 0, (uint64_t)out.size,
-                             (uint64_t)(value < 0 ? -value : value), value < 0,
-                             10, 0, 0, 0);
+                             (uint64_t)(value < 0 ? -value : value), value < 0, 10, 0, 0, 0);
 }
 
 int64_t strlen(const char *str) {
-  if (str == NULL)
-    return 0;
+  if (str == NULL) return 0;
 
   int64_t i = 0;
   for (; *str; i++, str++)
@@ -305,8 +288,7 @@ int64_t strlen(const char *str) {
 // }
 
 int64_t strcpy_s(String dest, const char *src) {
-  if (src == NULL)
-    return 0;
+  if (src == NULL) return 0;
 
   int64_t written = 0;
   for (; written < dest.size && src[written]; written++)
@@ -391,9 +373,8 @@ int64_t strcpy_s(String dest, const char *src) {
 // }
 
 // output the specified string in reverse, taking care of any zero-padding
-static uint64_t _out_rev(out_fct_type out, char *buffer, uint64_t idx,
-                         uint64_t maxlen, const char *buf, uint64_t len,
-                         uint32_t width, uint32_t flags) {
+static uint64_t _out_rev(out_fct_type out, char *buffer, uint64_t idx, uint64_t maxlen,
+                         const char *buf, uint64_t len, uint32_t width, uint32_t flags) {
   const uint64_t start_idx = idx;
 
   // pad spaces up to given width
@@ -419,39 +400,33 @@ static uint64_t _out_rev(out_fct_type out, char *buffer, uint64_t idx,
 }
 
 // internal itoa format
-static uint64_t _ntoa_format(out_fct_type out, char *buffer, uint64_t idx,
-                             uint64_t maxlen, char *buf, uint64_t len,
-                             bool negative, uint32_t base, uint32_t prec,
+static uint64_t _ntoa_format(out_fct_type out, char *buffer, uint64_t idx, uint64_t maxlen,
+                             char *buf, uint64_t len, bool negative, uint32_t base, uint32_t prec,
                              uint32_t width, uint32_t flags) {
   // pad leading zeros
   if (!(flags & FLAGS_LEFT)) {
-    if (width && (flags & FLAGS_ZEROPAD) &&
-        (negative || (flags & (FLAGS_PLUS | FLAGS_SPACE)))) {
+    if (width && (flags & FLAGS_ZEROPAD) && (negative || (flags & (FLAGS_PLUS | FLAGS_SPACE)))) {
       width--;
     }
     while ((len < prec) && (len < PRINTF_NTOA_BUFFER_SIZE)) {
       buf[len++] = '0';
     }
-    while ((flags & FLAGS_ZEROPAD) && (len < width) &&
-           (len < PRINTF_NTOA_BUFFER_SIZE)) {
+    while ((flags & FLAGS_ZEROPAD) && (len < width) && (len < PRINTF_NTOA_BUFFER_SIZE)) {
       buf[len++] = '0';
     }
   }
 
   // handle hash
   if (flags & FLAGS_HASH) {
-    if (!(flags & FLAGS_PRECISION) && len &&
-        ((len == prec) || (len == width))) {
+    if (!(flags & FLAGS_PRECISION) && len && ((len == prec) || (len == width))) {
       len--;
       if (len && (base == 16U)) {
         len--;
       }
     }
-    if ((base == 16U) && !(flags & FLAGS_UPPERCASE) &&
-        (len < PRINTF_NTOA_BUFFER_SIZE)) {
+    if ((base == 16U) && !(flags & FLAGS_UPPERCASE) && (len < PRINTF_NTOA_BUFFER_SIZE)) {
       buf[len++] = 'x';
-    } else if ((base == 16U) && (flags & FLAGS_UPPERCASE) &&
-               (len < PRINTF_NTOA_BUFFER_SIZE)) {
+    } else if ((base == 16U) && (flags & FLAGS_UPPERCASE) && (len < PRINTF_NTOA_BUFFER_SIZE)) {
       buf[len++] = 'X';
     } else if ((base == 2U) && (len < PRINTF_NTOA_BUFFER_SIZE)) {
       buf[len++] = 'b';
@@ -476,10 +451,9 @@ static uint64_t _ntoa_format(out_fct_type out, char *buffer, uint64_t idx,
 
 // internal itoa for 'long' type
 // TODO change this `uint32_t value` to a `uint64_t value` once we're on x86_64
-static uint64_t _ntoa_long(out_fct_type out, char *buffer, uint64_t idx,
-                           uint64_t maxlen, uint64_t value, bool negative,
-                           unsigned long base, uint32_t prec, uint32_t width,
-                           uint32_t flags) {
+static uint64_t _ntoa_long(out_fct_type out, char *buffer, uint64_t idx, uint64_t maxlen,
+                           uint64_t value, bool negative, unsigned long base, uint32_t prec,
+                           uint32_t width, uint32_t flags) {
   char buf[PRINTF_NTOA_BUFFER_SIZE];
   uint64_t len = 0U;
 
@@ -492,15 +466,13 @@ static uint64_t _ntoa_long(out_fct_type out, char *buffer, uint64_t idx,
   if (!(flags & FLAGS_PRECISION) || value) {
     do {
       const char digit = (char)(value % base);
-      buf[len++] = digit < 10
-                       ? '0' + digit
-                       : (flags & FLAGS_UPPERCASE ? 'A' : 'a') + digit - 10;
+      buf[len++] = digit < 10 ? '0' + digit : (flags & FLAGS_UPPERCASE ? 'A' : 'a') + digit - 10;
       value /= base;
     } while (value && (len < PRINTF_NTOA_BUFFER_SIZE));
   }
 
-  return _ntoa_format(out, buffer, idx, maxlen, buf, len, negative,
-                      (uint32_t)base, prec, width, flags);
+  return _ntoa_format(out, buffer, idx, maxlen, buf, len, negative, (uint32_t)base, prec, width,
+                      flags);
 }
 
 #if defined(PRINTF_SUPPORT_FLOAT)
@@ -508,32 +480,26 @@ static uint64_t _ntoa_long(out_fct_type out, char *buffer, uint64_t idx,
 #if defined(PRINTF_SUPPORT_EXPONENTIAL)
 // forward declaration so that _ftoa can switch to exp notation for values >
 // PRINTF_MAX_FLOAT
-static uint64_t _etoa(out_fct_type out, char *buffer, uint64_t idx,
-                      uint64_t maxlen, double value, uint32_t prec,
-                      uint32_t width, uint32_t flags);
+static uint64_t _etoa(out_fct_type out, char *buffer, uint64_t idx, uint64_t maxlen, double value,
+                      uint32_t prec, uint32_t width, uint32_t flags);
 #endif
 
 // internal ftoa for fixed decimal floating point
-static uint64_t _ftoa(out_fct_type out, char *buffer, uint64_t idx,
-                      uint64_t maxlen, double value, uint32_t prec,
-                      uint32_t width, uint32_t flags) {
+static uint64_t _ftoa(out_fct_type out, char *buffer, uint64_t idx, uint64_t maxlen, double value,
+                      uint32_t prec, uint32_t width, uint32_t flags) {
   char buf[PRINTF_FTOA_BUFFER_SIZE];
   uint64_t len = 0U;
   double diff = 0.0;
 
   // powers of 10
-  static const double pow10[] = {1,         10,        100,     1000,
-                                 10000,     100000,    1000000, 10000000,
-                                 100000000, 1000000000};
+  static const double pow10[] = {1,      10,      100,      1000,      10000,
+                                 100000, 1000000, 10000000, 100000000, 1000000000};
 
   // test for special values
-  if (value != value)
-    return _out_rev(out, buffer, idx, maxlen, "nan", 3, width, flags);
-  if (value < -DBL_MAX)
-    return _out_rev(out, buffer, idx, maxlen, "fni-", 4, width, flags);
+  if (value != value) return _out_rev(out, buffer, idx, maxlen, "nan", 3, width, flags);
+  if (value < -DBL_MAX) return _out_rev(out, buffer, idx, maxlen, "fni-", 4, width, flags);
   if (value > DBL_MAX)
-    return _out_rev(out, buffer, idx, maxlen,
-                    (flags & FLAGS_PLUS) ? "fni+" : "fni",
+    return _out_rev(out, buffer, idx, maxlen, (flags & FLAGS_PLUS) ? "fni+" : "fni",
                     (flags & FLAGS_PLUS) ? 4U : 3U, width, flags);
 
   // test for very large values
@@ -643,9 +609,8 @@ static uint64_t _ftoa(out_fct_type out, char *buffer, uint64_t idx,
 #if defined(PRINTF_SUPPORT_EXPONENTIAL)
 // internal ftoa variant for exponential floating-point type, contributed by
 // Martijn Jasperse <m.jasperse@gmail.com>
-static uint64_t _etoa(out_fct_type out, char *buffer, uint64_t idx,
-                      uint64_t maxlen, double value, uint32_t prec,
-                      uint32_t width, uint32_t flags) {
+static uint64_t _etoa(out_fct_type out, char *buffer, uint64_t idx, uint64_t maxlen, double value,
+                      uint32_t prec, uint32_t width, uint32_t flags) {
   // check for NaN and special values
   if ((value != value) || (value > DBL_MAX) || (value < -DBL_MAX)) {
     return _ftoa(out, buffer, idx, maxlen, value, prec, width, flags);
@@ -670,14 +635,13 @@ static uint64_t _etoa(out_fct_type out, char *buffer, uint64_t idx,
   } conv;
 
   conv.F = value;
-  int32_t exp2 =
-      (int32_t)((conv.U >> 52U) & 0x07FFU) - 1023; // effectively log2
+  int32_t exp2 = (int32_t)((conv.U >> 52U) & 0x07FFU) - 1023; // effectively log2
   conv.U = (conv.U & ((1ULL << 52U) - 1U)) |
            (1023ULL << 52U); // drop the exponent so conv.F is now in [1,2)
   // now approximate log10 from the log2 integer part and an expansion of ln
   // around 1.5
-  int expval = (int)(0.1760912590558 + exp2 * 0.301029995663981 +
-                     (conv.F - 1.5) * 0.289529654602168);
+  int expval =
+      (int)(0.1760912590558 + exp2 * 0.301029995663981 + (conv.F - 1.5) * 0.289529654602168);
   // now we want to compute 10^expval but we want to be sure it won't overflow
   exp2 = (int)(expval * 3.321928094887362 + 0.5);
   const double z = expval * 2.302585092994046 - exp2 * 0.6931471805599453;
@@ -746,9 +710,8 @@ static uint64_t _etoa(out_fct_type out, char *buffer, uint64_t idx,
     // output the exponential symbol
     out((flags & FLAGS_UPPERCASE) ? 'E' : 'e', buffer, idx++, maxlen);
     // output the exponent value
-    idx =
-        _ntoa_long(out, buffer, idx, maxlen, (expval < 0) ? -expval : expval,
-                   expval < 0, 10, 0, minwidth - 1, FLAGS_ZEROPAD | FLAGS_PLUS);
+    idx = _ntoa_long(out, buffer, idx, maxlen, (expval < 0) ? -expval : expval, expval < 0, 10, 0,
+                     minwidth - 1, FLAGS_ZEROPAD | FLAGS_PLUS);
     // might need to right-pad spaces
     if (flags & FLAGS_LEFT) {
       while (idx - start_idx < width)
