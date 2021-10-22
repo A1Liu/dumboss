@@ -1,7 +1,7 @@
 #pragma once
 #include "memory.h"
 
-void alloc__init(MMapEnt *entries, int64_t entry_count);
+void alloc__init(MMap mmap);
 
 // Allocate `count` contiguous pages, each of size 4kb
 void *alloc(int64_t count);

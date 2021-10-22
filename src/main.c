@@ -38,10 +38,8 @@ void _start(void) {
   log("                    BOOTING UP                    ");
   log("--------------------------------------------------");
 
-  // Calculation described in bootboot specification
-  int64_t entry_count = (bootboot.size - 128) / 16;
-  entry_count = memory__init(&bootboot.mmap, entry_count);
-  alloc__init(&bootboot.mmap, entry_count);
+  MMap mmap = memory__init(&bootboot);
+  alloc__init(mmap);
 
   GdtInfo gdt_info = current_gdt();
 
