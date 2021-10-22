@@ -92,12 +92,13 @@ _Static_assert(sizeof(PageTable) == _4KB, "PageTables should be 4KB");
 typedef struct {
   union {
     struct {
+      uint16_t p0;
       uint16_t p1;
       uint16_t p2;
       uint16_t p3;
       uint16_t p4;
     };
-    uint16_t indices[4];
+    uint16_t indices[5];
   };
 } PageTableIndices;
 
@@ -108,6 +109,7 @@ static PageTableIndices page_table_indices(uint64_t address) {
   uint64_t p4 = p3 >> 9;
 
   return (PageTableIndices){
+      .p0 = (uint16_t)(address % _4KB),
       .p1 = (uint16_t)(p1 % PageTable__ENTRY_COUNT),
       .p2 = (uint16_t)(p2 % PageTable__ENTRY_COUNT),
       .p3 = (uint16_t)(p3 % PageTable__ENTRY_COUNT),
@@ -130,61 +132,43 @@ static uint64_t indices_to_address(PageTableIndices indices) {
   return address;
 }
 
-// static void extend_page_table(MMap mmap) {}
-typedef struct {
-  bool was_lazy;
-  bool was_empty;
-  uint64_t address;
-} TableBuilderStatus;
+static PageTable *build_page_table(MMap mmap, uint16_t table_level, PageTableIndices min_addr,
+                                   PageTableIndices max_addr) {
+  assert(table_level < 4);
+  for (int i = 0; i < table_level; i++)
+    assert(min_addr.indices[i] == max_addr.indices[i]);
+  for (int i = table_level; i < 4; i++)
+    assert(min_addr.indices[i] == 0);
 
-static TableBuilderStatus lazy_build_page_table(MMap mmap, uint64_t table_entry,
-                                                PageTableIndices indices, uint16_t table_level) {
-  assert(table_level < 5);
-  TableBuilderStatus status = {.was_lazy = true, .was_empty = false, .address = 0};
+  PageTable *new_table = alloc_from_entries(mmap, sizeof(PageTable), sizeof(PageTable));
+  assert(new_table != MMapEnt__ALLOC_FAILURE);
 
-  if (table_level == 0) // its not a page table
-    return status;
-  if (table_entry & PTE_HUGE_PAGE) // If its a huge page, it can be done lazily
-    return status;
-
-  if (table_entry == 0) {
-    status.was_lazy = false;
-    status.was_empty = true;
-
-    return status;
+  const static uint64_t LAZY_FLAG[] = {0, 0, PTE_HUGE_PAGE, PTE_HUGE_PAGE, 0};
+  for (uint16_t i = 0; i < PageTable__ENTRY_COUNT; i++) {
+    min_addr.indices[table_level] = i;
+    uint64_t page_address = indices_to_address(min_addr) & PTE_ADDRESS;
+    new_table->entries[i] = page_address | PTE_WRITABLE | PTE_NO_EXECUTE | LAZY_FLAG[table_level];
   }
 
-  PageTable *table = (PageTable *)(table_entry & PTE_ADDRESS);
-  int idx = 0;
-
-  PageTableIndices indices_param = indices;
-  for (; status.was_lazy & (idx < PageTable__ENTRY_COUNT);
-       idx++, indices_param.indices[table_level - 2] += 1) {
-    uint64_t entry = table->entries[idx];
-    status = lazy_build_page_table(mmap, entry, indices_param, table_level - 1);
-  }
-
-  if (status.was_lazy) return status;
-  status.was_lazy = false;
-
-  // PageTable *new_table =
-  //     alloc_from_entries(mmap, sizeof(PageTable), sizeof(PageTable));
-
-  // const static uint64_t LAZY_FLAG[] = {0, 0, PTE_HUGE_PAGE, PTE_HUGE_PAGE,
-  // 0};
-  int first_eager = idx - 1;
-  indices_param = indices;
-  for (int i = 0; i < first_eager; i++) {
-    // new_table->entries[i] = alloc_from_entries();
-  }
-
-  return status;
+  return new_table;
 }
+
+// static void extend_page_table(MMap mmap, uint64_t min_addr, uint64_t max_addr) {
+// }
 
 static MMap sort_entries(MMapEnt *entries, int64_t entry_count);
 MMap memory__init(BOOTBOOT *bb) {
   // Calculation described in bootboot specification
   int64_t entry_count = (bb->size - 128) / 16;
+  uint64_t min_addr = ~((uint64_t)0), max_addr = 0;
+  for (int i = 0; i < entry_count; i++) {
+    MMapEnt *entry = &bb->mmap;
+    uint64_t ptr = MMapEnt_Ptr(&entry[i]), size = MMapEnt_Size(&entry[i]);
+
+    max_addr = max(max_addr, ptr + size);
+    min_addr = min(min_addr, ptr);
+  }
+
   MMap mmap = sort_entries(&bb->mmap, entry_count);
 
   // First page in memory isn't used right now.
