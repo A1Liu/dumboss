@@ -5,82 +5,36 @@
 
 #define U64_1 ((uint64_t)1)
 
-/// Specifies whether the mapped frame or page table is loaded in memory.
-#define PTE_PRESENT U64_1
-/// Controls whether writes to the mapped frames are allowed.
-///
-/// If this bit is unset in a level 1 page table entry, the mapped frame is
-/// read-only. If this bit is unset in a higher level page table entry the
-/// complete range of mapped pages is read-only.
-#define PTE_WRITABLE (U64_1 << 1)
-/// Controls whether accesses from userspace (i.e. ring 3) are permitted.
+// Used Phil Opperman's x86_64 rust code to make these macros
+// https://github.com/rust-osdev/x86_64/blob/master/src/structures/paging/page_table.rs
+
+#define PTE_PRESENT         U64_1
+#define PTE_WRITABLE        (U64_1 << 1)
 #define PTE_USER_ACCESSIBLE (U64_1 << 2)
-/// If this bit is set, a “write-through” policy is used for the cache, else a
-/// “write-back” policy is used.
-#define PTE_WRITE_THROUGH (U64_1 << 3)
-/// Disables caching for the pointed entry is cacheable.
-#define PTE_NO_CACHE (U64_1 << 4)
-/// Set by the CPU when the mapped frame or page table is accessed.
-#define PTE_ACCESSED (U64_1 << 5)
-/// Set by the CPU on a write to the mapped frame.
-#define PTE_DIRTY (U64_1 << 6)
-/// Specifies that the entry maps a huge frame instead of a page table. Only
-/// allowed in P2 or P3 tables.
-#define PTE_HUGE_PAGE (U64_1 << 7)
-/// Indicates that the mapping is present in all address spaces, so it isn't
-/// flushed from the TLB on an address space switch.
-#define PTE_GLOBAL (U64_1 << 8)
-/// Available to the OS, can be used to store additional data, e.g. custom
-/// flags.
-#define PTE_BIT_9 (U64_1 << 9)
-/// Available to the OS, can be used to store additional data, e.g. custom
-/// flags.
-#define PTE_BIT_10 (U64_1 << 10)
-/// Available to the OS, can be used to store additional data, e.g. custom
-/// flags.
-#define PTE_BIT_11 (U64_1 << 11)
-/// Available to the OS, can be used to store additional data, e.g. custom
-/// flags.
-#define PTE_BIT_52 (U64_1 << 52)
-/// Available to the OS, can be used to store additional data, e.g. custom
-/// flags.
-#define PTE_BIT_53 (U64_1 << 53)
-/// Available to the OS, can be used to store additional data, e.g. custom
-/// flags.
-#define PTE_BIT_54 (U64_1 << 54)
-/// Available to the OS, can be used to store additional data, e.g. custom
-/// flags.
-#define PTE_BIT_55 (U64_1 << 55)
-/// Available to the OS, can be used to store additional data, e.g. custom
-/// flags.
-#define PTE_BIT_56 (U64_1 << 56)
-/// Available to the OS, can be used to store additional data, e.g. custom
-/// flags.
-#define PTE_BIT_57 (U64_1 << 57)
-/// Available to the OS, can be used to store additional data, e.g. custom
-/// flags.
-#define PTE_BIT_58 (U64_1 << 58)
-/// Available to the OS, can be used to store additional data, e.g. custom
-/// flags.
-#define PTE_BIT_59 (U64_1 << 59)
-/// Available to the OS, can be used to store additional data, e.g. custom
-/// flags.
-#define PTE_BIT_60 (U64_1 << 60)
-/// Available to the OS, can be used to store additional data, e.g. custom
-/// flags.
-#define PTE_BIT_61 (U64_1 << 61)
-/// Available to the OS, can be used to store additional data, e.g. custom
-/// flags.
-#define PTE_BIT_62 (U64_1 << 62)
-/// Forbid code execution from the mapped frames.
-///
-/// Can be only used when the no-execute page protection feature is enabled in
-/// the EFER register.
-#define PTE_NO_EXECUTE (U64_1 << 63)
+#define PTE_WRITE_THROUGH   (U64_1 << 3)
+#define PTE_NO_CACHE        (U64_1 << 4)
+#define PTE_ACCESSED        (U64_1 << 5)
+#define PTE_DIRTY           (U64_1 << 6)
+#define PTE_HUGE_PAGE       (U64_1 << 7)
+#define PTE_GLOBAL          (U64_1 << 8)
+#define PTE_BIT_9           (U64_1 << 9)
+#define PTE_BIT_10          (U64_1 << 10)
+#define PTE_BIT_11          (U64_1 << 11)
+#define PTE_BIT_52          (U64_1 << 52)
+#define PTE_BIT_53          (U64_1 << 53)
+#define PTE_BIT_54          (U64_1 << 54)
+#define PTE_BIT_55          (U64_1 << 55)
+#define PTE_BIT_56          (U64_1 << 56)
+#define PTE_BIT_57          (U64_1 << 57)
+#define PTE_BIT_58          (U64_1 << 58)
+#define PTE_BIT_59          (U64_1 << 59)
+#define PTE_BIT_60          (U64_1 << 60)
+#define PTE_BIT_61          (U64_1 << 61)
+#define PTE_BIT_62          (U64_1 << 62)
+#define PTE_NO_EXECUTE      (U64_1 << 63)
+#define PTE_ADDRESS         0x000ffffffffff000ull
 
-#define PTE_ADDRESS 0x000ffffffffff000ull
-
-char *memory__bootboot_mmap_typename[] = {"Used", "Free", "ACPI", "MMIO"};
+const char *const memory__bootboot_mmap_typename[] = {"Used", "Free", "ACPI", "MMIO"};
 
 #define PageTable__ENTRY_COUNT 512
 typedef struct {
@@ -205,6 +159,7 @@ MMap memory__init(BOOTBOOT *bb) {
       mmap.count = it_index;
       break;
     }
+
     it->size = MMapEnt_Size(it);
     log_fmt("entry: free entry size %", it->size);
   }
