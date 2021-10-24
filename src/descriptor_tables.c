@@ -18,7 +18,7 @@ Idt *Idt__new(void *buffer, int64_t size) {
 }
 
 void Idt__log_fmt(ExceptionStackFrame *frame) {
-  log_fmt("ExceptionStackFrame{ip=%,cs=%,flags=%,sp=%,ss=%}", frame->instruction_pointer,
+  log_fmt("ExceptionStackFrame{ip=%f,cs=%f,flags=%f,sp=%f,ss=%f}", frame->instruction_pointer,
           frame->code_segment, frame->cpu_flags, frame->stack_pointer, frame->stack_segment);
 }
 

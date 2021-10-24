@@ -3,6 +3,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#define U64_1 ((uint64_t)1)
+
 typedef struct {
   const char *file;
   uint32_t line;
@@ -120,13 +122,23 @@ typedef struct {
 #define _FOR(array, it, it_index)                                                                  \
   DECLARE_SCOPED(typeof(array) M_array = array)                                                    \
   DECLARE_SCOPED(int64_t it_index = 0, M_len = M_array.count)                                      \
-  DECLARE_SCOPED(typeof(array.data) M_ptr = M_array.data, it = NULL)                               \
+  DECLARE_SCOPED(typeof(&array.data[0]) M_ptr = M_array.data, it = NULL)                           \
+  for (it = M_ptr; it_index < M_len; it++, it_index++)
+
+#define _FOR_PTR(ptr, len, it, it_index)                                                           \
+  DECLARE_SCOPED(int64_t it_index = 0, M_len = len)                                                \
+  DECLARE_SCOPED(typeof(&ptr[0]) M_ptr = ptr, it = NULL)                                           \
   for (it = M_ptr; it_index < M_len; it++, it_index++)
 
 #define _FOR1(array)               _FOR(array, it, it_index)
 #define _FOR2(array, it)           _FOR(array, it, it_index)
 #define _FOR3(array, it, it_index) _FOR(array, it, it_index)
 #define FOR(...)                   PASTE(_FOR, NARG(__VA_ARGS__))(__VA_ARGS__)
+
+#define _FOR_PTR2(ptr, len)               _FOR_PTR(ptr, len, it, it_index)
+#define _FOR_PTR3(ptr, len, it)           _FOR_PTR(ptr, len, it, it_index)
+#define _FOR_PTR4(ptr, len, it, it_index) _FOR_PTR(ptr, len, it, it_index)
+#define FOR_PTR(...)                      PASTE(_FOR_PTR, NARG(__VA_ARGS__))(__VA_ARGS__)
 
 // Does bubble sort stuff; user has to make the swaps themself
 #define SLOW_SORT(array)                                                                           \
@@ -162,11 +174,13 @@ typedef struct {
     FOR_ARGS(make_any, __VA_ARGS__)                                                                \
   }
 
-#define _read_register1(reg) _read_register2(reg, uint64_t)
-#define _read_register2(reg, ty)                                                                   \
+#define _read_register1(reg)     _read_register3(reg, uint64_t, "")
+#define _read_register2(reg, ty) _read_register3(reg, ty, "")
+#define _read_register3(reg, ty, suffix)                                                           \
   ({                                                                                               \
+    _Static_assert(sizeof(ty) <= 8, "read_register only takes a type with size <= 8");             \
     ty value;                                                                                      \
-    asm("mov %%" #reg ", %0" : "=g"(value));                                                       \
+    asm("mov" suffix " %%" #reg ", %0" : "=r"(value));                                             \
     value;                                                                                         \
   })
 #define read_register(...) PASTE(_read_register, NARG(__VA_ARGS__))(__VA_ARGS__)

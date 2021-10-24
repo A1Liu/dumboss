@@ -14,7 +14,7 @@ typedef struct {
   int64_t count;
 } MMap;
 
-extern char *memory__bootboot_mmap_typename[];
+extern const char *const memory__bootboot_mmap_typename[];
 
 void *alloc_from_entries(MMap mmap, int64_t size, int64_t align);
 

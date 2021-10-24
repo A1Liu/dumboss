@@ -7,7 +7,7 @@ void serial__write(char a);
 
 static int64_t write_prefix_to_buffer(String out, sloc loc) {
   any args[] = {make_any(loc.file), make_any(loc.line)};
-  return basics__fmt(out, "[%:%]: ", 2, args);
+  return basics__fmt(out, "[%f:%f]: ", 2, args);
 }
 
 void logging__log(sloc loc, int32_t count, const any *args) {
@@ -37,11 +37,11 @@ void logging__log_fmt(sloc loc, const char *fmt, int32_t count, const any *args)
   int64_t fmt_try = basics__fmt(Str__suffix(out, written), fmt, count, args);
   if (fmt_try < 0) {
     if (fmt_try < -count - 1) {
-      logging__log_fmt(loc, "too many parameters (expected %, got %)", 2,
+      logging__log_fmt(loc, "too many parameters (expected %f, got %f)", 2,
                        make_any_array(-fmt_try, count));
       shutdown();
     } else {
-      logging__log_fmt(loc, "failed to log parameter at index %", 1, make_any_array(-fmt_try - 1));
+      logging__log_fmt(loc, "failed to log parameter at index %f", 1, make_any_array(-fmt_try - 1));
       shutdown();
     }
   }

@@ -8,7 +8,8 @@ typedef struct {
   uint32_t eax, ebx, ecx, edx;
 } cpuid_result;
 
-static inline cpuid_result asm_cpuid(int32_t code) {
+#define CPUID_PDPE1GB (U64_1 << 26)
+static inline cpuid_result asm_cpuid(uint32_t code) {
   cpuid_result result;
   asm("cpuid" : "=a"(result.eax), "=b"(result.ebx), "=c"(result.ecx), "=d"(result.edx) : "0"(code));
   return result;
@@ -16,7 +17,7 @@ static inline cpuid_result asm_cpuid(int32_t code) {
 
 __attribute__((interrupt, noreturn)) void Idt__double_fault(ExceptionStackFrame *frame,
                                                             uint64_t error_code) {
-  log_fmt("double fault error_code: %", error_code);
+  log_fmt("double fault error_code: %f", error_code);
   Idt__log_fmt(frame);
   panic();
 }
@@ -36,12 +37,15 @@ void _start(void) {
   log("                    BOOTING UP                    ");
   log("--------------------------------------------------");
 
+  uint32_t gb_pages = asm_cpuid(0x80000001).edx & CPUID_PDPE1GB;
+  if (gb_pages) log("Gb pages are enabled");
+
   MMap mmap = memory__init(&bootboot);
   alloc__init(mmap);
 
   GdtInfo gdt_info = current_gdt();
 
-  log_fmt("GDT: % %", gdt_info.size, (uint64_t)gdt_info.gdt);
+  log_fmt("GDT: %f %f", gdt_info.size, (uint64_t)gdt_info.gdt);
 
   Gdt *gdt = alloc(1);
   *gdt = Gdt__new();

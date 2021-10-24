@@ -3,8 +3,6 @@
 #include "logging.h"
 #include <stddef.h>
 
-#define U64_1 ((uint64_t)1)
-
 // Used Phil Opperman's x86_64 rust code to make these macros
 // https://github.com/rust-osdev/x86_64/blob/master/src/structures/paging/page_table.rs
 
@@ -86,6 +84,87 @@ static uint64_t indices_to_address(PageTableIndices indices) {
   return address;
 }
 
+static void traverse_table(uint64_t table_entry, uint16_t table_level) {
+  const static char *const prefixes[] = {"        ", "      ", "    ", "  ", ""};
+  const static char *const page_size_for_entry[] = {"", "4Kb", "2Mb", "1Gb", ""};
+
+  if (!table_level | (table_entry & PTE_HUGE_PAGE)) {
+    // Probs wont ever happen
+    return;
+  }
+
+  uint16_t count = 0;
+  PageTable *table = (PageTable *)(table_entry & PTE_ADDRESS);
+  FOR_PTR(table->entries, PageTable__ENTRY_COUNT) {
+    uint64_t entry = *it;
+    if (!entry) continue;
+    count++;
+  }
+
+  log_fmt("%fp%f table with %f children", prefixes[table_level], table_level, count);
+
+  enum Mode { TABLE, EMPTY, PAGE };
+  enum Mode mode = 0;
+  int64_t type_count = 0;
+  FOR_PTR(table->entries, PageTable__ENTRY_COUNT) {
+    uint64_t entry = *it;
+
+    enum Mode new_mode;
+    if (!entry) new_mode = EMPTY;
+    else if ((table_level == 1) || (entry & PTE_HUGE_PAGE))
+      new_mode = PAGE;
+    else
+      new_mode = TABLE;
+
+    if (mode != new_mode) switch (mode) {
+      case TABLE:
+        break;
+
+      case EMPTY:
+        log_fmt("%f%f empty p%f entries", prefixes[table_level - 1], type_count, table_level);
+        type_count = 0;
+        break;
+
+      case PAGE:
+        log_fmt("%f%f %f page entries", prefixes[table_level - 1], type_count,
+                page_size_for_entry[table_level]);
+        type_count = 0;
+        break;
+      }
+
+    switch (new_mode) {
+    case TABLE:
+      traverse_table(entry, table_level - 1);
+      break;
+
+    case EMPTY:
+      type_count++;
+      break;
+
+    case PAGE:
+      type_count++;
+      break;
+    }
+
+    mode = new_mode;
+  }
+
+  switch (mode) {
+  case TABLE:
+    break;
+
+  case EMPTY:
+    log_fmt("%f%f empty p%f entries", prefixes[table_level - 1], type_count, table_level);
+    type_count = 0;
+    break;
+
+  case PAGE:
+    log_fmt("%f%f %f page entries", prefixes[table_level - 1], type_count,
+            page_size_for_entry[table_level]);
+    break;
+  }
+}
+
 // NOTE: I'm having trouble finding actual resources online for stuff, so I'm just
 // going to make some assumptions.
 
@@ -161,7 +240,7 @@ MMap memory__init(BOOTBOOT *bb) {
     }
 
     it->size = MMapEnt_Size(it);
-    log_fmt("entry: free entry size %", it->size);
+    log_fmt("entry: free entry size %f", it->size);
   }
 
   // First page in physical memory isn't used right now.
@@ -171,6 +250,9 @@ MMap memory__init(BOOTBOOT *bb) {
     void *safety_alloc = alloc_from_entries(mmap, safety_size, 1);
     memset(safety_alloc, 42, safety_size);
   }
+
+  uint64_t table = read_register(cr3, uint64_t, "q");
+  traverse_table(table, 4);
 
   return mmap;
 }

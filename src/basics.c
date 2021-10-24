@@ -175,6 +175,9 @@ int64_t basics__fmt(String out, const char *fmt, int32_t count, const any *args)
       continue;
     }
 
+    if (*fmt != 'f') return -format_count - 1;
+    fmt++;
+
     // TODO how should we handle this? It's definitely a bug, and this case is
     // the scary one we don't ever want to happen
     if (format_count >= count) return -format_count - 1;

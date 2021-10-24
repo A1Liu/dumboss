@@ -93,7 +93,7 @@ void alloc__init(MMap mmap) {
   log_fmt("After setting up allocator");
   int64_t available_memory = 0;
   for (int64_t i = 0; i < mmap.count; i++) {
-    log_fmt("%k bytes at %", mmap.data[i].size / 1024, mmap.data[i].ptr);
+    log_fmt("%fk bytes at %f", mmap.data[i].size / 1024, mmap.data[i].ptr);
     available_memory += (int64_t)mmap.data[i].size;
   }
 
@@ -134,11 +134,11 @@ static inline void remove_from_freelist(int64_t page, int64_t size_class) {
     prev->next = next;
   } else {
     if (info->freelist != block) {
-      log_fmt("in size class %: freelist=% and block=%", size_class, (uint64_t)info->freelist,
+      log_fmt("in size class %f: freelist=%f and block=%f", size_class, (uint64_t)info->freelist,
               (uint64_t)block);
       int64_t counter = 0;
       for (FreeBlock *i = info->freelist; i != NULL; i = i->next, counter++) {
-        log_fmt("%: block=%", counter, (uint64_t)i);
+        log_fmt("%f: block=%f", counter, (uint64_t)i);
       }
 
       assert(false);
