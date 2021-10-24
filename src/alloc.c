@@ -54,7 +54,7 @@ void alloc__init(MMap mmap) {
   memset(GLOBAL, 0, sizeof(*GLOBAL));
 
   // Build basic buddy system structure
-  MMapEnt *last_entry = &mmap.entries[mmap.count - 1];
+  MMapEnt *last_entry = &mmap.data[mmap.count - 1];
   uint64_t max_address = last_entry->ptr + last_entry->size;
   max_address = align_up(max_address, _4KB << SIZE_CLASS_COUNT);
   int64_t max_page_idx = address_to_page(max_address);
@@ -76,7 +76,7 @@ void alloc__init(MMap mmap) {
   GLOBAL->size_classes[SIZE_CLASS_COUNT - 1].buddies = BitSet__new(NULL, 0);
 
   for (int64_t i = 0, previous_end = 0; i < mmap.count; i++) {
-    MMapEnt *entry = &mmap.entries[i];
+    MMapEnt *entry = &mmap.data[i];
     uint64_t end_address = align_down(entry->ptr + entry->size, _4KB);
     entry->ptr = align_up(entry->ptr, _4KB);
     int64_t begin = address_to_page(entry->ptr);
@@ -93,12 +93,12 @@ void alloc__init(MMap mmap) {
   log_fmt("After setting up allocator");
   int64_t available_memory = 0;
   for (int64_t i = 0; i < mmap.count; i++) {
-    log_fmt("%k bytes at %", mmap.entries[i].size / 1024, mmap.entries[i].ptr);
-    available_memory += (int64_t)mmap.entries[i].size;
+    log_fmt("%k bytes at %", mmap.data[i].size / 1024, mmap.data[i].ptr);
+    available_memory += (int64_t)mmap.data[i].size;
   }
 
   for (int64_t i = 0; i < mmap.count; i++)
-    free((void *)mmap.entries[i].ptr, mmap.entries[i].size / _4KB);
+    free((void *)mmap.data[i].ptr, mmap.data[i].size / _4KB);
 
   assert(available_memory == GLOBAL->free_memory);
   GLOBAL->heap_size = available_memory;

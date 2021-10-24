@@ -131,48 +131,72 @@ static uint64_t indices_to_address(PageTableIndices indices) {
 
   return address;
 }
+// NOTE: I'm having trouble finding actual resources online for stuff, so I'm just
+// going to make some assumptions.
 
-static PageTable *build_page_table(MMap mmap, uint16_t table_level, PageTableIndices min_addr,
-                                   PageTableIndices max_addr) {
-  assert(table_level < 4);
-  for (int i = 0; i < table_level; i++)
-    assert(min_addr.indices[i] == max_addr.indices[i]);
-  for (int i = table_level; i < 4; i++)
-    assert(min_addr.indices[i] == 0);
-
-  PageTable *new_table = alloc_from_entries(mmap, sizeof(PageTable), sizeof(PageTable));
-  assert(new_table != MMapEnt__ALLOC_FAILURE);
-
-  const static uint64_t LAZY_FLAG[] = {0, 0, PTE_HUGE_PAGE, PTE_HUGE_PAGE, 0};
-  for (uint16_t i = 0; i < PageTable__ENTRY_COUNT; i++) {
-    min_addr.indices[table_level] = i;
-    uint64_t page_address = indices_to_address(min_addr) & PTE_ADDRESS;
-    new_table->entries[i] = page_address | PTE_WRITABLE | PTE_NO_EXECUTE | LAZY_FLAG[table_level];
-  }
-
-  return new_table;
-}
-
-// static void extend_page_table(MMap mmap, uint64_t min_addr, uint64_t max_addr) {
+// static PageTable *build_page_table(MMap mmap, uint16_t table_level, PageTableIndices min_addr,
+//                                    PageTableIndices max_addr) {
+//   assert(table_level < 4);
+//   for (int i = 0; i < table_level; i++)
+//     assert(min_addr.indices[i] == max_addr.indices[i]);
+//
+//   PageTable *new_table = alloc_from_entries(mmap, sizeof(PageTable), sizeof(PageTable));
+//   assert(new_table != MMapEnt__ALLOC_FAILURE);
+//
+//   const static uint64_t LAZY_FLAG[] = {0, 0, PTE_HUGE_PAGE, PTE_HUGE_PAGE};
+//   for (uint16_t i = 0; i < max_addr.indices[table_level]; i++) {
+//     min_addr.indices[table_level] = i;
+//     uint64_t page_address = indices_to_address(min_addr) & PTE_ADDRESS;
+//     uint64_t entry = page_address | PTE_WRITABLE | PTE_NO_EXECUTE | LAZY_FLAG[table_level];
+//     new_table->entries[i] = entry;
+//   }
+//
+//   return new_table;
+// }
+//
+// static void extend_page_tables(MMap mmap, uint64_t _max_addr) {
+//   assert(MEMORY__KERNEL_SPACE_BEGIN > _min_addr);
+//
+//   PageTableIndices min_addr = page_table_indices(0);
+//   PageTableIndices max_addr = page_table_indices(_max_addr);
+//   PageTableIndices kernel_offset = page_table_indices(_kernel_offset);
+//
+//   uint16_t table_level = 4;
+//   PageTable *current_table = read_register(cr3, PageTable *);
+//   for (uint16_t i = 0; i < max_addr.indices[table_level]; i++) {
+//     PageTable *child = build_page_table(mmap, table_level - 1, min_addr);
+//     uint64_t address = (uint64_t)child;
+//     uint64_t entry = address | PTE_WRITABLE | PTE_NO_EXECUTE;
+//     current_table->entries[kernel_offset.indices[table_level] + i] = entry;
+//   }
+//
+//   table_level -= 1;
+//   // min_addr[table_level] =
+//
+//   while (table_level) {
+//     uint16_t start_at = kernel_offset[table_level];
+//     PageTable *page_entry = build_page_table(mmap, table_level, start_at, min_addr, max_addr);
+//     current_table->entries[min_addr] = (uint64_t)page_entry;
+//     table_level -= 1;
+//   }
 // }
 
 static MMap sort_entries(MMapEnt *entries, int64_t entry_count);
 MMap memory__init(BOOTBOOT *bb) {
   // Calculation described in bootboot specification
   int64_t entry_count = (bb->size - 128) / 16;
-  uint64_t min_addr = ~((uint64_t)0), max_addr = 0;
-  for (int i = 0; i < entry_count; i++) {
+  uint64_t max_addr = 0;
+  for (int64_t i = 0; i < entry_count; i++) {
     MMapEnt *entry = &bb->mmap;
     uint64_t ptr = MMapEnt_Ptr(&entry[i]), size = MMapEnt_Size(&entry[i]);
 
     max_addr = max(max_addr, ptr + size);
-    min_addr = min(min_addr, ptr);
   }
 
   MMap mmap = sort_entries(&bb->mmap, entry_count);
 
   // First page in memory isn't used right now.
-  uint64_t first_ptr = MMapEnt_Ptr(&mmap.entries[0]);
+  uint64_t first_ptr = MMapEnt_Ptr(&mmap.data[0]);
   if (first_ptr < _4KB) {
     int64_t safety_size = _4KB - (int64_t)first_ptr;
     void *safety_alloc = alloc_from_entries(mmap, safety_size, 1);
@@ -184,31 +208,11 @@ MMap memory__init(BOOTBOOT *bb) {
 
 static MMap sort_entries(MMapEnt *entries, int64_t entry_count) {
   // bubble-sort the entries so that the free ones are first
-  for (int64_t right_bound = entry_count - 1; right_bound > 0; right_bound--) {
-    for (int64_t i = 0; i < right_bound; i++) {
-      MMapEnt *left = &entries[i], *right = &entries[i + 1];
-      uint64_t l_ptr = MMapEnt_Ptr(left), r_ptr = MMapEnt_Ptr(right);
-      uint64_t l_size = MMapEnt_Size(left), r_size = MMapEnt_Size(right);
-      uint64_t l_type = MMapEnt_Type(left), r_type = MMapEnt_Type(right);
+  SLOW_SORT(entries, entry_count) {
+    uint64_t l_type = MMapEnt_Type(left), r_type = MMapEnt_Type(right);
 
-      bool swap = (l_ptr == 0) & (l_size == 0);
-      swap |= (l_type != MMAP_FREE) & (r_type == MMAP_FREE);
-
-      // NOTE: This coalescing is reliant on bootboot behavior, see
-      // include/bootboot.h line 89
-      //                        - Albert Liu, Oct 21, 2021 Thu 21:33 EDT
-      if (l_ptr + l_size == r_ptr && l_type == r_type) {
-        left->size = (l_size + r_size) | l_type;
-        right->ptr = 0;
-        right->size = l_type;
-      }
-
-      if (!swap) continue;
-
-      MMapEnt e = entries[i + 1];
-      entries[i + 1] = entries[i];
-      entries[i] = e;
-    }
+    bool swap = (l_type != MMAP_FREE) & (r_type == MMAP_FREE);
+    if (swap) SWAP(left, right);
   }
 
   // remove weird bit stuff that BOOTBOOT does for the free entries
@@ -219,7 +223,7 @@ static MMap sort_entries(MMapEnt *entries, int64_t entry_count) {
     log_fmt("entry: free entry size %", entry->size);
   }
 
-  return (MMap){.entries = entries, .count = i};
+  return (MMap){.data = entries, .count = i};
 }
 
 void *alloc_from_entries(MMap mmap, int64_t _size, int64_t _align) {
@@ -230,7 +234,7 @@ void *alloc_from_entries(MMap mmap, int64_t _size, int64_t _align) {
   uint64_t align = max((uint64_t)_align, 1);
   uint64_t size = align_up((uint64_t)_size, align);
   for (int64_t i = 0; i < mmap.count; i++) {
-    MMapEnt *cur = &mmap.entries[i];
+    MMapEnt *cur = &mmap.data[i];
 
     uint64_t aligned_ptr = align_up(cur->ptr, align);
     uint64_t aligned_size = cur->size + cur->ptr - aligned_ptr;

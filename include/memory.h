@@ -3,14 +3,14 @@
 #include <stdint.h>
 
 #define MMapEnt__ALLOC_FAILURE ((void *)~0ULL)
-#define MEMORY__KERNEL_BEGIN 0x2000000000000000ull
+#define MEMORY__KERNEL_SPACE_BEGIN (~(uint64_t)0xffffffffffffull)
 
 #define _4KB 4096
 // #define _2MB ((uint64_t)2097152)
 // #define _1GB ((uint64_t)1073741824)
 
 typedef struct {
-  MMapEnt *entries;
+  MMapEnt *data;
   int64_t count;
 } MMap;
 

@@ -10,17 +10,17 @@ typedef struct {
 
 typedef struct {
   uint8_t *data;
-  int64_t size;
+  int64_t count;
 } Buffer;
 
 typedef struct {
   char *data;
-  int64_t size;
+  int64_t count;
 } String;
 
 typedef struct {
   uint64_t *data;
-  int64_t size;
+  int64_t count;
 } BitSet;
 
 typedef enum __attribute__((packed)) {
@@ -48,6 +48,23 @@ typedef struct {
   type_id type;
 } any;
 
+#define FOR_EACH(ptr, len) for (typeof(ptr) it = ptr, end = ptr + len; it != end; it++)
+
+#define SWAP(left, right)                                                                          \
+  ({                                                                                               \
+    typeof(*left) value = *left;                                                                   \
+    *left = *right;                                                                                \
+    *right = value;                                                                                \
+  })
+
+#define SLOW_SORT(ptr, len)                                                                        \
+  for (int64_t bubble_sort_right_bound = entry_count - 1, bubble_sort_left_index = 0;              \
+       bubble_sort_right_bound > 0; bubble_sort_right_bound--, bubble_sort_left_index = 0)         \
+    for (typeof(ptr) left = ptr + bubble_sort_left_index,                                          \
+                     right = ptr + bubble_sort_left_index + 1;                                     \
+         bubble_sort_left_index < bubble_sort_right_bound;                                         \
+         bubble_sort_left_index++, left++, right++)
+
 #define __LOC__                                                                                    \
   (sloc) {                                                                                         \
     .file = __FILE__, .line = __LINE__                                                             \
@@ -72,37 +89,37 @@ typedef struct {
 #define PASTE(a, b) _PASTE(a, b)
 
 // function, separator, capture
-#define _FOR_EACH0(func, ...)
-#define _FOR_EACH1(func, a) func(a)
-#define _FOR_EACH2(func, a, b) func(a), func(b)
-#define _FOR_EACH3(func, a, b, c) func(a), func(b), func(c)
-#define _FOR_EACH4(func, a, b, c, d) func(a), func(b), func(c), func(d)
-#define _FOR_EACH5(func, a, b, c, d, e) func(a), func(b), func(c), func(d), func(e)
-#define _FOR_EACH6(func, a, b, c, d, e, f) func(a), func(b), func(c), func(d), func(e), func(f)
-#define _FOR_EACH7(func, a, b, c, d, e, f, g)                                                      \
+#define _FOR_ARGS0(func, ...)
+#define _FOR_ARGS1(func, a) func(a)
+#define _FOR_ARGS2(func, a, b) func(a), func(b)
+#define _FOR_ARGS3(func, a, b, c) func(a), func(b), func(c)
+#define _FOR_ARGS4(func, a, b, c, d) func(a), func(b), func(c), func(d)
+#define _FOR_ARGS5(func, a, b, c, d, e) func(a), func(b), func(c), func(d), func(e)
+#define _FOR_ARGS6(func, a, b, c, d, e, f) func(a), func(b), func(c), func(d), func(e), func(f)
+#define _FOR_ARGS7(func, a, b, c, d, e, f, g)                                                      \
   func(a), func(b), func(c), func(d), func(e), func(f), func(g)
-#define _FOR_EACH8(func, _a0, _a1, _a2, _a3, _a4, _a5, _a6, _a7)                                   \
+#define _FOR_ARGS8(func, _a0, _a1, _a2, _a3, _a4, _a5, _a6, _a7)                                   \
   func(_a0), func(_a1), func(_a2), func(_a3), func(_a4), func(_a5), func(_a6), func(_a6)
-#define FOR_EACH(func, ...)                                                                        \
-  PASTE(_FOR_EACH, NARG(__VA_ARGS__))                                                              \
+#define FOR_ARGS(func, ...)                                                                        \
+  PASTE(_FOR_ARGS, NARG(__VA_ARGS__))                                                              \
   (func, ##__VA_ARGS__)
 
-#define _FOR_EACH_SEP0(func, sep, ...)
-#define _FOR_EACH_SEP1(func, sep, a) func(a)
-#define _FOR_EACH_SEP2(func, sep, a, b) func(a) sep() func(b)
-#define _FOR_EACH_SEP3(func, sep, a, b, c) func(a) sep() func(b) sep() func(c)
-#define _FOR_EACH_SEP4(func, sep, a, b, c, d) func(a) sep() func(b) sep() func(c) sep() func(d)
-#define _FOR_EACH_SEP5(func, sep, a, b, c, d, e)                                                   \
+#define _FOR_ARGS_SEP0(func, sep, ...)
+#define _FOR_ARGS_SEP1(func, sep, a) func(a)
+#define _FOR_ARGS_SEP2(func, sep, a, b) func(a) sep() func(b)
+#define _FOR_ARGS_SEP3(func, sep, a, b, c) func(a) sep() func(b) sep() func(c)
+#define _FOR_ARGS_SEP4(func, sep, a, b, c, d) func(a) sep() func(b) sep() func(c) sep() func(d)
+#define _FOR_ARGS_SEP5(func, sep, a, b, c, d, e)                                                   \
   func(a) sep() func(b) sep() func(c) sep() func(d) sep() func(e)
-#define _FOR_EACH_SEP6(func, sep, a, b, c, d, e, f)                                                \
+#define _FOR_ARGS_SEP6(func, sep, a, b, c, d, e, f)                                                \
   func(a) sep() func(b) sep() func(c) sep() func(d) sep() func(e) sep() func(f)
-#define _FOR_EACH_SEP7(func, sep, a, b, c, d, e, f, g)                                             \
+#define _FOR_ARGS_SEP7(func, sep, a, b, c, d, e, f, g)                                             \
   func(a) sep() func(b) sep() func(c) sep() func(d) sep() func(e) sep() func(f) sep() func(g)
-#define _FOR_EACH_SEP8(func, sep, _a0, _a1, _a2, _a3, _a4, _a5, _a6, _a7)                          \
+#define _FOR_ARGS_SEP8(func, sep, _a0, _a1, _a2, _a3, _a4, _a5, _a6, _a7)                          \
   func(_a0) sep() func(_a1) sep() func(_a2) sep() func(_a3) sep() func(_a4) sep() func(_a5) sep()  \
       func(_a6) sep() func(_a6)
-#define FOR_EACH_SEP(func, sep, ...)                                                               \
-  PASTE(_FOR_EACH_SEP, NARG(__VA_ARGS__))                                                          \
+#define FOR_ARGS_SEP(func, sep, ...)                                                               \
+  PASTE(_FOR_ARGS_SEP, NARG(__VA_ARGS__))                                                          \
   (func, sep, ##__VA_ARGS__)
 
 // clang-format off
@@ -127,7 +144,7 @@ typedef struct {
 
 #define make_any_array(...)                                                                        \
   (any[]) {                                                                                        \
-    FOR_EACH(make_any, __VA_ARGS__)                                                                \
+    FOR_ARGS(make_any, __VA_ARGS__)                                                                \
   }
 
 #define _read_register1(reg) _read_register2(reg, uint64_t)

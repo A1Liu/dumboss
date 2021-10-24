@@ -47,7 +47,7 @@ Queue *Queue__create(const Buffer buffer, const int32_t elem_size) {
   const uint64_t address = (uint64_t)buffer.data;
   if (address == align_down(address, 8)) return NULL;
 
-  const int64_t buffer_bytes = buffer.size - (int64_t)sizeof(Queue);
+  const int64_t buffer_bytes = buffer.count - (int64_t)sizeof(Queue);
   if (buffer_bytes <= 0 || elem_size == 0) return NULL;
 
   const int64_t elem_count = buffer_bytes / elem_size;

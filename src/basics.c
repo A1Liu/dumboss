@@ -27,37 +27,37 @@ uint64_t align_down(uint64_t value, uint64_t alignment) {
   return value >> bits << bits;
 }
 
-String Str__new(char *data, int64_t size) {
-  if (size < 0) return (String){.data = NULL, .size = 0};
-  return (String){.data = data, .size = size};
+String Str__new(char *data, int64_t count) {
+  if (count < 0) return (String){.data = NULL, .count = 0};
+  return (String){.data = data, .count = count};
 }
 
 bool Str__is_null(String str) {
-  return str.data == NULL || str.size == 0;
+  return str.data == NULL || str.count == 0;
 }
 
 String Str__slice(String str, int64_t begin, int64_t end) {
   assert(0 <= begin);
   assert(begin <= end);
-  assert(end <= str.size);
+  assert(end <= str.count);
 
-  return (String){.data = str.data + begin, .size = end - begin};
+  return (String){.data = str.data + begin, .count = end - begin};
 }
 
 String Str__suffix(String str, int64_t begin) {
   assert(0 <= begin);
-  assert(begin <= str.size);
+  assert(begin <= str.count);
 
-  return (String){.data = str.data + begin, .size = str.size - begin};
+  return (String){.data = str.data + begin, .count = str.count - begin};
 }
 
-BitSet BitSet__new(uint64_t *data, int64_t size) {
-  return (BitSet){.data = data, .size = size};
+BitSet BitSet__new(uint64_t *data, int64_t count) {
+  return (BitSet){.data = data, .count = count};
 }
 
 bool BitSet__get(const BitSet bits, int64_t idx) {
   assert(0 <= idx);
-  assert(idx < bits.size);
+  assert(idx < bits.count);
 
   const uint64_t v = bits.data[idx / 64];
   uint32_t bit_offset = idx % 64;
@@ -66,7 +66,7 @@ bool BitSet__get(const BitSet bits, int64_t idx) {
 
 void BitSet__set(const BitSet bits, int64_t idx, bool value) {
   assert(0 <= idx);
-  assert(idx < bits.size);
+  assert(idx < bits.count);
 
   uint64_t *v = &bits.data[idx / 64];
   uint32_t bit_offset = idx % 64;
@@ -78,7 +78,7 @@ void BitSet__set(const BitSet bits, int64_t idx, bool value) {
 }
 
 void BitSet__set_all(const BitSet bits, bool value) {
-  for (int64_t i = 0, idx = 0; idx < bits.size; i++, idx += 64) {
+  for (int64_t i = 0, idx = 0; idx < bits.count; i++, idx += 64) {
     bits.data[i] = 0;
     if (value) bits.data[i] = ~bits.data[i];
   }
@@ -87,7 +87,7 @@ void BitSet__set_all(const BitSet bits, bool value) {
 void BitSet__set_range(const BitSet bits, int64_t begin, int64_t end, bool value) {
   assert(0 <= begin);
   assert(begin <= end);
-  assert(end <= bits.size);
+  assert(end <= bits.count);
 
   int64_t fast_begin = (int64_t)align_up((uint64_t)begin, 64),
           fast_end = (int64_t)align_down((uint64_t)end, 64);
@@ -136,7 +136,7 @@ int64_t basics__fmt_any(String out, any value) {
     return (int64_t)fmt_i64(out, value.i64_value);
 
   case type_id_char: {
-    if (out.size >= 1) *out.data = value.char_value;
+    if (out.count >= 1) *out.data = value.char_value;
     return 1;
   }
 
@@ -156,7 +156,7 @@ int64_t basics__fmt_any(String out, any value) {
 
 int64_t basics__fmt(String out, const char *fmt, int32_t count, const any *args) {
   // TODO why would a string be larger than int64_t's max value?
-  const int64_t len = (int64_t)out.size;
+  const int64_t len = (int64_t)out.count;
   int64_t format_count = 0, written = 0;
 
   while (*fmt) {
@@ -259,11 +259,11 @@ static uint64_t _ntoa_long(out_fct_type out, char *buffer, uint64_t idx, uint64_
                            uint32_t width, uint32_t flags);
 
 int64_t fmt_u64(String out, uint64_t value) {
-  return (int64_t)_ntoa_long(_out_buffer, out.data, 0, (uint64_t)out.size, value, false, 10, 0, 0,
+  return (int64_t)_ntoa_long(_out_buffer, out.data, 0, (uint64_t)out.count, value, false, 10, 0, 0,
                              0);
 }
 int64_t fmt_i64(String out, int64_t value) {
-  return (int64_t)_ntoa_long(_out_buffer, out.data, 0, (uint64_t)out.size,
+  return (int64_t)_ntoa_long(_out_buffer, out.data, 0, (uint64_t)out.count,
                              (uint64_t)(value < 0 ? -value : value), value < 0, 10, 0, 0, 0);
 }
 
@@ -291,7 +291,7 @@ int64_t strcpy_s(String dest, const char *src) {
   if (src == NULL) return 0;
 
   int64_t written = 0;
-  for (; written < dest.size && src[written]; written++)
+  for (; written < dest.count && src[written]; written++)
     dest.data[written] = src[written];
 
   return written;

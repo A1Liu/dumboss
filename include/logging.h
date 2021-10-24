@@ -33,8 +33,8 @@ void logging__log_fmt(sloc loc, const char *fmt, int32_t count, const any *args)
     _Pragma("clang diagnostic push");                                          \
     _Pragma("clang diagnostic ignored \"-Wunused-value\"");                    \
     const char *const fmt = "dbg(%) = ("                                       \
-        FOR_EACH_SEP(__DEBUG_FORMAT, __COMMA_STRING, __VA_ARGS__) ")";         \
-    const any args[] = { FOR_EACH(make_any, #__VA_ARGS__, ##__VA_ARGS__) };    \
+        FOR_ARGS_SEP(__DEBUG_FORMAT, __COMMA_STRING, __VA_ARGS__) ")";         \
+    const any args[] = { FOR_ARGS(make_any, #__VA_ARGS__, ##__VA_ARGS__) };    \
     const int32_t nargs = 1 + NARG(__VA_ARGS__);                               \
     logging__log_fmt(__LOC__, fmt, nargs, args);                               \
     _Pragma("clang diagnostic pop");                                           \

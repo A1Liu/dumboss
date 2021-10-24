@@ -22,7 +22,7 @@ void logging__log(sloc loc, int32_t count, const any *args) {
 
   if (written > BUF_SIZE) { // TODO expand buffer
     const char *suffix = "... [clipped]";
-    strcpy_s(Str__suffix(out, (int64_t)(out.size - strlen(suffix))), suffix);
+    strcpy_s(Str__suffix(out, (int64_t)(out.count - strlen(suffix))), suffix);
     written = BUF_SIZE;
   }
 
@@ -50,7 +50,7 @@ void logging__log_fmt(sloc loc, const char *fmt, int32_t count, const any *args)
 
   if (written > BUF_SIZE) { // TODO expand buffer
     const char *suffix = "... [clipped]";
-    strcpy_s(Str__suffix(out, (int64_t)(out.size - strlen(suffix))), suffix);
+    strcpy_s(Str__suffix(out, (int64_t)(out.count - strlen(suffix))), suffix);
     written = BUF_SIZE;
   }
 
