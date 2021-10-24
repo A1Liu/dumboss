@@ -106,6 +106,24 @@ static void traverse_table(uint64_t table_entry, uint16_t table_level) {
   enum Mode { TABLE, EMPTY, PAGE };
   enum Mode mode = 0;
   int64_t type_count = 0;
+
+#define FINISH_MODE                                                                                \
+  switch (mode) {                                                                                  \
+  case TABLE:                                                                                      \
+    break;                                                                                         \
+                                                                                                   \
+  case EMPTY:                                                                                      \
+    log_fmt("%f%f empty p%f entries", prefixes[table_level - 1], type_count, table_level);         \
+    type_count = 0;                                                                                \
+    break;                                                                                         \
+                                                                                                   \
+  case PAGE:                                                                                       \
+    log_fmt("%f%f %f page entries", prefixes[table_level - 1], type_count,                         \
+            page_size_for_entry[table_level]);                                                     \
+    type_count = 0;                                                                                \
+    break;                                                                                         \
+  }
+
   FOR_PTR(table->entries, PageTable__ENTRY_COUNT) {
     uint64_t entry = *it;
 
@@ -116,21 +134,7 @@ static void traverse_table(uint64_t table_entry, uint16_t table_level) {
     else
       new_mode = TABLE;
 
-    if (mode != new_mode) switch (mode) {
-      case TABLE:
-        break;
-
-      case EMPTY:
-        log_fmt("%f%f empty p%f entries", prefixes[table_level - 1], type_count, table_level);
-        type_count = 0;
-        break;
-
-      case PAGE:
-        log_fmt("%f%f %f page entries", prefixes[table_level - 1], type_count,
-                page_size_for_entry[table_level]);
-        type_count = 0;
-        break;
-      }
+    if (mode != new_mode) FINISH_MODE;
 
     switch (new_mode) {
     case TABLE:
@@ -149,20 +153,8 @@ static void traverse_table(uint64_t table_entry, uint16_t table_level) {
     mode = new_mode;
   }
 
-  switch (mode) {
-  case TABLE:
-    break;
-
-  case EMPTY:
-    log_fmt("%f%f empty p%f entries", prefixes[table_level - 1], type_count, table_level);
-    type_count = 0;
-    break;
-
-  case PAGE:
-    log_fmt("%f%f %f page entries", prefixes[table_level - 1], type_count,
-            page_size_for_entry[table_level]);
-    break;
-  }
+  FINISH_MODE;
+#undef FINISH_MODE
 }
 
 // NOTE: I'm having trouble finding actual resources online for stuff, so I'm just
