@@ -19,10 +19,10 @@ void logging__log_fmt(sloc loc, const char *fmt, int32_t count, const any *args)
 #define assert(expression, ...)                                                                    \
   ((expression)                                                                                    \
        ?: ((NARG(__VA_ARGS__) ? panic("assertion failed:" __VA_ARGS__)                             \
-                              : panic("assertion failed: `%`", #expression)),                      \
+                              : panic("assertion failed: `%f`", #expression)),                     \
            expression))
 
-#define __DEBUG_FORMAT(x) "%"
+#define __DEBUG_FORMAT(x) "%f"
 #define __COMMA_STRING()  ", "
 
 // pragmas here are to disable warnings for the debug output, because it doesn't
@@ -32,7 +32,7 @@ void logging__log_fmt(sloc loc, const char *fmt, int32_t count, const any *args)
   ({                                                                           \
     _Pragma("clang diagnostic push");                                          \
     _Pragma("clang diagnostic ignored \"-Wunused-value\"");                    \
-    const char *const fmt = "dbg(%) = ("                                       \
+    const char *const fmt = "dbg(%f) = ("                                       \
         FOR_ARGS_SEP(__DEBUG_FORMAT, __COMMA_STRING, __VA_ARGS__) ")";         \
     const any args[] = { FOR_ARGS(make_any, #__VA_ARGS__, ##__VA_ARGS__) };    \
     const int32_t nargs = 1 + NARG(__VA_ARGS__);                               \

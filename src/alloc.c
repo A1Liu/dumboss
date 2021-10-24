@@ -54,10 +54,8 @@ void alloc__init(MMap mmap) {
   memset(GLOBAL, 0, sizeof(*GLOBAL));
 
   // Build basic buddy system structure
-  MMapEnt *last_entry = &mmap.data[mmap.count - 1];
-  uint64_t max_address = last_entry->ptr + last_entry->size;
-  max_address = align_up(max_address, _4KB << SIZE_CLASS_COUNT);
-  int64_t max_page_idx = address_to_page(max_address);
+  uint64_t memory_size = align_up(mmap.memory_size, _4KB << SIZE_CLASS_COUNT);
+  int64_t max_page_idx = address_to_page(memory_size);
   uint64_t *data = alloc_from_entries(mmap, max_page_idx, 8);
   assert(data != MMapEnt__ALLOC_FAILURE);
 
@@ -96,13 +94,17 @@ void alloc__init(MMap mmap) {
     log_fmt("%fk bytes at %f", mmap.data[i].size / 1024, mmap.data[i].ptr);
     available_memory += (int64_t)mmap.data[i].size;
   }
+  log_fmt("");
 
   for (int64_t i = 0; i < mmap.count; i++)
-    free((void *)mmap.data[i].ptr, mmap.data[i].size / _4KB);
+    free(kernel_address(mmap.data[i].ptr), mmap.data[i].size / _4KB);
+
+  log_fmt("after adding memory to allocator");
 
   assert(available_memory == GLOBAL->free_memory);
   GLOBAL->heap_size = available_memory;
   alloc__validate_heap();
+  log_fmt("heap validated");
 }
 
 static void *pop_freelist(int64_t size_class) {
@@ -124,7 +126,7 @@ static inline void remove_from_freelist(int64_t page, int64_t size_class) {
   assert(size_class < SIZE_CLASS_COUNT);
   assert(valid_page_for_size_class(page, size_class));
 
-  FreeBlock *block = (void *)page_to_address(page);
+  FreeBlock *block = kernel_address(page_to_address(page));
   assert(block->size_class == size_class);
 
   SizeClassInfo *info = &GLOBAL->size_classes[size_class];
@@ -151,7 +153,7 @@ static inline void add_to_freelist(int64_t page, int64_t size_class) {
   assert(size_class < SIZE_CLASS_COUNT);
   assert(valid_page_for_size_class(page, size_class));
 
-  FreeBlock *block = (void *)page_to_address(page);
+  FreeBlock *block = kernel_address(page_to_address(page));
   SizeClassInfo *info = &GLOBAL->size_classes[size_class];
   block->size_class = size_class;
   block->prev = NULL;
@@ -187,7 +189,7 @@ void *alloc(int64_t count) {
   GLOBAL->free_memory -= count * (int64_t)_4KB;
 
   void *const data = pop_freelist(size_class);
-  int64_t page = address_to_page((uint64_t)data);
+  int64_t page = address_to_page(physical_address(data));
   assert(BitSet__get(GLOBAL->usable_pages, page));
 
   if (size_class != SIZE_CLASS_COUNT - 1) {
@@ -222,7 +224,7 @@ static void free_at_size_class(int64_t page, int64_t size_class);
 
 void free(void *data, int64_t count) {
   assert(data != NULL);
-  uint64_t addr = (uint64_t)data;
+  uint64_t addr = physical_address(data);
   assert(addr == align_down(addr, _4KB));
 
   int64_t begin_page = address_to_page(addr), end_page = begin_page + count;

@@ -36,7 +36,7 @@ const char *const memory__bootboot_mmap_typename[] = {"Used", "Free", "ACPI", "M
 
 #define PageTable__ENTRY_COUNT 512
 typedef struct {
-  uint64_t entries[PageTable__ENTRY_COUNT];
+  volatile uint64_t entries[PageTable__ENTRY_COUNT];
 } PageTable;
 
 _Static_assert(sizeof(PageTable) == _4KB, "PageTables should be 4KB");
@@ -85,7 +85,7 @@ static uint64_t indices_to_address(PageTableIndices indices) {
 }
 
 static void traverse_table(uint64_t table_entry, uint16_t table_level) {
-  const static char *const prefixes[] = {"        ", "      ", "    ", "  ", ""};
+  const static char *const prefixes[] = {"| | | +-", "| | +-", "| +-", "+-", ""};
   const static char *const page_size_for_entry[] = {"", "4Kb", "2Mb", "1Gb", ""};
 
   if (!table_level | (table_entry & PTE_HUGE_PAGE)) {
@@ -157,64 +157,38 @@ static void traverse_table(uint64_t table_entry, uint16_t table_level) {
 #undef FINISH_MODE
 }
 
-// NOTE: I'm having trouble finding actual resources online for stuff, so I'm just
-// going to make some assumptions.
+// get physical address from kernel address
+uint64_t physical_address(void *ptr) {
+  uint64_t address = (uint64_t)ptr;
+  assert(address >= MEMORY__KERNEL_SPACE_BEGIN);
 
-// static PageTable *build_page_table(MMap mmap, uint16_t table_level, PageTableIndices min_addr,
-//                                    PageTableIndices max_addr) {
-//   assert(table_level < 4);
-//   for (int i = 0; i < table_level; i++)
-//     assert(min_addr.indices[i] == max_addr.indices[i]);
-//
-//   PageTable *new_table = alloc_from_entries(mmap, sizeof(PageTable), sizeof(PageTable));
-//   assert(new_table != MMapEnt__ALLOC_FAILURE);
-//
-//   const static uint64_t LAZY_FLAG[] = {0, 0, PTE_HUGE_PAGE, PTE_HUGE_PAGE};
-//   for (uint16_t i = 0; i < max_addr.indices[table_level]; i++) {
-//     min_addr.indices[table_level] = i;
-//     uint64_t page_address = indices_to_address(min_addr) & PTE_ADDRESS;
-//     uint64_t entry = page_address | PTE_WRITABLE | PTE_NO_EXECUTE | LAZY_FLAG[table_level];
-//     new_table->entries[i] = entry;
-//   }
-//
-//   return new_table;
-// }
-//
-// static void extend_page_tables(MMap mmap, uint64_t _max_addr) {
-//   assert(MEMORY__KERNEL_SPACE_BEGIN > _min_addr);
-//
-//   PageTableIndices min_addr = page_table_indices(0);
-//   PageTableIndices max_addr = page_table_indices(_max_addr);
-//   PageTableIndices kernel_offset = page_table_indices(_kernel_offset);
-//
-//   uint16_t table_level = 4;
-//   PageTable *current_table = read_register(cr3, PageTable *);
-//   for (uint16_t i = 0; i < max_addr.indices[table_level]; i++) {
-//     PageTable *child = build_page_table(mmap, table_level - 1, min_addr);
-//     uint64_t address = (uint64_t)child;
-//     uint64_t entry = address | PTE_WRITABLE | PTE_NO_EXECUTE;
-//     current_table->entries[kernel_offset.indices[table_level] + i] = entry;
-//   }
-//
-//   table_level -= 1;
-//   // min_addr[table_level] =
-//
-//   while (table_level) {
-//     uint16_t start_at = kernel_offset[table_level];
-//     PageTable *page_entry = build_page_table(mmap, table_level, start_at, min_addr, max_addr);
-//     current_table->entries[min_addr] = (uint64_t)page_entry;
-//     table_level -= 1;
-//   }
-// }
+  return address - MEMORY__KERNEL_SPACE_BEGIN;
+}
 
+// get kernel address from physical address
+void *kernel_address(uint64_t address) {
+  assert(address < MEMORY__KERNEL_SPACE_BEGIN);
+
+  return (void *)(address + MEMORY__KERNEL_SPACE_BEGIN);
+}
+
+void map_region(PageTable *p4, uint64_t virtual_begin, uint64_t physical_begin, uint64_t size) {
+  (void)p4;
+  (void)virtual_begin;
+  (void)physical_begin;
+  (void)size;
+}
+
+static void *phys_alloc_from_entries(MMap mmap, int64_t _size, int64_t _align);
 MMap memory__init(BOOTBOOT *bb) {
   // Calculation described in bootboot specification
-  MMap mmap = {.data = &bb->mmap, .count = (bb->size - 128) / 16};
-  uint64_t max_addr = 0;
+  MMap mmap = {.data = &bb->mmap, .count = (bb->size - 128) / 16, .memory_size = 0};
+  uint64_t memory_size = 0;
   FOR(mmap) {
     uint64_t ptr = MMapEnt_Ptr(it), size = MMapEnt_Size(it);
-    max_addr = max(max_addr, ptr + size);
+    memory_size = max(memory_size, ptr + size);
   }
+  mmap.memory_size = memory_size;
 
   // sort the entries so that the free ones are first
   SLOW_SORT(mmap) {
@@ -239,17 +213,30 @@ MMap memory__init(BOOTBOOT *bb) {
   uint64_t first_ptr = MMapEnt_Ptr(&mmap.data[0]);
   if (first_ptr < _4KB) {
     int64_t safety_size = _4KB - (int64_t)first_ptr;
-    void *safety_alloc = alloc_from_entries(mmap, safety_size, 1);
+    void *safety_alloc = phys_alloc_from_entries(mmap, safety_size, 1);
     memset(safety_alloc, 42, safety_size);
   }
 
-  uint64_t table = read_register(cr3, uint64_t, "q");
-  traverse_table(table, 4);
+  PageTable *table = read_register(cr3, PageTable *, "q");
+
+  PageTableIndices indices = page_table_indices(MEMORY__KERNEL_SPACE_BEGIN);
+  assert(indices.p3 == 0);
+  assert(indices.p2 == 0);
+  assert(indices.p1 == 0);
+  assert(indices.p0 == 0);
+  table->entries[indices.p4] = table->entries[0];
+  table->entries[0] = 0;
+  write_register(cr3, table);
 
   return mmap;
 }
 
 void *alloc_from_entries(MMap mmap, int64_t _size, int64_t _align) {
+  uint64_t address = (uint64_t)phys_alloc_from_entries(mmap, _size, _align);
+  return (void *)(address + MEMORY__KERNEL_SPACE_BEGIN);
+}
+
+static void *phys_alloc_from_entries(MMap mmap, int64_t _size, int64_t _align) {
   if (_size <= 0 || _align < 0) return MMapEnt__ALLOC_FAILURE;
 
   uint64_t align = max((uint64_t)_align, 1);

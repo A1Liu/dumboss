@@ -185,12 +185,15 @@ typedef struct {
   })
 #define read_register(...) PASTE(_read_register, NARG(__VA_ARGS__))(__VA_ARGS__)
 
-#define write_register(reg, value)                                                                 \
+#define _write_register2(reg, value) _write_register3(reg, value, "")
+#define _write_register3(reg, value, suffix)                                                       \
   ({                                                                                               \
+    _Static_assert(sizeof(value) <= 8, "read_register only takes a type with size <= 8");          \
     typeof(value) v = value;                                                                       \
-    asm("mov %0, %%" #reg : : "g"(v) : #reg);                                                      \
+    asm("mov" suffix " %0, %%" #reg : : "r"(v) : #reg);                                            \
     v;                                                                                             \
   })
+#define write_register(...) PASTE(_write_register, NARG(__VA_ARGS__))(__VA_ARGS__)
 
 #define out8(port, val)                                                                            \
   ({                                                                                               \
