@@ -23,7 +23,7 @@ void logging__log_fmt(sloc loc, const char *fmt, int32_t count, const any *args)
            expression))
 
 #define __DEBUG_FORMAT(x) "%"
-#define __COMMA_STRING() ", "
+#define __COMMA_STRING()  ", "
 
 // pragmas here are to disable warnings for the debug output, because it doesn't
 // really matter whether the last result is used when you're debugging.

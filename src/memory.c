@@ -131,6 +131,7 @@ static uint64_t indices_to_address(PageTableIndices indices) {
 
   return address;
 }
+
 // NOTE: I'm having trouble finding actual resources online for stuff, so I'm just
 // going to make some assumptions.
 
@@ -181,21 +182,34 @@ static uint64_t indices_to_address(PageTableIndices indices) {
 //   }
 // }
 
-static MMap sort_entries(MMapEnt *entries, int64_t entry_count);
 MMap memory__init(BOOTBOOT *bb) {
   // Calculation described in bootboot specification
-  int64_t entry_count = (bb->size - 128) / 16;
+  MMap mmap = {.data = &bb->mmap, .count = (bb->size - 128) / 16};
   uint64_t max_addr = 0;
-  for (int64_t i = 0; i < entry_count; i++) {
-    MMapEnt *entry = &bb->mmap;
-    uint64_t ptr = MMapEnt_Ptr(&entry[i]), size = MMapEnt_Size(&entry[i]);
-
+  FOR(mmap) {
+    uint64_t ptr = MMapEnt_Ptr(it), size = MMapEnt_Size(it);
     max_addr = max(max_addr, ptr + size);
   }
 
-  MMap mmap = sort_entries(&bb->mmap, entry_count);
+  // sort the entries so that the free ones are first
+  SLOW_SORT(mmap) {
+    uint64_t l_type = MMapEnt_Type(left), r_type = MMapEnt_Type(right);
 
-  // First page in memory isn't used right now.
+    bool swap = (l_type != MMAP_FREE) & (r_type == MMAP_FREE);
+    if (swap) SWAP(left, right);
+  }
+
+  // remove weird bit stuff that BOOTBOOT does for the free entries
+  FOR(mmap) {
+    if (!MMapEnt_IsFree(it)) {
+      mmap.count = it_index;
+      break;
+    }
+    it->size = MMapEnt_Size(it);
+    log_fmt("entry: free entry size %", it->size);
+  }
+
+  // First page in physical memory isn't used right now.
   uint64_t first_ptr = MMapEnt_Ptr(&mmap.data[0]);
   if (first_ptr < _4KB) {
     int64_t safety_size = _4KB - (int64_t)first_ptr;
@@ -206,36 +220,13 @@ MMap memory__init(BOOTBOOT *bb) {
   return mmap;
 }
 
-static MMap sort_entries(MMapEnt *entries, int64_t entry_count) {
-  // bubble-sort the entries so that the free ones are first
-  SLOW_SORT(entries, entry_count) {
-    uint64_t l_type = MMapEnt_Type(left), r_type = MMapEnt_Type(right);
-
-    bool swap = (l_type != MMAP_FREE) & (r_type == MMAP_FREE);
-    if (swap) SWAP(left, right);
-  }
-
-  // remove weird bit stuff that BOOTBOOT does for the free entries
-  int64_t i = 0;
-  for (; i < entry_count && MMapEnt_IsFree(&entries[i]); i++) {
-    MMapEnt *entry = &entries[i];
-    entry->size = MMapEnt_Size(entry);
-    log_fmt("entry: free entry size %", entry->size);
-  }
-
-  return (MMap){.data = entries, .count = i};
-}
-
 void *alloc_from_entries(MMap mmap, int64_t _size, int64_t _align) {
-  if (_size <= 0 || _align < 0) {
-    return MMapEnt__ALLOC_FAILURE;
-  }
+  if (_size <= 0 || _align < 0) return MMapEnt__ALLOC_FAILURE;
 
   uint64_t align = max((uint64_t)_align, 1);
   uint64_t size = align_up((uint64_t)_size, align);
-  for (int64_t i = 0; i < mmap.count; i++) {
-    MMapEnt *cur = &mmap.data[i];
 
+  FOR(mmap, cur) {
     uint64_t aligned_ptr = align_up(cur->ptr, align);
     uint64_t aligned_size = cur->size + cur->ptr - aligned_ptr;
     if (aligned_size < size) continue;

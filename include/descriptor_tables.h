@@ -117,26 +117,26 @@ void divide_by_zero(void);
 
 _Static_assert(sizeof(1ull) == 8, "unsigned long long should be 64 bit");
 
-#define GDT__ACCESSED ((uint64_t)(1ULL << 40))
-#define GDT__WRITABLE ((uint64_t)(1ULL << 41))
-#define GDT__CONFORMING ((uint64_t)(1ULL << 42))
-#define GDT__EXECUTABLE ((uint64_t)(1ULL << 43))
+#define GDT__ACCESSED     ((uint64_t)(1ULL << 40))
+#define GDT__WRITABLE     ((uint64_t)(1ULL << 41))
+#define GDT__CONFORMING   ((uint64_t)(1ULL << 42))
+#define GDT__EXECUTABLE   ((uint64_t)(1ULL << 43))
 #define GDT__USER_SEGMENT ((uint64_t)(1ULL << 44))
-#define GDT__DPL_RING_3 ((uint64_t)(3ULL << 45))
-#define GDT__PRESENT ((uint64_t)(1ULL << 47))
-#define GDT__AVAILABLE ((uint64_t)(1ULL << 52))
-#define GDT__LONG_MODE ((uint64_t)(1ULL << 53))
+#define GDT__DPL_RING_3   ((uint64_t)(3ULL << 45))
+#define GDT__PRESENT      ((uint64_t)(1ULL << 47))
+#define GDT__AVAILABLE    ((uint64_t)(1ULL << 52))
+#define GDT__LONG_MODE    ((uint64_t)(1ULL << 53))
 #define GDT__DEFAULT_SIZE ((uint64_t)(1ULL << 54))
-#define GDT__GRANULARITY ((uint64_t)(1ULL << 55))
-#define GDT__LIMIT_0_15 ((uint64_t)(0xffffULL))
-#define GDT__LIMIT_16_19 ((uint64_t)(0xfULL << 48))
-#define GDT__BASE_0_23 ((uint64_t)(0xffffffULL << 16))
-#define GDT__BASE_24_31 ((uint64_t)(0xffULL << 56))
+#define GDT__GRANULARITY  ((uint64_t)(1ULL << 55))
+#define GDT__LIMIT_0_15   ((uint64_t)(0xffffULL))
+#define GDT__LIMIT_16_19  ((uint64_t)(0xfULL << 48))
+#define GDT__BASE_0_23    ((uint64_t)(0xffffffULL << 16))
+#define GDT__BASE_24_31   ((uint64_t)(0xffULL << 56))
 #define GDT__COMMON                                                                                \
   (GDT__USER_SEGMENT | GDT__ACCESSED | GDT__PRESENT | GDT__WRITABLE | GDT__LIMIT_0_15 |            \
    GDT__LIMIT_16_19 | GDT__GRANULARITY)
 #define GDT__KERNEL_CODE (GDT__COMMON | GDT__EXECUTABLE | GDT__LONG_MODE)
-#define GDT__USER_CODE (GDT__KERNEL_CODE | GDT__DPL_RING_3)
+#define GDT__USER_CODE   (GDT__KERNEL_CODE | GDT__DPL_RING_3)
 
 _Static_assert(GDT__KERNEL_CODE == 0x00af9b000000ffffULL, "GDT__KERNEL_CODE has incorrect value");
 _Static_assert(GDT__USER_CODE == 0x00affb000000ffffULL, "GDT__USER_CODE has incorrect value");

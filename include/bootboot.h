@@ -46,7 +46,7 @@
 #define BOOTBOOT_MMIO                                                                              \
   0xfffffffff8000000                     /* memory mapped IO virtual address                       \
                                           */
-#define BOOTBOOT_FB 0xfffffffffc000000   /* frame buffer virtual address */
+#define BOOTBOOT_FB   0xfffffffffc000000 /* frame buffer virtual address */
 #define BOOTBOOT_INFO 0xffffffffffe00000 /* bootboot struct virtual address */
 #define BOOTBOOT_ENV                                                                               \
   0xffffffffffe01000                     /* environment string virtual address                     \
@@ -66,9 +66,9 @@
 #define PROTOCOL_BIGENDIAN 0x80
 
 /* loader types, just informational */
-#define LOADER_BIOS (0 << 2)
-#define LOADER_UEFI (1 << 2)
-#define LOADER_RPI (2 << 2)
+#define LOADER_BIOS     (0 << 2)
+#define LOADER_UEFI     (1 << 2)
+#define LOADER_RPI      (2 << 2)
 #define LOADER_COREBOOT (3 << 2)
 
 /* framebuffer pixel format, only 32 bits supported */
@@ -84,11 +84,11 @@ typedef struct {
   uint64_t ptr;
   uint64_t size;
 } _pack MMapEnt;
-#define MMapEnt_Ptr(a) ((a)->ptr)
-#define MMapEnt_Size(a) ((a)->size & 0xFFFFFFFFFFFFFFF0)
-#define MMapEnt_Type(a) ((a)->size & 0xF)
+#define MMapEnt_Ptr(a)    ((a)->ptr)
+#define MMapEnt_Size(a)   ((a)->size & 0xFFFFFFFFFFFFFFF0)
+#define MMapEnt_Type(a)   ((a)->size & 0xF)
 #define MMapEnt_IsFree(a) (((a)->size & 0xF) == 1)
-#define MMapEnt_NULL ((MMapEnt){.ptr = 0, .size = 0})
+#define MMapEnt_NULL      ((MMapEnt){.ptr = 0, .size = 0})
 
 #define MMAP_USED 0 /* don't use. Reserved or unknown regions */
 #define MMAP_FREE 1 /* usable memory */

@@ -48,22 +48,12 @@ typedef struct {
   type_id type;
 } any;
 
-#define FOR_EACH(ptr, len) for (typeof(ptr) it = ptr, end = ptr + len; it != end; it++)
-
 #define SWAP(left, right)                                                                          \
   ({                                                                                               \
     typeof(*left) value = *left;                                                                   \
     *left = *right;                                                                                \
     *right = value;                                                                                \
   })
-
-#define SLOW_SORT(ptr, len)                                                                        \
-  for (int64_t bubble_sort_right_bound = entry_count - 1, bubble_sort_left_index = 0;              \
-       bubble_sort_right_bound > 0; bubble_sort_right_bound--, bubble_sort_left_index = 0)         \
-    for (typeof(ptr) left = ptr + bubble_sort_left_index,                                          \
-                     right = ptr + bubble_sort_left_index + 1;                                     \
-         bubble_sort_left_index < bubble_sort_right_bound;                                         \
-         bubble_sort_left_index++, left++, right++)
 
 #define __LOC__                                                                                    \
   (sloc) {                                                                                         \
@@ -84,17 +74,17 @@ typedef struct {
   count
 
 #define _STRINGIFY(x) #x
-#define STRINGIFY(x) _STRINGIFY(x)
-#define _PASTE(a, b) a##b
-#define PASTE(a, b) _PASTE(a, b)
+#define STRINGIFY(x)  _STRINGIFY(x)
+#define _PASTE(a, b)  a##b
+#define PASTE(a, b)   _PASTE(a, b)
 
 // function, separator, capture
 #define _FOR_ARGS0(func, ...)
-#define _FOR_ARGS1(func, a) func(a)
-#define _FOR_ARGS2(func, a, b) func(a), func(b)
-#define _FOR_ARGS3(func, a, b, c) func(a), func(b), func(c)
-#define _FOR_ARGS4(func, a, b, c, d) func(a), func(b), func(c), func(d)
-#define _FOR_ARGS5(func, a, b, c, d, e) func(a), func(b), func(c), func(d), func(e)
+#define _FOR_ARGS1(func, a)                func(a)
+#define _FOR_ARGS2(func, a, b)             func(a), func(b)
+#define _FOR_ARGS3(func, a, b, c)          func(a), func(b), func(c)
+#define _FOR_ARGS4(func, a, b, c, d)       func(a), func(b), func(c), func(d)
+#define _FOR_ARGS5(func, a, b, c, d, e)    func(a), func(b), func(c), func(d), func(e)
 #define _FOR_ARGS6(func, a, b, c, d, e, f) func(a), func(b), func(c), func(d), func(e), func(f)
 #define _FOR_ARGS7(func, a, b, c, d, e, f, g)                                                      \
   func(a), func(b), func(c), func(d), func(e), func(f), func(g)
@@ -105,9 +95,9 @@ typedef struct {
   (func, ##__VA_ARGS__)
 
 #define _FOR_ARGS_SEP0(func, sep, ...)
-#define _FOR_ARGS_SEP1(func, sep, a) func(a)
-#define _FOR_ARGS_SEP2(func, sep, a, b) func(a) sep() func(b)
-#define _FOR_ARGS_SEP3(func, sep, a, b, c) func(a) sep() func(b) sep() func(c)
+#define _FOR_ARGS_SEP1(func, sep, a)          func(a)
+#define _FOR_ARGS_SEP2(func, sep, a, b)       func(a) sep() func(b)
+#define _FOR_ARGS_SEP3(func, sep, a, b, c)    func(a) sep() func(b) sep() func(c)
 #define _FOR_ARGS_SEP4(func, sep, a, b, c, d) func(a) sep() func(b) sep() func(c) sep() func(d)
 #define _FOR_ARGS_SEP5(func, sep, a, b, c, d, e)                                                   \
   func(a) sep() func(b) sep() func(c) sep() func(d) sep() func(e)
@@ -121,6 +111,29 @@ typedef struct {
 #define FOR_ARGS_SEP(func, sep, ...)                                                               \
   PASTE(_FOR_ARGS_SEP, NARG(__VA_ARGS__))                                                          \
   (func, sep, ##__VA_ARGS__)
+
+#define DECLARE_SCOPED(...)                                                                        \
+  for (__VA_ARGS__, *M_sentinel = (void *)1; M_sentinel != NULL; M_sentinel = NULL)
+
+#define _FOR(array, it, it_index)                                                                  \
+  DECLARE_SCOPED(typeof(array) M_array = array)                                                    \
+  DECLARE_SCOPED(int64_t it_index = 0, M_len = M_array.count)                                      \
+  DECLARE_SCOPED(typeof(array.data) M_ptr = M_array.data, it = NULL)                               \
+  for (it = M_ptr; it_index < M_len; it++, it_index++)
+
+#define _FOR1(array)               _FOR(array, it, it_index)
+#define _FOR2(array, it)           _FOR(array, it, it_index)
+#define _FOR3(array, it, it_index) _FOR(array, it, it_index)
+#define FOR(...)                   PASTE(_FOR, NARG(__VA_ARGS__))(__VA_ARGS__)
+
+// Does bubble sort stuff; user has to make the swaps themself
+#define SLOW_SORT(array)                                                                           \
+  DECLARE_SCOPED(typeof(array) M_array = array)                                                    \
+  for (int64_t M_right_bound = M_array.count - 1, M_left_index = 0; M_right_bound > 0;             \
+       M_right_bound--, M_left_index = 0)                                                          \
+    for (typeof(M_array.data) left = M_array.data + M_left_index,                                  \
+                              right = M_array.data + M_left_index + 1;                             \
+         M_left_index < M_right_bound; M_left_index++, left++, right++)
 
 // clang-format off
 #define make_any(value)                                                        \

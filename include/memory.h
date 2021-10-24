@@ -2,7 +2,7 @@
 #include "bootboot.h"
 #include <stdint.h>
 
-#define MMapEnt__ALLOC_FAILURE ((void *)~0ULL)
+#define MMapEnt__ALLOC_FAILURE     ((void *)~0ULL)
 #define MEMORY__KERNEL_SPACE_BEGIN (~(uint64_t)0xffffffffffffull)
 
 #define _4KB 4096

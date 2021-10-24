@@ -19,9 +19,10 @@ OBJ_FILES := $(patsubst $(SRC_DIR)/%.c,$(OBJ_DIR)/%.o,$(SRC_FILES))
 FORMAT_FILES := $(OBJ_FILES:%.o=%.c.format) \
   $(patsubst $(INCLUDE_DIR)/%.h,$(OBJ_DIR)/%.h.format,$(HEADER_FILES))
 
+FORMAT_STYLE := $(shell tr '\n' ',' < $(BUILD_DIR)/clang-format.yaml)
+
 # Changing these flags sometimes seem to result in hard-to-understand compiler
 # errors.
-FORMAT_STYLE := $(shell tr '\n' ',' < $(BUILD_DIR)/clang-format.yaml)
 LDFLAGS := -nostdlib --script src/link.ld
 CXXFLAGS := -c -Os --std=gnu17 -target x86_64-unknown-elf -Iinclude -MD        \
             -ffreestanding -fno-stack-protector -fmerge-all-constants -fPIC    \

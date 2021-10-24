@@ -4,4 +4,6 @@ AllowShortFunctionsOnASingleLine: None
 AllowShortIfStatementsOnASingleLine: Always
 AllowShortBlocksOnASingleLine: Never
 AllowShortCaseLabelsOnASingleLine: false
+AllowShortLoopsOnASingleLine: false
 ColumnLimit: 100
+AlignConsecutiveMacros: true
