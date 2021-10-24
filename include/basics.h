@@ -112,8 +112,10 @@ typedef struct {
   PASTE(_FOR_ARGS_SEP, NARG(__VA_ARGS__))                                                          \
   (func, sep, ##__VA_ARGS__)
 
-#define DECLARE_SCOPED(...)                                                                        \
-  for (__VA_ARGS__, *M_sentinel = (void *)1; M_sentinel != NULL; M_sentinel = NULL)
+// NOTE: This breaks compatibility with GCC. I guess that's fine, but like, seems
+// weird and a bit uncomfy.
+//                                    - Albert Liu, Oct 24, 2021 Sun 04:20 EDT
+#define DECLARE_SCOPED(...) for (__VA_ARGS__;; ({ break; }))
 
 #define _FOR(array, it, it_index)                                                                  \
   DECLARE_SCOPED(typeof(array) M_array = array)                                                    \

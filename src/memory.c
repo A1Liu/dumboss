@@ -226,13 +226,13 @@ void *alloc_from_entries(MMap mmap, int64_t _size, int64_t _align) {
   uint64_t align = max((uint64_t)_align, 1);
   uint64_t size = align_up((uint64_t)_size, align);
 
-  FOR(mmap, cur) {
-    uint64_t aligned_ptr = align_up(cur->ptr, align);
-    uint64_t aligned_size = cur->size + cur->ptr - aligned_ptr;
+  FOR(mmap) {
+    uint64_t aligned_ptr = align_up(it->ptr, align);
+    uint64_t aligned_size = it->size + it->ptr - aligned_ptr;
     if (aligned_size < size) continue;
 
-    cur->ptr = aligned_ptr + size;
-    cur->size = aligned_size - size;
+    it->ptr = aligned_ptr + size;
+    it->size = aligned_size - size;
     return (void *)aligned_ptr;
   }
 
