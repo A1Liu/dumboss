@@ -64,7 +64,6 @@ typedef void (*Idt__HandlerExt)(ExceptionStackFrame *, u64);
 typedef __attribute__((noreturn, interrupt)) void (*Idt__DivergingHandler)(ExceptionStackFrame *);
 typedef __attribute__((noreturn, interrupt)) void (*Idt__DivergingHandlerExt)(ExceptionStackFrame *,
                                                                               u64);
-
 static inline void load_idt(Idt *base) {
   struct {
     u16 size;
@@ -115,7 +114,15 @@ void divide_by_zero(void);
 // https://github.com/rust-osdev/x86_64/blob/master/src/structures/gdt.rs
 // https://github.com/rust-osdev/x86_64/blob/master/src/instructions/segmentation.rs
 
-_Static_assert(sizeof(1ull) == 8, "unsigned long long should be 64 bit");
+typedef struct {
+  u32 reserved_1;
+  u64 privilege_stack_table[3];
+  u64 reserved_2;
+  u64 interrupt_stack_table[7];
+  u64 reserved_3;
+  u16 reserved_4;
+  u16 iomap_base;
+} __attribute__((packed)) Tss;
 
 #define GDT__ACCESSED     (U64(1) << 40)
 #define GDT__WRITABLE     (U64(1) << 41)
