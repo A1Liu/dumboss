@@ -21,7 +21,7 @@
 // __c11_atomic_fetch_max
 // __c11_atomic_fetch_min
 
-// should we be using uint64_t or int64_t here? uint64_t has the semantic
+// should we be using u64 or s64 here? u64 has the semantic
 // meaning that all values will be positive, which we want, but makes it harder
 // to subtract numbers correctly, and has required wrapping behavior, which we
 // might not want.
@@ -29,28 +29,28 @@ struct Queue {
   // eventually we should add a `next` buffer that points to the queue to be
   // used for writing. Also, probably should add a 32-bit `ref_count` field for
   // when multiple people have a reference to the same queue.
-  _Atomic(int64_t) begin;
-  _Atomic(int64_t) end_read;
-  _Atomic(int64_t) end_write;
-  int64_t elem_count;
+  _Atomic(s64) begin;
+  _Atomic(s64) end_read;
+  _Atomic(s64) end_write;
+  s64 elem_count;
   int32_t elem_size; // Having a larger elem_size doesn't make sense.
   int32_t _unused0;
-  int64_t _unused1;
-  int64_t _unused2;
-  int64_t _unused3;
+  s64 _unused1;
+  s64 _unused2;
+  s64 _unused3;
   uint8_t buffer[];
 };
 
 _Static_assert(sizeof(Queue) == 64, "Queue should have 64 byte control structure");
 
 Queue *Queue__create(const Buffer buffer, const int32_t elem_size) {
-  const uint64_t address = (uint64_t)buffer.data;
+  const u64 address = (u64)buffer.data;
   if (address == align_down(address, 8)) return NULL;
 
-  const int64_t buffer_bytes = buffer.count - (int64_t)sizeof(Queue);
+  const s64 buffer_bytes = buffer.count - (s64)sizeof(Queue);
   if (buffer_bytes <= 0 || elem_size == 0) return NULL;
 
-  const int64_t elem_count = buffer_bytes / elem_size;
+  const s64 elem_count = buffer_bytes / elem_size;
   if (elem_count <= 0) return NULL;
 
   Queue *queue = (Queue *)buffer.data;
@@ -67,31 +67,31 @@ Queue *Queue__create(const Buffer buffer, const int32_t elem_size) {
   return queue;
 }
 
-int64_t Queue__enqueue(Queue *queue, const void *buffer, int64_t count) {
+s64 Queue__enqueue(Queue *queue, const void *buffer, s64 count) {
   (void)queue;
   (void)buffer;
   (void)count;
   return 0;
 }
 
-int64_t Queue__dequeue(Queue *queue, void *buffer, int64_t count) {
+s64 Queue__dequeue(Queue *queue, void *buffer, s64 count) {
   (void)queue;
   (void)buffer;
   (void)count;
   return 0;
 }
 
-int64_t Queue__read(Queue *queue, void *buffer, int64_t count) {
+s64 Queue__read(Queue *queue, void *buffer, s64 count) {
   (void)queue;
   (void)buffer;
   (void)count;
   return 0;
 }
 
-int64_t Queue__len(const Queue *queue) {
+s64 Queue__len(const Queue *queue) {
   return queue->end_read - queue->begin;
 }
 
-int64_t Queue__capacity(const Queue *queue) {
+s64 Queue__capacity(const Queue *queue) {
   return queue->elem_count;
 }

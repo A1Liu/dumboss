@@ -3,31 +3,31 @@
 
 // Cobbled together from stack overflow and some previous project.
 
-int64_t smallest_greater_power2(int64_t _value) {
+s64 smallest_greater_power2(s64 _value) {
   assert(_value >= 0);
-  uint64_t value = (uint64_t)_value;
+  u64 value = (u64)_value;
 
   if (value <= 1) return 0;
   return 64 - __builtin_clzl(value - 1);
 }
 
-uint64_t align_up(uint64_t value, uint64_t alignment) {
+u64 align_up(u64 value, u64 alignment) {
   alignment = max(alignment, 1);
   assert(__builtin_popcountl(alignment) == 1);
 
-  int64_t bits = 64 - __builtin_clzl(alignment - 1);
+  s64 bits = 64 - __builtin_clzl(alignment - 1);
   return (((value - 1) >> bits) + 1) << bits;
 }
 
-uint64_t align_down(uint64_t value, uint64_t alignment) {
+u64 align_down(u64 value, u64 alignment) {
   alignment = max(alignment, 1);
   assert(__builtin_popcountl(alignment) == 1);
 
-  int64_t bits = 64 - __builtin_clzl(alignment - 1);
+  s64 bits = 64 - __builtin_clzl(alignment - 1);
   return value >> bits << bits;
 }
 
-String Str__new(char *data, int64_t count) {
+String Str__new(char *data, s64 count) {
   if (count < 0) return (String){.data = NULL, .count = 0};
   return (String){.data = data, .count = count};
 }
@@ -36,7 +36,7 @@ bool Str__is_null(String str) {
   return str.data == NULL || str.count == 0;
 }
 
-String Str__slice(String str, int64_t begin, int64_t end) {
+String Str__slice(String str, s64 begin, s64 end) {
   assert(0 <= begin);
   assert(begin <= end);
   assert(end <= str.count);
@@ -44,96 +44,95 @@ String Str__slice(String str, int64_t begin, int64_t end) {
   return (String){.data = str.data + begin, .count = end - begin};
 }
 
-String Str__suffix(String str, int64_t begin) {
+String Str__suffix(String str, s64 begin) {
   assert(0 <= begin);
   assert(begin <= str.count);
 
   return (String){.data = str.data + begin, .count = str.count - begin};
 }
 
-BitSet BitSet__new(uint64_t *data, int64_t count) {
+BitSet BitSet__new(u64 *data, s64 count) {
   return (BitSet){.data = data, .count = count};
 }
 
-bool BitSet__get(const BitSet bits, int64_t idx) {
+bool BitSet__get(const BitSet bits, s64 idx) {
   assert(0 <= idx);
   assert(idx < bits.count);
 
-  const uint64_t v = bits.data[idx / 64];
-  uint32_t bit_offset = idx % 64;
-  return 0 != ((((uint64_t)1) << bit_offset) & v);
+  const u64 v = bits.data[idx / 64];
+  u32 bit_offset = idx % 64;
+  return 0 != ((((u64)1) << bit_offset) & v);
 }
 
-void BitSet__set(const BitSet bits, int64_t idx, bool value) {
+void BitSet__set(const BitSet bits, s64 idx, bool value) {
   assert(0 <= idx);
   assert(idx < bits.count);
 
-  uint64_t *v = &bits.data[idx / 64];
-  uint32_t bit_offset = idx % 64;
+  u64 *v = &bits.data[idx / 64];
+  u32 bit_offset = idx % 64;
   if (value) {
-    *v |= ((uint64_t)1) << bit_offset;
+    *v |= ((u64)1) << bit_offset;
   } else {
-    *v &= ~(((uint64_t)1) << bit_offset);
+    *v &= ~(((u64)1) << bit_offset);
   }
 }
 
 void BitSet__set_all(const BitSet bits, bool value) {
-  for (int64_t i = 0, idx = 0; idx < bits.count; i++, idx += 64) {
+  for (s64 i = 0, idx = 0; idx < bits.count; i++, idx += 64) {
     bits.data[i] = 0;
     if (value) bits.data[i] = ~bits.data[i];
   }
 }
 
-void BitSet__set_range(const BitSet bits, int64_t begin, int64_t end, bool value) {
+void BitSet__set_range(const BitSet bits, s64 begin, s64 end, bool value) {
   assert(0 <= begin);
   assert(begin <= end);
   assert(end <= bits.count);
 
-  int64_t fast_begin = (int64_t)align_up((uint64_t)begin, 64),
-          fast_end = (int64_t)align_down((uint64_t)end, 64);
+  s64 fast_begin = (s64)align_up((u64)begin, 64), fast_end = (s64)align_down((u64)end, 64);
 
   if (fast_begin >= fast_end) {
-    for (int64_t i = begin; i < end; i++)
+    for (s64 i = begin; i < end; i++)
       BitSet__set(bits, i, value);
     return;
   }
 
-  for (int64_t i = begin; i < fast_begin; i++)
+  for (s64 i = begin; i < fast_begin; i++)
     BitSet__set(bits, i, value);
-  for (int64_t i = fast_begin / 64; i < fast_end / 64; i++) {
+  for (s64 i = fast_begin / 64; i < fast_end / 64; i++) {
     bits.data[i] = 0;
     if (value) bits.data[i] = ~bits.data[i];
   }
-  for (int64_t i = fast_end; i < end; i++)
+  for (s64 i = fast_end; i < end; i++)
     BitSet__set(bits, i, value);
 }
 
-int64_t basics__fmt_any(String out, any value) {
+s64 basics__fmt_any(String out, any value) {
   switch (value.type) {
   case type_id_bool: {
     const char *const src = value.bool_value ? "true" : "false";
 
     // @Safety there better not be any C-strings that are over 2^63 bytes long
-    int64_t written = (int64_t)strcpy_s(out, src);
-    return written + (int64_t)strlen(src + written);
+    s64 written = (s64)strcpy_s(out, src);
+    return written + (s64)strlen(src + written);
   }
-    return (int64_t)fmt_u64(out, value.u64_value);
+    return (s64)fmt_u64(out, value.u64_value);
   case type_id_u8:
-    return (int64_t)fmt_u64(out, value.u64_value);
+    return (s64)fmt_u64(out, value.u64_value);
   case type_id_i8:
-    return (int64_t)fmt_i64(out, value.i64_value);
+    return (s64)fmt_i64(out, value.i64_value);
   case type_id_u16:
-    return (int64_t)fmt_u64(out, value.u64_value);
+    return (s64)fmt_u64(out, value.u64_value);
   case type_id_i16:
-    return (int64_t)fmt_i64(out, value.i64_value);
+    return (s64)fmt_i64(out, value.i64_value);
   case type_id_u32:
-    return (int64_t)fmt_u64(out, value.u64_value);
+    return (s64)fmt_u64(out, value.u64_value);
   case type_id_i32:
-    return (int64_t)fmt_i64(out, value.i64_value);
+    return (s64)fmt_i64(out, value.i64_value);
   case type_id_u64:
-    return (int64_t)fmt_u64(out, value.u64_value);
+    return (s64)fmt_u64(out, value.u64_value);
   case type_id_i64:
-    return (int64_t)fmt_i64(out, value.i64_value);
+    return (s64)fmt_i64(out, value.i64_value);
 
   case type_id_char: {
     if (out.count >= 1) *out.data = value.char_value;
@@ -145,8 +144,8 @@ int64_t basics__fmt_any(String out, any value) {
     if (src == NULL) return 0;
 
     // @Safety there better not be any C-strings that are over 2^63 bytes long
-    int64_t written = (int64_t)strcpy_s(out, src);
-    return written + (int64_t)strlen(src + written);
+    s64 written = (s64)strcpy_s(out, src);
+    return written + (s64)strlen(src + written);
   }
 
   default: // TODO what should we do here?
@@ -154,10 +153,10 @@ int64_t basics__fmt_any(String out, any value) {
   }
 }
 
-int64_t basics__fmt(String out, const char *fmt, int32_t count, const any *args) {
-  // TODO why would a string be larger than int64_t's max value?
-  const int64_t len = (int64_t)out.count;
-  int64_t format_count = 0, written = 0;
+s64 basics__fmt(String out, const char *fmt, s32 count, const any *args) {
+  // TODO why would a string be larger than s64's max value?
+  const s64 len = (s64)out.count;
+  s64 format_count = 0, written = 0;
 
   while (*fmt) {
     if (*fmt != '%') {
@@ -182,7 +181,7 @@ int64_t basics__fmt(String out, const char *fmt, int32_t count, const any *args)
     // the scary one we don't ever want to happen
     if (format_count >= count) return -format_count - 1;
 
-    int64_t fmt_try = basics__fmt_any(Str__suffix(out, min(written, len)), args[format_count]);
+    s64 fmt_try = basics__fmt_any(Str__suffix(out, min(written, len)), args[format_count]);
     if (fmt_try < 0) return -format_count - 1;
     written += fmt_try;
     format_count++;
@@ -193,7 +192,7 @@ int64_t basics__fmt(String out, const char *fmt, int32_t count, const any *args)
   return written;
 }
 
-static inline void asm_outw(uint16_t port, uint16_t val) {
+static inline void asm_outw(u16 port, u16 val) {
   asm volatile("outw %0, %1" : : "a"(val), "Nd"(port));
 }
 
@@ -208,9 +207,9 @@ _Noreturn void shutdown(void) {
     asm_hlt();
 }
 
-void memset(void *_buffer, uint8_t byte, int64_t len) {
-  uint8_t *buffer = _buffer;
-  for (int64_t i = 0; i < len; i++)
+void memset(void *_buffer, u8 byte, s64 len) {
+  u8 *buffer = _buffer;
+  for (s64 i = 0; i < len; i++)
     buffer[i] = byte;
 }
 
@@ -248,32 +247,30 @@ void memset(void *_buffer, uint8_t byte, int64_t len) {
 ///////////////////////////////////////////////////////////////////////////////
 
 // output function type
-typedef void (*out_fct_type)(char character, void *buffer, uint64_t idx, uint64_t maxlen);
+typedef void (*out_fct_type)(char character, void *buffer, u64 idx, u64 maxlen);
 
 // internal buffer output
-static inline void _out_buffer(char character, void *buffer, uint64_t idx, uint64_t maxlen) {
+static inline void _out_buffer(char character, void *buffer, u64 idx, u64 maxlen) {
   if (idx < maxlen) {
     ((char *)buffer)[idx] = character;
   }
 }
 
-static uint64_t _ntoa_long(out_fct_type out, char *buffer, uint64_t idx, uint64_t maxlen,
-                           uint64_t value, bool negative, unsigned long base, uint32_t prec,
-                           uint32_t width, uint32_t flags);
+static u64 _ntoa_long(out_fct_type out, char *buffer, u64 idx, u64 maxlen, u64 value, bool negative,
+                      unsigned long base, u32 prec, u32 width, u32 flags);
 
-int64_t fmt_u64(String out, uint64_t value) {
-  return (int64_t)_ntoa_long(_out_buffer, out.data, 0, (uint64_t)out.count, value, false, 10, 0, 0,
-                             0);
+s64 fmt_u64(String out, u64 value) {
+  return (s64)_ntoa_long(_out_buffer, out.data, 0, (u64)out.count, value, false, 10, 0, 0, 0);
 }
-int64_t fmt_i64(String out, int64_t value) {
-  return (int64_t)_ntoa_long(_out_buffer, out.data, 0, (uint64_t)out.count,
-                             (uint64_t)(value < 0 ? -value : value), value < 0, 10, 0, 0, 0);
+s64 fmt_i64(String out, s64 value) {
+  return (s64)_ntoa_long(_out_buffer, out.data, 0, (u64)out.count,
+                         (u64)(value < 0 ? -value : value), value < 0, 10, 0, 0, 0);
 }
 
-int64_t strlen(const char *str) {
+s64 strlen(const char *str) {
   if (str == NULL) return 0;
 
-  int64_t i = 0;
+  s64 i = 0;
   for (; *str; i++, str++)
     ;
 
@@ -290,10 +287,10 @@ int64_t strlen(const char *str) {
 //   return dest;
 // }
 
-int64_t strcpy_s(String dest, const char *src) {
+s64 strcpy_s(String dest, const char *src) {
   if (src == NULL) return 0;
 
-  int64_t written = 0;
+  s64 written = 0;
   for (; written < dest.count && src[written]; written++)
     dest.data[written] = src[written];
 
@@ -355,34 +352,34 @@ int64_t strcpy_s(String dest, const char *src) {
 // internal secure strlen
 // \return The length of the string (excluding the terminating 0) limited by
 // 'maxsize'
-// static inline uint32_t _strnlen_s(const char *str, uint64_t maxsize) {
+// static inline u32 _strnlen_s(const char *str, u64 maxsize) {
 //   const char *s;
 //   for (s = str; *s && maxsize--; ++s)
 //     ;
-//   return (uint32_t)(s - str);
+//   return (u32)(s - str);
 // }
 
 // internal test if char is a digit (0-9)
 // \return true if char is a digit
 // static inline bool _is_digit(char ch) { return (ch >= '0') && (ch <= '9'); }
 
-// internal ASCII string to uint32_t conversion
-// static uint32_t _atoi(const char **str) {
-//   uint32_t i = 0U;
+// internal ASCII string to u32 conversion
+// static u32 _atoi(const char **str) {
+//   u32 i = 0U;
 //   while (_is_digit(**str)) {
-//     i = i * 10U + (uint32_t)(*((*str)++) - '0');
+//     i = i * 10U + (u32)(*((*str)++) - '0');
 //   }
 //   return i;
 // }
 
 // output the specified string in reverse, taking care of any zero-padding
-static uint64_t _out_rev(out_fct_type out, char *buffer, uint64_t idx, uint64_t maxlen,
-                         const char *buf, uint64_t len, uint32_t width, uint32_t flags) {
-  const uint64_t start_idx = idx;
+static u64 _out_rev(out_fct_type out, char *buffer, u64 idx, u64 maxlen, const char *buf, u64 len,
+                    u32 width, u32 flags) {
+  const u64 start_idx = idx;
 
   // pad spaces up to given width
   if (!(flags & FLAGS_LEFT) && !(flags & FLAGS_ZEROPAD)) {
-    for (uint64_t i = len; i < width; i++) {
+    for (u64 i = len; i < width; i++) {
       out(' ', buffer, idx++, maxlen);
     }
   }
@@ -403,9 +400,8 @@ static uint64_t _out_rev(out_fct_type out, char *buffer, uint64_t idx, uint64_t 
 }
 
 // internal itoa format
-static uint64_t _ntoa_format(out_fct_type out, char *buffer, uint64_t idx, uint64_t maxlen,
-                             char *buf, uint64_t len, bool negative, uint32_t base, uint32_t prec,
-                             uint32_t width, uint32_t flags) {
+static u64 _ntoa_format(out_fct_type out, char *buffer, u64 idx, u64 maxlen, char *buf, u64 len,
+                        bool negative, u32 base, u32 prec, u32 width, u32 flags) {
   // pad leading zeros
   if (!(flags & FLAGS_LEFT)) {
     if (width && (flags & FLAGS_ZEROPAD) && (negative || (flags & (FLAGS_PLUS | FLAGS_SPACE)))) {
@@ -453,12 +449,11 @@ static uint64_t _ntoa_format(out_fct_type out, char *buffer, uint64_t idx, uint6
 }
 
 // internal itoa for 'long' type
-// TODO change this `uint32_t value` to a `uint64_t value` once we're on x86_64
-static uint64_t _ntoa_long(out_fct_type out, char *buffer, uint64_t idx, uint64_t maxlen,
-                           uint64_t value, bool negative, unsigned long base, uint32_t prec,
-                           uint32_t width, uint32_t flags) {
+// TODO change this `u32 value` to a `u64 value` once we're on x86_64
+static u64 _ntoa_long(out_fct_type out, char *buffer, u64 idx, u64 maxlen, u64 value, bool negative,
+                      unsigned long base, u32 prec, u32 width, u32 flags) {
   char buf[PRINTF_NTOA_BUFFER_SIZE];
-  uint64_t len = 0U;
+  u64 len = 0U;
 
   // no hash for 0 values
   if (!value) {
@@ -474,8 +469,7 @@ static uint64_t _ntoa_long(out_fct_type out, char *buffer, uint64_t idx, uint64_
     } while (value && (len < PRINTF_NTOA_BUFFER_SIZE));
   }
 
-  return _ntoa_format(out, buffer, idx, maxlen, buf, len, negative, (uint32_t)base, prec, width,
-                      flags);
+  return _ntoa_format(out, buffer, idx, maxlen, buf, len, negative, (u32)base, prec, width, flags);
 }
 
 #if defined(PRINTF_SUPPORT_FLOAT)
@@ -483,15 +477,15 @@ static uint64_t _ntoa_long(out_fct_type out, char *buffer, uint64_t idx, uint64_
 #if defined(PRINTF_SUPPORT_EXPONENTIAL)
 // forward declaration so that _ftoa can switch to exp notation for values >
 // PRINTF_MAX_FLOAT
-static uint64_t _etoa(out_fct_type out, char *buffer, uint64_t idx, uint64_t maxlen, double value,
-                      uint32_t prec, uint32_t width, uint32_t flags);
+static u64 _etoa(out_fct_type out, char *buffer, u64 idx, u64 maxlen, double value, u32 prec,
+                 u32 width, u32 flags);
 #endif
 
 // internal ftoa for fixed decimal floating point
-static uint64_t _ftoa(out_fct_type out, char *buffer, uint64_t idx, uint64_t maxlen, double value,
-                      uint32_t prec, uint32_t width, uint32_t flags) {
+static u64 _ftoa(out_fct_type out, char *buffer, u64 idx, u64 maxlen, double value, u32 prec,
+                 u32 width, u32 flags) {
   char buf[PRINTF_FTOA_BUFFER_SIZE];
-  uint64_t len = 0U;
+  u64 len = 0U;
   double diff = 0.0;
 
   // powers of 10
@@ -533,9 +527,9 @@ static uint64_t _ftoa(out_fct_type out, char *buffer, uint64_t idx, uint64_t max
     prec--;
   }
 
-  int32_t whole = (int32_t)value;
+  s32 whole = (s32)value;
   double tmp = (value - whole) * pow10[prec];
-  unsigned long frac = (uint64_t)tmp;
+  unsigned long frac = (u64)tmp;
   diff = tmp - frac;
 
   if (diff > 0.5) {
@@ -559,7 +553,7 @@ static uint64_t _ftoa(out_fct_type out, char *buffer, uint64_t idx, uint64_t max
       ++whole;
     }
   } else {
-    uint32_t count = prec;
+    u32 count = prec;
     // now do fractional part, as an unsigned number
     while (len < PRINTF_FTOA_BUFFER_SIZE) {
       --count;
@@ -612,8 +606,8 @@ static uint64_t _ftoa(out_fct_type out, char *buffer, uint64_t idx, uint64_t max
 #if defined(PRINTF_SUPPORT_EXPONENTIAL)
 // internal ftoa variant for exponential floating-point type, contributed by
 // Martijn Jasperse <m.jasperse@gmail.com>
-static uint64_t _etoa(out_fct_type out, char *buffer, uint64_t idx, uint64_t maxlen, double value,
-                      uint32_t prec, uint32_t width, uint32_t flags) {
+static u64 _etoa(out_fct_type out, char *buffer, u64 idx, u64 maxlen, double value, u32 prec,
+                 u32 width, u32 flags) {
   // check for NaN and special values
   if ((value != value) || (value > DBL_MAX) || (value < -DBL_MAX)) {
     return _ftoa(out, buffer, idx, maxlen, value, prec, width, flags);
@@ -633,12 +627,12 @@ static uint64_t _etoa(out_fct_type out, char *buffer, uint64_t idx, uint64_t max
   // determine the decimal exponent
   // based on the algorithm by David Gay (https://www.ampl.com/netlib/fp/dtoa.c)
   union {
-    uint64_t U;
+    u64 U;
     double F;
   } conv;
 
   conv.F = value;
-  int32_t exp2 = (int32_t)((conv.U >> 52U) & 0x07FFU) - 1023; // effectively log2
+  s32 exp2 = (s32)((conv.U >> 52U) & 0x07FFU) - 1023; // effectively log2
   conv.U = (conv.U & ((1ULL << 52U) - 1U)) |
            (1023ULL << 52U); // drop the exponent so conv.F is now in [1,2)
   // now approximate log10 from the log2 integer part and an expansion of ln
@@ -649,7 +643,7 @@ static uint64_t _etoa(out_fct_type out, char *buffer, uint64_t idx, uint64_t max
   exp2 = (int)(expval * 3.321928094887362 + 0.5);
   const double z = expval * 2.302585092994046 - exp2 * 0.6931471805599453;
   const double z2 = z * z;
-  conv.U = (uint64_t)(exp2 + 1023) << 52U;
+  conv.U = (u64)(exp2 + 1023) << 52U;
   // compute exp(z) using continued fractions, see
   // https://en.wikipedia.org/wiki/Exponential_function#Continued_fractions_for_ex
   conv.F *= 1 + 2 * z / (2 - z + (z2 / (6 + (z2 / (10 + z2 / 14)))));
@@ -661,14 +655,14 @@ static uint64_t _etoa(out_fct_type out, char *buffer, uint64_t idx, uint64_t max
 
   // the exponent format is "%+03d" and largest value is "307", so set aside 4-5
   // characters
-  uint32_t minwidth = ((expval < 100) && (expval > -100)) ? 4U : 5U;
+  u32 minwidth = ((expval < 100) && (expval > -100)) ? 4U : 5U;
 
   // in "%g" mode, "prec" is the number of *significant figures* not decimals
   if (flags & FLAGS_ADAPT_EXP) {
     // do we want to fall-back to "%f" mode?
     if ((value >= 1e-4) && (value < 1e6)) {
-      if ((int32_t)prec > expval) {
-        prec = (uint32_t)((int32_t)prec - expval - 1);
+      if ((s32)prec > expval) {
+        prec = (u32)((s32)prec - expval - 1);
       } else {
         prec = 0;
       }
@@ -685,7 +679,7 @@ static uint64_t _etoa(out_fct_type out, char *buffer, uint64_t idx, uint64_t max
   }
 
   // will everything fit?
-  uint32_t fwidth = width;
+  u32 fwidth = width;
   if (width > minwidth) {
     // we didn't fall-back so subtract the characters required for the exponent
     fwidth -= minwidth;
@@ -704,7 +698,7 @@ static uint64_t _etoa(out_fct_type out, char *buffer, uint64_t idx, uint64_t max
   }
 
   // output the floating part
-  const uint64_t start_idx = idx;
+  const u64 start_idx = idx;
   idx = _ftoa(out, buffer, idx, maxlen, negative ? -value : value, prec, fwidth,
               flags & ~FLAGS_ADAPT_EXP);
 

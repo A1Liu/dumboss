@@ -5,18 +5,18 @@
 #include "memory.h"
 
 typedef struct {
-  uint32_t eax, ebx, ecx, edx;
+  u32 eax, ebx, ecx, edx;
 } cpuid_result;
 
 #define CPUID_PDPE1GB (U64(1) << 26)
-static inline cpuid_result asm_cpuid(uint32_t code) {
+static inline cpuid_result asm_cpuid(u32 code) {
   cpuid_result result;
   asm("cpuid" : "=a"(result.eax), "=b"(result.ebx), "=c"(result.ecx), "=d"(result.edx) : "0"(code));
   return result;
 }
 
 __attribute__((interrupt, noreturn)) void Idt__double_fault(ExceptionStackFrame *frame,
-                                                            uint64_t error_code) {
+                                                            u64 error_code) {
   log_fmt("double fault error_code: %f", error_code);
   Idt__log_fmt(frame);
   panic();
@@ -37,7 +37,7 @@ void _start(void) {
   log("                    BOOTING UP                    ");
   log("--------------------------------------------------");
 
-  uint32_t gb_pages = asm_cpuid(0x80000001).edx & CPUID_PDPE1GB;
+  u32 gb_pages = asm_cpuid(0x80000001).edx & CPUID_PDPE1GB;
   if (gb_pages) log("Gb pages are enabled");
 
   MMap mmap = memory__init(&bootboot);
@@ -45,11 +45,11 @@ void _start(void) {
 
   GdtInfo gdt_info = current_gdt();
 
-  log_fmt("GDT: %f %f", gdt_info.size, (uint64_t)gdt_info.gdt);
+  log_fmt("GDT: %f %f", gdt_info.size, (u64)gdt_info.gdt);
 
   Gdt *gdt = alloc(1);
   *gdt = Gdt__new();
-  uint16_t segment = Gdt__add_entry(gdt, GDT__KERNEL_CODE);
+  u16 segment = Gdt__add_entry(gdt, GDT__KERNEL_CODE);
   load_gdt(gdt, segment);
 
   Idt *idt = Idt__new(alloc(1), 1 * _4KB);

@@ -36,7 +36,7 @@ const char *const memory__bootboot_mmap_typename[] = {"Used", "Free", "ACPI", "M
 
 #define PageTable__ENTRY_COUNT 512
 typedef struct {
-  volatile uint64_t entries[PageTable__ENTRY_COUNT];
+  volatile u64 entries[PageTable__ENTRY_COUNT];
 } PageTable;
 
 _Static_assert(sizeof(PageTable) == _4KB, "PageTables should be 4KB");
@@ -44,33 +44,33 @@ _Static_assert(sizeof(PageTable) == _4KB, "PageTables should be 4KB");
 typedef struct {
   union {
     struct {
-      uint16_t p0;
-      uint16_t p1;
-      uint16_t p2;
-      uint16_t p3;
-      uint16_t p4;
+      u16 p0;
+      u16 p1;
+      u16 p2;
+      u16 p3;
+      u16 p4;
     };
-    uint16_t indices[5];
+    u16 indices[5];
   };
 } PageTableIndices;
 
-static PageTableIndices page_table_indices(uint64_t address) {
-  uint64_t p1 = address >> 12;
-  uint64_t p2 = p1 >> 9;
-  uint64_t p3 = p2 >> 9;
-  uint64_t p4 = p3 >> 9;
+static PageTableIndices page_table_indices(u64 address) {
+  u64 p1 = address >> 12;
+  u64 p2 = p1 >> 9;
+  u64 p3 = p2 >> 9;
+  u64 p4 = p3 >> 9;
 
   return (PageTableIndices){
-      .p0 = (uint16_t)(address % _4KB),
-      .p1 = (uint16_t)(p1 % PageTable__ENTRY_COUNT),
-      .p2 = (uint16_t)(p2 % PageTable__ENTRY_COUNT),
-      .p3 = (uint16_t)(p3 % PageTable__ENTRY_COUNT),
-      .p4 = (uint16_t)(p4 % PageTable__ENTRY_COUNT),
+      .p0 = (u16)(address % _4KB),
+      .p1 = (u16)(p1 % PageTable__ENTRY_COUNT),
+      .p2 = (u16)(p2 % PageTable__ENTRY_COUNT),
+      .p3 = (u16)(p3 % PageTable__ENTRY_COUNT),
+      .p4 = (u16)(p4 % PageTable__ENTRY_COUNT),
   };
 }
 
-static uint64_t indices_to_address(PageTableIndices indices) {
-  uint64_t address = indices.p4;
+static u64 indices_to_address(PageTableIndices indices) {
+  u64 address = indices.p4;
   address = (address << 9) | indices.p3;
   address = (address << 9) | indices.p2;
   address = (address << 9) | indices.p1;
@@ -78,13 +78,13 @@ static uint64_t indices_to_address(PageTableIndices indices) {
 
   // This sign-extends the address for the top 16 bits, as required by x86_64
   // before Intel Ice Lake
-  int64_t signed_address_shifted = (int64_t)(address << 16);
-  address = (uint64_t)(signed_address_shifted >> 16);
+  s64 signed_address_shifted = (s64)(address << 16);
+  address = (u64)(signed_address_shifted >> 16);
 
   return address;
 }
 
-static void traverse_table(uint64_t table_entry, uint16_t table_level) {
+static void traverse_table(u64 table_entry, u16 table_level) {
   const static char *const prefixes[] = {"| | | +-", "| | +-", "| +-", "+-", ""};
   const static char *const page_size_for_entry[] = {"", "4Kb", "2Mb", "1Gb", ""};
 
@@ -93,10 +93,10 @@ static void traverse_table(uint64_t table_entry, uint16_t table_level) {
     return;
   }
 
-  uint16_t count = 0;
+  u16 count = 0;
   PageTable *table = (PageTable *)(table_entry & PTE_ADDRESS);
   FOR_PTR(table->entries, PageTable__ENTRY_COUNT) {
-    uint64_t entry = *it;
+    u64 entry = *it;
     if (!entry) continue;
     count++;
   }
@@ -105,7 +105,7 @@ static void traverse_table(uint64_t table_entry, uint16_t table_level) {
 
   enum Mode { TABLE, EMPTY, PAGE };
   enum Mode mode = 0;
-  int64_t type_count = 0;
+  s64 type_count = 0;
 
 #define FINISH_MODE                                                                                \
   switch (mode) {                                                                                  \
@@ -125,7 +125,7 @@ static void traverse_table(uint64_t table_entry, uint16_t table_level) {
   }
 
   FOR_PTR(table->entries, PageTable__ENTRY_COUNT) {
-    uint64_t entry = *it;
+    u64 entry = *it;
 
     enum Mode new_mode;
     if (!entry) new_mode = EMPTY;
@@ -158,41 +158,41 @@ static void traverse_table(uint64_t table_entry, uint16_t table_level) {
 }
 
 // get physical address from kernel address
-uint64_t physical_address(void *ptr) {
-  uint64_t address = (uint64_t)ptr;
+u64 physical_address(void *ptr) {
+  u64 address = (u64)ptr;
   assert(address >= MEMORY__KERNEL_SPACE_BEGIN);
 
   return address - MEMORY__KERNEL_SPACE_BEGIN;
 }
 
 // get kernel address from physical address
-void *kernel_address(uint64_t address) {
+void *kernel_address(u64 address) {
   assert(address < MEMORY__KERNEL_SPACE_BEGIN);
 
   return (void *)(address + MEMORY__KERNEL_SPACE_BEGIN);
 }
 
-void map_region(PageTable *p4, uint64_t virtual_begin, uint64_t physical_begin, uint64_t size) {
+void map_region(PageTable *p4, u64 virtual_begin, u64 physical_begin, u64 size) {
   (void)p4;
   (void)virtual_begin;
   (void)physical_begin;
   (void)size;
 }
 
-static void *phys_alloc_from_entries(MMap mmap, int64_t _size, int64_t _align);
+static void *phys_alloc_from_entries(MMap mmap, s64 _size, s64 _align);
 MMap memory__init(BOOTBOOT *bb) {
   // Calculation described in bootboot specification
   MMap mmap = {.data = &bb->mmap, .count = (bb->size - 128) / 16, .memory_size = 0};
-  uint64_t memory_size = 0;
+  u64 memory_size = 0;
   FOR(mmap) {
-    uint64_t ptr = MMapEnt_Ptr(it), size = MMapEnt_Size(it);
+    u64 ptr = MMapEnt_Ptr(it), size = MMapEnt_Size(it);
     memory_size = max(memory_size, ptr + size);
   }
   mmap.memory_size = memory_size;
 
   // sort the entries so that the free ones are first
   SLOW_SORT(mmap) {
-    uint64_t l_type = MMapEnt_Type(left), r_type = MMapEnt_Type(right);
+    u64 l_type = MMapEnt_Type(left), r_type = MMapEnt_Type(right);
 
     bool swap = (l_type != MMAP_FREE) & (r_type == MMAP_FREE);
     if (swap) SWAP(left, right);
@@ -210,9 +210,9 @@ MMap memory__init(BOOTBOOT *bb) {
   }
 
   // First page in physical memory isn't used right now.
-  uint64_t first_ptr = MMapEnt_Ptr(&mmap.data[0]);
+  u64 first_ptr = MMapEnt_Ptr(&mmap.data[0]);
   if (first_ptr < _4KB) {
-    int64_t safety_size = _4KB - (int64_t)first_ptr;
+    s64 safety_size = _4KB - (s64)first_ptr;
     void *safety_alloc = phys_alloc_from_entries(mmap, safety_size, 1);
     memset(safety_alloc, 42, safety_size);
   }
@@ -231,20 +231,20 @@ MMap memory__init(BOOTBOOT *bb) {
   return mmap;
 }
 
-void *alloc_from_entries(MMap mmap, int64_t _size, int64_t _align) {
-  uint64_t address = (uint64_t)phys_alloc_from_entries(mmap, _size, _align);
+void *alloc_from_entries(MMap mmap, s64 _size, s64 _align) {
+  u64 address = (u64)phys_alloc_from_entries(mmap, _size, _align);
   return (void *)(address + MEMORY__KERNEL_SPACE_BEGIN);
 }
 
-static void *phys_alloc_from_entries(MMap mmap, int64_t _size, int64_t _align) {
+static void *phys_alloc_from_entries(MMap mmap, s64 _size, s64 _align) {
   if (_size <= 0 || _align < 0) return MMapEnt__ALLOC_FAILURE;
 
-  uint64_t align = max((uint64_t)_align, 1);
-  uint64_t size = align_up((uint64_t)_size, align);
+  u64 align = max((u64)_align, 1);
+  u64 size = align_up((u64)_size, align);
 
   FOR(mmap) {
-    uint64_t aligned_ptr = align_up(it->ptr, align);
-    uint64_t aligned_size = it->size + it->ptr - aligned_ptr;
+    u64 aligned_ptr = align_up(it->ptr, align);
+    u64 aligned_size = it->size + it->ptr - aligned_ptr;
     if (aligned_size < size) continue;
 
     it->ptr = aligned_ptr + size;

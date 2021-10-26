@@ -5,22 +5,22 @@
 
 typedef struct {
   const char *file;
-  uint32_t line;
+  u32 line;
 } sloc;
 
 typedef struct {
-  uint8_t *data;
-  int64_t count;
+  u8 *data;
+  s64 count;
 } Buffer;
 
 typedef struct {
   char *data;
-  int64_t count;
+  s64 count;
 } String;
 
 typedef struct {
-  uint64_t *data;
-  int64_t count;
+  u64 *data;
+  s64 count;
 } BitSet;
 
 typedef enum __attribute__((packed)) {
@@ -39,8 +39,8 @@ typedef enum __attribute__((packed)) {
 
 typedef struct {
   union {
-    uint64_t u64_value;
-    int64_t i64_value;
+    u64 u64_value;
+    s64 i64_value;
     char char_value;
     bool bool_value;
     void *ptr;
@@ -119,12 +119,12 @@ typedef struct {
 
 #define _FOR(array, it, it_index)                                                                  \
   DECLARE_SCOPED(typeof(array) M_array = array)                                                    \
-  DECLARE_SCOPED(int64_t it_index = 0, M_len = M_array.count)                                      \
+  DECLARE_SCOPED(s64 it_index = 0, M_len = M_array.count)                                          \
   DECLARE_SCOPED(typeof(&array.data[0]) M_ptr = M_array.data, it = NULL)                           \
   for (it = M_ptr; it_index < M_len; it++, it_index++)
 
 #define _FOR_PTR(ptr, len, it, it_index)                                                           \
-  DECLARE_SCOPED(int64_t it_index = 0, M_len = len)                                                \
+  DECLARE_SCOPED(s64 it_index = 0, M_len = len)                                                    \
   DECLARE_SCOPED(typeof(&ptr[0]) M_ptr = ptr, it = NULL)                                           \
   for (it = M_ptr; it_index < M_len; it++, it_index++)
 
@@ -141,7 +141,7 @@ typedef struct {
 // Does bubble sort stuff; user has to make the swaps themself
 #define SLOW_SORT(array)                                                                           \
   DECLARE_SCOPED(typeof(array) M_array = array)                                                    \
-  for (int64_t M_right_bound = M_array.count - 1, M_left_index = 0; M_right_bound > 0;             \
+  for (s64 M_right_bound = M_array.count - 1, M_left_index = 0; M_right_bound > 0;                 \
        M_right_bound--, M_left_index = 0)                                                          \
     for (typeof(M_array.data) left = M_array.data + M_left_index,                                  \
                               right = M_array.data + M_left_index + 1;                             \
@@ -151,15 +151,14 @@ typedef struct {
 #define make_any(value)                                                        \
   _Generic((value),                                                            \
           bool  : basics__make_any_bool,                                       \
-       uint8_t  : basics__make_any_u64,                                        \
-        int8_t  : basics__make_any_i64,                                        \
-      uint16_t  : basics__make_any_u64,                                        \
-       int16_t  : basics__make_any_i64,                                        \
-      uint32_t  : basics__make_any_u64,                                        \
-       int32_t  : basics__make_any_i64,                                        \
-      uint64_t  : basics__make_any_u64,                                        \
-       int64_t  : basics__make_any_i64,                                        \
-     long long  : basics__make_any_i64,                                        \
+            u8  : basics__make_any_u64,                                        \
+            s8  : basics__make_any_i64,                                        \
+           u16  : basics__make_any_u64,                                        \
+           s16  : basics__make_any_i64,                                        \
+           u32  : basics__make_any_u64,                                        \
+           s32  : basics__make_any_i64,                                        \
+           u64  : basics__make_any_u64,                                        \
+           s64  : basics__make_any_i64,                                        \
           char  : basics__make_any_char,                                       \
           char* : basics__make_any_char_ptr,                                   \
     const char* : basics__make_any_char_ptr,                                   \
@@ -172,7 +171,7 @@ typedef struct {
     FOR_ARGS(make_any, __VA_ARGS__)                                                                \
   }
 
-#define _read_register1(reg)     _read_register3(reg, uint64_t, "")
+#define _read_register1(reg)     _read_register3(reg, u64, "")
 #define _read_register2(reg, ty) _read_register3(reg, ty, "")
 #define _read_register3(reg, ty, suffix)                                                           \
   ({                                                                                               \
@@ -195,35 +194,35 @@ typedef struct {
 
 #define out8(port, val)                                                                            \
   ({                                                                                               \
-    uint8_t v = val;                                                                               \
+    u8 v = val;                                                                                    \
     asm volatile("outb %0, %1" : : "a"(v), "Nd"(port));                                            \
     v;                                                                                             \
   })
 
 #define in8(port)                                                                                  \
   ({                                                                                               \
-    uint8_t ret;                                                                                   \
-    uint16_t p = port;                                                                             \
+    u8 ret;                                                                                        \
+    u16 p = port;                                                                                  \
     asm volatile("inb %1, %0" : "=a"(ret) : "Nd"(p));                                              \
     ret;                                                                                           \
   })
 
 #define min(x, y) ((x) > (y) ? (y) : (x))
 #define max(x, y) ((x) < (y) ? (y) : (x))
-int64_t smallest_greater_power2(int64_t value);
-uint64_t align_up(uint64_t value, uint64_t alignment);
-uint64_t align_down(uint64_t value, uint64_t alignment);
+s64 smallest_greater_power2(s64 value);
+u64 align_up(u64 value, u64 alignment);
+u64 align_down(u64 value, u64 alignment);
 
-String Str__new(char *data, int64_t size);
+String Str__new(char *data, s64 size);
 bool Str__is_null(String str);
-String Str__slice(String str, int64_t begin, int64_t end);
-String Str__suffix(String str, int64_t begin);
+String Str__slice(String str, s64 begin, s64 end);
+String Str__suffix(String str, s64 begin);
 
-BitSet BitSet__new(uint64_t *data, int64_t size);
-bool BitSet__get(BitSet bits, int64_t idx);
-void BitSet__set(BitSet bits, int64_t idx, bool value);
+BitSet BitSet__new(u64 *data, s64 size);
+bool BitSet__get(BitSet bits, s64 idx);
+void BitSet__set(BitSet bits, s64 idx, bool value);
 void BitSet__set_all(BitSet bits, bool value);
-void BitSet__set_range(BitSet bits, int64_t begin, int64_t end, bool value);
+void BitSet__set_range(BitSet bits, s64 begin, s64 end, bool value);
 
 static inline void asm_hlt(void) {
   asm volatile("hlt");
@@ -233,12 +232,12 @@ static any inline basics__make_any_bool(bool value) {
   return (any){.bool_value = value, .type = type_id_bool};
 }
 
-static any inline basics__make_any_u64(uint64_t value) {
-  return (any){.u64_value = (uint64_t)value, .type = type_id_u64};
+static any inline basics__make_any_u64(u64 value) {
+  return (any){.u64_value = (u64)value, .type = type_id_u64};
 }
 
-static any inline basics__make_any_i64(int64_t value) {
-  return (any){.i64_value = (int64_t)value, .type = type_id_i64};
+static any inline basics__make_any_i64(s64 value) {
+  return (any){.i64_value = (s64)value, .type = type_id_i64};
 }
 
 static any inline basics__make_any_char_ptr(const char *value) {
@@ -255,32 +254,32 @@ static any inline basics__make_any_any(any value) {
 
 // If return value is positive, formatter tried to write that many bytes to
 // provided buffer; If negative, the formatter to format the argument
-int64_t basics__fmt_any(String out, any value);
+s64 basics__fmt_any(String out, any value);
 
 // If return value is positive, formatter tried to write that many bytes to
 // provided buffer; If negative, the formatter failed on that argument
 // (one-indexed)
-int64_t basics__fmt(String out, const char *fmt, int32_t count, const any *args);
+s64 basics__fmt(String out, const char *fmt, s32 count, const any *args);
 
 // Panic the kernel
 _Noreturn void shutdown(void);
 
-void memset(void *buffer, uint8_t byte, int64_t len);
+void memset(void *buffer, u8 byte, s64 len);
 
 // Formats a u64. Returns the length of buffer needed to output this number. If
 // return value is smaller than `size`, then the writing succedded
-int64_t fmt_u64(String out, uint64_t value);
+s64 fmt_u64(String out, u64 value);
 
 // Formats a i64. Returns the length of buffer needed to output this number. If
 // return value is smaller than size parameter, then the writing succedded
-int64_t fmt_i64(String out, int64_t value);
+s64 fmt_i64(String out, s64 value);
 
 // Returns the length of a null-terminated string
-int64_t strlen(const char *str);
+s64 strlen(const char *str);
 
 // Tries to write null-terminated string `src` into `dest`
 // char *strcpy(char *dest, const char *src);
 
 // Tries to write null-terminated string `src` into `dest`, stopping when
 // `dest.size` is reached, and returning the amount of data written
-int64_t strcpy_s(String dest, const char *src);
+s64 strcpy_s(String dest, const char *src);
