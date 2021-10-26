@@ -35,9 +35,11 @@ in the same way (`dumboss build` to build and `dumboss run` to run)
    [https://www.youtube.com/watch?v=KXuZi9aeGTw](https://www.youtube.com/watch?v=KXuZi9aeGTw)
 6. Microkernel with monolithic kernel manager thingy in userspace.
 7. Switch to C++ because honestly some light template use would probably help
-   with correctness.
+   with correctness. Or use macros? Hmmm? Macros? Interesting.
 8. Maybe don't map all of phyiscal memory lmao
 9. No file-system. Just a k-v store, 128-bit key that maps to a set of blocks on the disk.
 10. Permissions are based on programs, not users.
-11. Integer divide-by-zero always results in a zero.
+
+## Scrapped Ideas
+1. Integer divide-by-zero always results in a zero. (THIS IS NOT POSSIBLE ON X64 FEELSBADMAN)
 

@@ -1,9 +1,7 @@
 #pragma once
+#include "int.h"
 #include <stdbool.h>
 #include <stddef.h>
-#include <stdint.h>
-
-#define U64_1 ((uint64_t)1)
 
 typedef struct {
   const char *file;
