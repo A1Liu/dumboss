@@ -103,8 +103,8 @@ static void traverse_table(u64 table_entry, u16 table_level) {
 
   log_fmt("%fp%f table with %f children", prefixes[table_level], table_level, count);
 
-  enum Mode { TABLE, EMPTY, PAGE };
-  enum Mode mode = 0;
+  enum Mode { TABLE = 0, EMPTY, PAGE };
+  enum Mode mode = TABLE;
   s64 type_count = 0;
 
 #define FINISH_MODE                                                                                \
