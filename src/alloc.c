@@ -58,18 +58,18 @@ void alloc__init(MMap mmap) {
   u64 memory_size = align_up(mmap.memory_size, _4KB << SIZE_CLASS_COUNT);
   s64 max_page_idx = address_to_page(memory_size);
 
-  u64 *usable_pages_data = alloc_from_entries(mmap, max_page_idx >> 3, 8);
+  u64 *usable_pages_data = alloc_from_entries(mmap, max_page_idx / 8, 8);
   assert(usable_pages_data != MMapEnt__ALLOC_FAILURE);
   GLOBAL->usable_pages = BitSet__from_raw(usable_pages_data, max_page_idx);
 
-  u64 *free_pages_data = alloc_from_entries(mmap, max_page_idx >> 3, 8);
+  u64 *free_pages_data = alloc_from_entries(mmap, max_page_idx / 8, 8);
   assert(free_pages_data != MMapEnt__ALLOC_FAILURE);
   GLOBAL->free_pages = BitSet__from_raw(free_pages_data, max_page_idx);
   BitSet__set_all(GLOBAL->free_pages, false);
 
   for (s64 i = 0; i < SIZE_CLASS_COUNT - 1; i++) {
     s64 num_buddy_pairs = page_to_buddy(max_page_idx, i);
-    u64 *data = alloc_from_entries(mmap, num_buddy_pairs >> 3, 8);
+    u64 *data = alloc_from_entries(mmap, num_buddy_pairs / 8, 8);
     assert(data != MMapEnt__ALLOC_FAILURE);
     BitSet buddies = BitSet__from_raw(data, num_buddy_pairs);
 
