@@ -122,6 +122,16 @@ typedef struct {
 //                                    - Albert Liu, Oct 24, 2021 Sun 04:20 EDT
 #define DECLARE_SCOPED(...) for (__VA_ARGS__;; ({ break; }))
 
+// NOTE: This ALSO breaks compatibility with GCC.
+//                                    - Albert Liu, Nov 02, 2021 Tue 01:19 EDT
+#define break(label) goto M_##label
+#define BREAK_BLOCK(label)                                                                         \
+  for (;; ({                                                                                       \
+         _Pragma("clang diagnostic push \"-Wno-unused-label\"");                                   \
+         M_##label : break;                                                                        \
+         _Pragma("clang diagnostic pop");                                                          \
+       }))
+
 #define _FOR(array, it, it_index)                                                                  \
   DECLARE_SCOPED(typeof(array) M_array = array)                                                    \
   DECLARE_SCOPED(s64 it_index = 0, M_len = M_array.count)                                          \
