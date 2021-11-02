@@ -112,7 +112,7 @@ bool BitSet__get_any(const BitSet bits, s64 begin, s64 end) {
   for (s64 i = fast_end; i < end; i++)
     if (BitSet__get(bits, i)) return true;
 
-  return true;
+  return false;
 }
 
 void BitSet__set(const BitSet bits, s64 idx, bool value) {

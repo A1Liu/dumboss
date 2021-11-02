@@ -18,7 +18,7 @@ void logging__log_fmt(sloc loc, const char *fmt, int32_t count, const any *args)
 
 #define assert(expression, ...)                                                                    \
   ((expression)                                                                                    \
-       ?: ((NARG(__VA_ARGS__) ? panic("assertion failed:" __VA_ARGS__)                             \
+       ?: ((NARG(__VA_ARGS__) ? panic("assertion failed: " __VA_ARGS__)                            \
                               : panic("assertion failed: `%f`", #expression)),                     \
            expression))
 

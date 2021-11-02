@@ -58,21 +58,23 @@ void alloc__init(MMap mmap) {
   u64 memory_size = align_up(mmap.memory_size, _4KB << SIZE_CLASS_COUNT);
   s64 max_page_idx = address_to_page(memory_size);
 
-  u64 *usable_pages_data = alloc_from_entries(mmap, max_page_idx, 8);
+  u64 *usable_pages_data = alloc_from_entries(mmap, max_page_idx >> 3, 8);
   assert(usable_pages_data != MMapEnt__ALLOC_FAILURE);
   GLOBAL->usable_pages = BitSet__from_raw(usable_pages_data, max_page_idx);
 
-  u64 *free_pages_data = alloc_from_entries(mmap, max_page_idx, 8);
+  u64 *free_pages_data = alloc_from_entries(mmap, max_page_idx >> 3, 8);
   assert(free_pages_data != MMapEnt__ALLOC_FAILURE);
   GLOBAL->free_pages = BitSet__from_raw(free_pages_data, max_page_idx);
+  BitSet__set_all(GLOBAL->free_pages, false);
 
   for (s64 i = 0; i < SIZE_CLASS_COUNT - 1; i++) {
     s64 num_buddy_pairs = page_to_buddy(max_page_idx, i);
-    u64 *data = alloc_from_entries(mmap, num_buddy_pairs, 8);
+    u64 *data = alloc_from_entries(mmap, num_buddy_pairs >> 3, 8);
     assert(data != MMapEnt__ALLOC_FAILURE);
+    BitSet buddies = BitSet__from_raw(data, num_buddy_pairs);
 
     GLOBAL->size_classes[i].freelist = NULL;
-    GLOBAL->size_classes[i].buddies = BitSet__from_raw(data, num_buddy_pairs);
+    GLOBAL->size_classes[i].buddies = buddies;
     BitSet__set_all(GLOBAL->size_classes[i].buddies, false);
   }
   GLOBAL->size_classes[SIZE_CLASS_COUNT - 1].freelist = NULL;
@@ -85,15 +87,11 @@ void alloc__init(MMap mmap) {
     s64 begin = address_to_page(entry->ptr);
     assert(begin >= previous_end);
 
-    if (begin != previous_end) {
-      BitSet__set_range(GLOBAL->usable_pages, previous_end, begin, false);
-      BitSet__set_range(GLOBAL->free_pages, previous_end, begin, false);
-    }
+    if (begin != previous_end) BitSet__set_range(GLOBAL->usable_pages, previous_end, begin, false);
 
     s64 end = address_to_page(end_address);
     entry->size = end_address - entry->ptr;
     BitSet__set_range(GLOBAL->usable_pages, begin, end, true);
-    BitSet__set_range(GLOBAL->free_pages, begin, end, true);
     previous_end = end;
   }
 
@@ -198,18 +196,21 @@ void *alloc(s64 count) {
   GLOBAL->free_memory -= count * (s64)_4KB;
 
   void *const data = pop_freelist(size_class);
-  s64 page = address_to_page(physical_address(data));
-  assert(BitSet__get(GLOBAL->usable_pages, page));
+  const u64 addr = physical_address(data);
+  const s64 begin_page = address_to_page(addr), end_page = begin_page + count;
+  assert(BitSet__get_all(GLOBAL->usable_pages, begin_page, end_page));
+  assert(BitSet__get_all(GLOBAL->free_pages, begin_page, end_page));
+  BitSet__set_range(GLOBAL->free_pages, begin_page, end_page, false);
 
   if (size_class != SIZE_CLASS_COUNT - 1) {
-    s64 buddy_index = page_to_buddy(page, size_class);
+    s64 buddy_index = page_to_buddy(begin_page, size_class);
     assert(BitSet__get(GLOBAL->size_classes[size_class].buddies, buddy_index));
     BitSet__set(GLOBAL->size_classes[size_class].buddies, buddy_index, false);
   }
 
   if (size_class == 0) return data;
 
-  for (s64 i = size_class - 1; i >= 0; i--) {
+  for (s64 i = size_class - 1, page = begin_page; i >= 0; i--) {
     if ((1 << (i + 1)) == count) return data;
 
     SizeClassInfo *info = &GLOBAL->size_classes[i];
@@ -234,7 +235,7 @@ void unsafe_mark_memory_usability(void *data, s64 count, bool usable) {
   u64 addr = physical_address(data);
   assert(addr == align_down(addr, _4KB));
 
-  s64 begin_page = address_to_page(addr), end_page = begin_page + count;
+  const s64 begin_page = address_to_page(addr), end_page = begin_page + count;
   BitSet__set_range(GLOBAL->usable_pages, begin_page, end_page, usable);
 }
 
@@ -242,18 +243,25 @@ static void free_at_size_class(s64 page, s64 size_class);
 
 void free(void *data, s64 count) {
   assert(data != NULL);
-  u64 addr = physical_address(data);
+  const u64 addr = physical_address(data);
   assert(addr == align_down(addr, _4KB));
 
-  s64 begin_page = address_to_page(addr), end_page = begin_page + count;
+  const s64 begin_page = address_to_page(addr), end_page = begin_page + count;
+  for (s64 i = begin_page; i < end_page; i++) {
+    assert(!BitSet__get(GLOBAL->free_pages, i), "index: %f", i - begin_page);
+  }
+  assert(BitSet__get_all(GLOBAL->usable_pages, begin_page, end_page));
+  assert(!BitSet__get_any(GLOBAL->free_pages, begin_page, end_page));
+
   // TODO should probably do some math here to not have to iterate over every
   // page in data
   for (s64 page = begin_page; page < end_page; page++)
     free_at_size_class(page, 0);
+
+  BitSet__set_range(GLOBAL->free_pages, begin_page, end_page, true);
 }
 
 static void free_at_size_class(s64 page, s64 size_class) {
-  assert(BitSet__get(GLOBAL->usable_pages, page));
   assert(valid_page_for_size_class(page, size_class));
   GLOBAL->free_memory += (1 << size_class) * _4KB;
 
