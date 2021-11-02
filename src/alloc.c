@@ -72,10 +72,10 @@ void alloc__init(MMap mmap) {
     u64 *data = alloc_from_entries(mmap, num_buddy_pairs / 8, 8);
     assert(data != MMapEnt__ALLOC_FAILURE);
     BitSet buddies = BitSet__from_raw(data, num_buddy_pairs);
+    BitSet__set_all(buddies, false);
 
     GLOBAL->size_classes[i].freelist = NULL;
     GLOBAL->size_classes[i].buddies = buddies;
-    BitSet__set_all(GLOBAL->size_classes[i].buddies, false);
   }
   GLOBAL->size_classes[SIZE_CLASS_COUNT - 1].freelist = NULL;
   GLOBAL->size_classes[SIZE_CLASS_COUNT - 1].buddies = BitSet__from_raw(NULL, 0);
