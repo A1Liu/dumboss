@@ -95,19 +95,24 @@ typedef struct {
   (func, ##__VA_ARGS__)
 
 #define _FOR_ARGS_SEP0(func, sep, ...)
-#define _FOR_ARGS_SEP1(func, sep, a)          func(a)
-#define _FOR_ARGS_SEP2(func, sep, a, b)       func(a) sep() func(b)
-#define _FOR_ARGS_SEP3(func, sep, a, b, c)    func(a) sep() func(b) sep() func(c)
-#define _FOR_ARGS_SEP4(func, sep, a, b, c, d) func(a) sep() func(b) sep() func(c) sep() func(d)
-#define _FOR_ARGS_SEP5(func, sep, a, b, c, d, e)                                                   \
-  func(a) sep() func(b) sep() func(c) sep() func(d) sep() func(e)
-#define _FOR_ARGS_SEP6(func, sep, a, b, c, d, e, f)                                                \
-  func(a) sep() func(b) sep() func(c) sep() func(d) sep() func(e) sep() func(f)
-#define _FOR_ARGS_SEP7(func, sep, a, b, c, d, e, f, g)                                             \
-  func(a) sep() func(b) sep() func(c) sep() func(d) sep() func(e) sep() func(f) sep() func(g)
+#define _FOR_ARGS_SEP1(func, sep, _a0)           func(_a0)
+#define _FOR_ARGS_SEP2(func, sep, _a0, _a1)      func(_a0) sep() func(_a1)
+#define _FOR_ARGS_SEP3(func, sep, _a0, _a1, _a2) func(_a0) sep() func(_a1) sep() func(_a2)
+#define _FOR_ARGS_SEP4(func, sep, _a0, _a1, _a2, _a3)                                              \
+  func(_a0) sep() func(_a1) sep() func(_a2) sep() func(_a3)
+#define _FOR_ARGS_SEP5(func, sep, _a0, _a1, _a2, _a3, _a4)                                         \
+  func(_a0) sep() func(_a1) sep() func(_a2) sep() func(_a3) sep() func(_a4)
+#define _FOR_ARGS_SEP6(func, sep, _a0, _a1, _a2, _a3, _a4, _a5)                                    \
+  func(_a0) sep() func(_a1) sep() func(_a2) sep() func(_a3) sep() func(_a4) sep() func(_a5)
+#define _FOR_ARGS_SEP7(func, sep, _a0, _a1, _a2, _a3, _a4, _a5, _a6)                               \
+  func(_a0) sep() func(_a1) sep() func(_a2) sep() func(_a3) sep() func(_a4) sep() func(_a5) sep()  \
+      func(_a6)
 #define _FOR_ARGS_SEP8(func, sep, _a0, _a1, _a2, _a3, _a4, _a5, _a6, _a7)                          \
   func(_a0) sep() func(_a1) sep() func(_a2) sep() func(_a3) sep() func(_a4) sep() func(_a5) sep()  \
-      func(_a6) sep() func(_a6)
+      func(_a6) sep() func(_a7)
+#define _FOR_ARGS_SEP9(func, sep, _a0, _a1, _a2, _a3, _a4, _a5, _a6, _a7, _a8)                     \
+  func(_a0) sep() func(_a1) sep() func(_a2) sep() func(_a3) sep() func(_a4) sep() func(_a5) sep()  \
+      func(_a6) sep() func(_a7) sep() func(_a8)
 #define FOR_ARGS_SEP(func, sep, ...)                                                               \
   PASTE(_FOR_ARGS_SEP, NARG(__VA_ARGS__))                                                          \
   (func, sep, ##__VA_ARGS__)
@@ -207,8 +212,17 @@ typedef struct {
     ret;                                                                                           \
   })
 
-#define min(x, y) ((x) > (y) ? (y) : (x))
-#define max(x, y) ((x) < (y) ? (y) : (x))
+#define min(x, y)                                                                                  \
+  ({                                                                                               \
+    typeof(x + y) _x = x, _y = y;                                                                  \
+    (_x > _y) ? _y : _x;                                                                           \
+  })
+#define max(x, y)                                                                                  \
+  ({                                                                                               \
+    typeof(x + y) _x = x, _y = y;                                                                  \
+    (_x > _y) ? _x : _y;                                                                           \
+  })
+
 s64 smallest_greater_power2(s64 value);
 u64 align_up(u64 value, u64 alignment);
 u64 align_down(u64 value, u64 alignment);
