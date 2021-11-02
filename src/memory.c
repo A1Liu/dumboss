@@ -35,6 +35,10 @@
 
 const char *const memory__bootboot_mmap_typename[] = {"Used", "Free", "ACPI", "MMIO"};
 
+PageTable4 *read_page_table(void) {
+  return read_register(cr3, PageTable4 *, "q");
+}
+
 #define PageTable__ENTRY_COUNT 512
 typedef struct {
   volatile u64 entries[PageTable__ENTRY_COUNT];
@@ -218,7 +222,7 @@ MMap memory__init(BOOTBOOT *bb) {
     memset(safety_alloc, 42, safety_size);
   }
 
-  PageTable *table = read_register(cr3, PageTable *, "q");
+  PageTable *table = (PageTable *)read_page_table();
 
   PageTableIndices indices = page_table_indices(MEMORY__KERNEL_SPACE_BEGIN);
   assert(indices.p3 == 0);

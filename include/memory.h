@@ -9,8 +9,7 @@
 // #define _2MB ((u64)2097152)
 // #define _1GB ((u64)1073741824)
 
-typedef struct {
-} PageTable4;
+typedef struct PageTable4 PageTable4;
 
 typedef struct {
   MMapEnt *data;
@@ -29,6 +28,9 @@ u64 physical_address(void *ptr);
 
 // get kernel address from physical address
 void *kernel_address(u64 address);
+
+// Read the value of cr3
+PageTable4 *read_page_table(void);
 
 // map a single page of memory
 void map_physical_page(PageTable4 *p4, u64 virtual_begin, u64 physical_begin);
