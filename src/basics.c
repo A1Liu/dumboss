@@ -1,4 +1,5 @@
 #include "basics.h"
+#include "alloc.h"
 #include "logging.h"
 
 // Cobbled together from stack overflow and some previous project.
@@ -51,7 +52,7 @@ String Str__suffix(String str, s64 begin) {
   return (String){.data = str.data + begin, .count = str.count - begin};
 }
 
-BitSet BitSet__new(u64 *data, s64 count) {
+BitSet BitSet__from_raw(u64 *data, s64 count) {
   return (BitSet){.data = data, .count = count};
 }
 
@@ -61,7 +62,57 @@ bool BitSet__get(const BitSet bits, s64 idx) {
 
   const u64 v = bits.data[idx / 64];
   u32 bit_offset = idx % 64;
-  return 0 != ((((u64)1) << bit_offset) & v);
+  return 0 != ((U64(1) << bit_offset) & v);
+}
+
+bool BitSet__get_all(const BitSet bits, s64 begin, s64 end) {
+  assert(0 <= begin);
+  assert(begin <= end);
+  assert(end <= bits.count);
+
+  s64 fast_begin = (s64)align_up((u64)begin, 64), fast_end = (s64)align_down((u64)end, 64);
+
+  if (fast_begin >= fast_end) {
+    for (s64 i = begin; i < end; i++) {
+      if (!BitSet__get(bits, i)) return false;
+    }
+
+    return true;
+  }
+
+  for (s64 i = begin; i < fast_begin; i++)
+    if (!BitSet__get(bits, i)) return false;
+  for (s64 i = fast_begin / 64; i < fast_end / 64; i++)
+    if (bits.data[i] != ~U64(0)) return false;
+  for (s64 i = fast_end; i < end; i++)
+    if (!BitSet__get(bits, i)) return false;
+
+  return true;
+}
+
+bool BitSet__get_any(const BitSet bits, s64 begin, s64 end) {
+  assert(0 <= begin);
+  assert(begin <= end);
+  assert(end <= bits.count);
+
+  s64 fast_begin = (s64)align_up((u64)begin, 64), fast_end = (s64)align_down((u64)end, 64);
+
+  if (fast_begin >= fast_end) {
+    for (s64 i = begin; i < end; i++) {
+      if (BitSet__get(bits, i)) return true;
+    }
+
+    return false;
+  }
+
+  for (s64 i = begin; i < fast_begin; i++)
+    if (BitSet__get(bits, i)) return true;
+  for (s64 i = fast_begin / 64; i < fast_end / 64; i++)
+    if (bits.data[i]) return true;
+  for (s64 i = fast_end; i < end; i++)
+    if (BitSet__get(bits, i)) return true;
+
+  return true;
 }
 
 void BitSet__set(const BitSet bits, s64 idx, bool value) {

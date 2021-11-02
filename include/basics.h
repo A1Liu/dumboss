@@ -218,8 +218,10 @@ bool Str__is_null(String str);
 String Str__slice(String str, s64 begin, s64 end);
 String Str__suffix(String str, s64 begin);
 
-BitSet BitSet__new(u64 *data, s64 size);
+BitSet BitSet__from_raw(u64 *data, s64 size);
 bool BitSet__get(BitSet bits, s64 idx);
+bool BitSet__get_all(BitSet bits, s64 begin, s64 end);
+bool BitSet__get_any(BitSet bits, s64 begin, s64 end);
 void BitSet__set(BitSet bits, s64 idx, bool value);
 void BitSet__set_all(BitSet bits, bool value);
 void BitSet__set_range(BitSet bits, s64 begin, s64 end, bool value);

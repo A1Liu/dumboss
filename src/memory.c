@@ -1,4 +1,5 @@
 #include "memory.h"
+#include "alloc.h"
 #include "basics.h"
 #include "logging.h"
 #include <stddef.h>
@@ -172,11 +173,11 @@ void *kernel_address(u64 address) {
   return (void *)(address + MEMORY__KERNEL_SPACE_BEGIN);
 }
 
-void map_region(PageTable *p4, u64 virtual_begin, u64 physical_begin, u64 size) {
+void map_physical_page(PageTable4 *_p4, u64 virtual_begin, u64 physical_begin) {
+  PageTable *p4 = (PageTable *)_p4;
   (void)p4;
   (void)virtual_begin;
   (void)physical_begin;
-  (void)size;
 }
 
 static void *phys_alloc_from_entries(MMap mmap, s64 _size, s64 _align);

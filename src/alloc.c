@@ -21,6 +21,7 @@ typedef struct {
 
   // NOTE: This is used for checking correctness. Maybe its not necessary?
   BitSet usable_pages;
+  BitSet free_pages;
 
   // NOTE: The smallest size class is 4kb.
   SizeClassInfo size_classes[SIZE_CLASS_COUNT];
@@ -56,10 +57,14 @@ void alloc__init(MMap mmap) {
   // Build basic buddy system structure
   u64 memory_size = align_up(mmap.memory_size, _4KB << SIZE_CLASS_COUNT);
   s64 max_page_idx = address_to_page(memory_size);
-  u64 *data = alloc_from_entries(mmap, max_page_idx, 8);
-  assert(data != MMapEnt__ALLOC_FAILURE);
 
-  GLOBAL->usable_pages = BitSet__new(data, max_page_idx);
+  u64 *usable_pages_data = alloc_from_entries(mmap, max_page_idx, 8);
+  assert(usable_pages_data != MMapEnt__ALLOC_FAILURE);
+  GLOBAL->usable_pages = BitSet__from_raw(usable_pages_data, max_page_idx);
+
+  u64 *free_pages_data = alloc_from_entries(mmap, max_page_idx, 8);
+  assert(free_pages_data != MMapEnt__ALLOC_FAILURE);
+  GLOBAL->free_pages = BitSet__from_raw(free_pages_data, max_page_idx);
 
   for (s64 i = 0; i < SIZE_CLASS_COUNT - 1; i++) {
     s64 num_buddy_pairs = page_to_buddy(max_page_idx, i);
@@ -67,11 +72,11 @@ void alloc__init(MMap mmap) {
     assert(data != MMapEnt__ALLOC_FAILURE);
 
     GLOBAL->size_classes[i].freelist = NULL;
-    GLOBAL->size_classes[i].buddies = BitSet__new(data, num_buddy_pairs);
+    GLOBAL->size_classes[i].buddies = BitSet__from_raw(data, num_buddy_pairs);
     BitSet__set_all(GLOBAL->size_classes[i].buddies, false);
   }
   GLOBAL->size_classes[SIZE_CLASS_COUNT - 1].freelist = NULL;
-  GLOBAL->size_classes[SIZE_CLASS_COUNT - 1].buddies = BitSet__new(NULL, 0);
+  GLOBAL->size_classes[SIZE_CLASS_COUNT - 1].buddies = BitSet__from_raw(NULL, 0);
 
   for (s64 i = 0, previous_end = 0; i < mmap.count; i++) {
     MMapEnt *entry = &mmap.data[i];
@@ -80,11 +85,15 @@ void alloc__init(MMap mmap) {
     s64 begin = address_to_page(entry->ptr);
     assert(begin >= previous_end);
 
-    if (begin != previous_end) BitSet__set_range(GLOBAL->usable_pages, previous_end, begin, false);
+    if (begin != previous_end) {
+      BitSet__set_range(GLOBAL->usable_pages, previous_end, begin, false);
+      BitSet__set_range(GLOBAL->free_pages, previous_end, begin, false);
+    }
 
     s64 end = address_to_page(end_address);
     entry->size = end_address - entry->ptr;
     BitSet__set_range(GLOBAL->usable_pages, begin, end, true);
+    BitSet__set_range(GLOBAL->free_pages, begin, end, true);
     previous_end = end;
   }
 
@@ -218,6 +227,15 @@ void *alloc(s64 count) {
 
   // TODO this is probably unreachable
   return data;
+}
+
+void unsafe_mark_memory_usability(void *data, s64 count, bool usable) {
+  assert(data != NULL);
+  u64 addr = physical_address(data);
+  assert(addr == align_down(addr, _4KB));
+
+  s64 begin_page = address_to_page(addr), end_page = begin_page + count;
+  BitSet__set_range(GLOBAL->usable_pages, begin_page, end_page, usable);
 }
 
 static void free_at_size_class(s64 page, s64 size_class);

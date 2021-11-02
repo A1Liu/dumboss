@@ -10,6 +10,9 @@
 // #define _1GB ((u64)1073741824)
 
 typedef struct {
+} PageTable4;
+
+typedef struct {
   MMapEnt *data;
   s64 count;
   u64 memory_size;
@@ -26,3 +29,6 @@ u64 physical_address(void *ptr);
 
 // get kernel address from physical address
 void *kernel_address(u64 address);
+
+// map a single page of memory
+void map_physical_page(PageTable4 *p4, u64 virtual_begin, u64 physical_begin);
