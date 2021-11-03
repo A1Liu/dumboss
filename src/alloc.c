@@ -1,6 +1,5 @@
 #include "alloc.h"
 #include "logging.h"
-#include <stddef.h>
 
 #define SIZE_CLASS_COUNT 12
 

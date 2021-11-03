@@ -1,6 +1,5 @@
 #pragma once
 #include "memory.h"
-#include <stdbool.h>
 
 void alloc__init(MMap mmap);
 

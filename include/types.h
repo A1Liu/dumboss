@@ -1,4 +1,5 @@
 #pragma once
+#include <stdbool.h>
 #include <stdint.h>
 
 typedef uint64_t u64;
@@ -11,3 +12,4 @@ typedef uint8_t u8;
 typedef int8_t s8;
 
 #define U64(i) ((u64)(i))
+#define NULL   ((void *)0)
