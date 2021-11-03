@@ -72,8 +72,24 @@ typedef struct {
   }
 
 s64 smallest_greater_power2(s64 value);
-u64 align_up(u64 value, u64 alignment);
-u64 align_down(u64 value, u64 alignment);
+#define align_up(value, _align)                                                                    \
+  ({                                                                                               \
+    u64 M_align = _align;                                                                          \
+    assert(M_align && (__builtin_popcountl(M_align) == 1), "alignment wasn't a power of 2");       \
+    __builtin_align_up(value, M_align);                                                            \
+  })
+#define align_down(value, _align)                                                                  \
+  ({                                                                                               \
+    u64 M_align = _align;                                                                          \
+    assert(M_align && (__builtin_popcountl(M_align) == 1), "alignment wasn't a power of 2");       \
+    __builtin_align_down(value, M_align);                                                          \
+  })
+#define is_aligned(value, _align)                                                                  \
+  ({                                                                                               \
+    u64 M_align = _align;                                                                          \
+    assert(M_align && (__builtin_popcountl(M_align) == 1), "alignment wasn't a power of 2");       \
+    __builtin_is_aligned(value, M_align);                                                          \
+  })
 
 String Str__new(char *data, s64 size);
 bool Str__is_null(String str);
@@ -127,8 +143,8 @@ s64 basics__fmt(String out, const char *fmt, s32 count, const any *args);
 
 // Panic the kernel
 _Noreturn void shutdown(void);
-
-void memset(void *buffer, u8 byte, s64 len);
+void memcpy(void *dest, const void *src, s64 count);
+void memset(void *buffer, u8 value, s64 len);
 
 // Formats a u64. Returns the length of buffer needed to output this number. If
 // return value is smaller than `size`, then the writing succedded

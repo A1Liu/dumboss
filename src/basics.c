@@ -12,22 +12,6 @@ s64 smallest_greater_power2(s64 _value) {
   return 64 - __builtin_clzl(value - 1);
 }
 
-u64 align_up(u64 value, u64 alignment) {
-  alignment = max(alignment, 1);
-  assert(__builtin_popcountl(alignment) == 1);
-
-  s64 bits = 64 - __builtin_clzl(alignment - 1);
-  return (((value - 1) >> bits) + 1) << bits;
-}
-
-u64 align_down(u64 value, u64 alignment) {
-  alignment = max(alignment, 1);
-  assert(__builtin_popcountl(alignment) == 1);
-
-  s64 bits = 64 - __builtin_clzl(alignment - 1);
-  return value >> bits << bits;
-}
-
 String Str__new(char *data, s64 count) {
   if (count < 0) return (String){.data = NULL, .count = 0};
   return (String){.data = data, .count = count};
@@ -256,6 +240,14 @@ _Noreturn void shutdown(void) {
 
   for (;;)
     asm_hlt();
+}
+
+void memcpy(void *_dest, const void *_src, s64 count) {
+  u8 *dest = _dest;
+  const u8 *src = _src;
+  FOR_PTR(src, count) {
+    dest[index] = *it;
+  }
 }
 
 void memset(void *_buffer, u8 byte, s64 len) {

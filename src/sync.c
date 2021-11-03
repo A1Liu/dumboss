@@ -1,10 +1,12 @@
 #include "sync.h"
 #include "basics.h"
+#include "logging.h"
 #include "memory.h"
 #include <stdatomic.h>
+#include <stddef.h>
 
 // TODO: Add more macros for clang builtin as needed. Builtins list is here:
-// https://releases.llvm.org/3.7.0/tools/clang/docs/LanguageExtensions.html
+// https://releases.llvm.org/10.0.0/tools/clang/docs/LanguageExtensions.html
 //                                      - Albert Liu, Nov 03, 2021 Wed 00:50 EDT
 #define a_init(ptr_val, initial) __c11_atomic_init(ptr_val, initial)
 #define a_load(obj)              __c11_atomic_load(obj, __ATOMIC_SEQ_CST)
@@ -47,7 +49,7 @@ Queue *Queue__create(const Buffer buffer, const s32 elem_size) {
   if (count <= 0 || elem_size == 0) return NULL;
 
   Queue *queue = (Queue *)buffer.data;
-  queue->begin = 0;
+  a_init(&queue->begin, 0);
   a_init(&queue->end_read, 0);
   a_init(&queue->end_write, 0);
   *((s64 *)&queue->count) = count;
@@ -62,12 +64,17 @@ Queue *Queue__create(const Buffer buffer, const s32 elem_size) {
 
 s64 Queue__enqueue(Queue *queue, const void *buffer, s64 count) {
   s32 elem_size = queue->elem_size;
-  s64 write_head = a_load(&queue->end_write);
-  s64 new_head = write_head + count * elem_size;
+  s64 size = count * elem_size, write_head = a_load(&queue->end_write);
+  s64 new_head = write_head + size;
 
   while (!a_cxweak(&queue->end_write, &write_head, new_head)) {
-    new_head = write_head + count * elem_size;
+    new_head = write_head + size;
   }
+
+  memcpy(&queue->data[write_head], buffer, size);
+
+  // TODO: update the read head
+
   (void)queue;
   (void)buffer;
   (void)count;
