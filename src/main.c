@@ -47,6 +47,16 @@ void _start(void) {
 
   log_fmt("GDT: %f %f", gdt_info.size, (u64)gdt_info.gdt);
 
+  REPEAT(6, i) {
+    REPEAT(6, j) {
+      dbg(i, j);
+
+      if (i == 4 && j == 4) {
+        break(j);
+      }
+    }
+  }
+
   Gdt *gdt = alloc(1);
   *gdt = Gdt__new();
   u16 segment = Gdt__add_entry(gdt, GDT__KERNEL_CODE);

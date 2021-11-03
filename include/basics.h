@@ -122,36 +122,65 @@ typedef struct {
 //                                    - Albert Liu, Oct 24, 2021 Sun 04:20 EDT
 #define DECLARE_SCOPED(...) for (__VA_ARGS__;; ({ break; }))
 
+#define _CMP_TYPE_HELPER(T1, T2) _Generic(((T1){0}), T2 : 1, default : 0)
+#define CMP_TYPE(T1, T2)         (_CMP_TYPE_HELPER(T1, T2) && _CMP_TYPE_HELPER(T2, T1))
+
+struct LABEL_T_DO_NOT_USE;
+
+#define _LABEL(name) PASTE(M_LABEL_, name)
+#define break(label)                                                                               \
+  ({                                                                                               \
+    _Static_assert(CMP_TYPE(typeof(&_LABEL(label)), const struct LABEL_T_DO_NOT_USE *const *),     \
+                   "called break on something that's not a label");                                \
+    goto *(void *)_LABEL(label);                                                                   \
+  })
+
 // NOTE: This ALSO breaks compatibility with GCC.
 //                                    - Albert Liu, Nov 02, 2021 Tue 01:19 EDT
-#define break(label) goto M_##label
-#define BREAK_BLOCK(label)                                                                         \
-  for (;; ({                                                                                       \
+#define _BREAK_BLOCK_HELPER(label, _internal_label)                                                \
+  for (const struct LABEL_T_DO_NOT_USE *const _LABEL(label) =                                      \
+           (const struct LABEL_T_DO_NOT_USE *const)&&_internal_label;                              \
+       ; ({                                                                                        \
          _Pragma("clang diagnostic push \"-Wno-unused-label\"");                                   \
-         M_##label : break;                                                                        \
+         (void)_LABEL(label);                                                                      \
+       _internal_label:                                                                            \
+         break;                                                                                    \
          _Pragma("clang diagnostic pop");                                                          \
        }))
+#define BREAK_BLOCK(label) _BREAK_BLOCK_HELPER(label, _LABEL(__COUNTER__))
 
-#define _FOR(array, it, it_index)                                                                  \
-  DECLARE_SCOPED(typeof(array) M_array = array)                                                    \
-  DECLARE_SCOPED(s64 it_index = 0, M_len = M_array.count)                                          \
-  DECLARE_SCOPED(typeof(&array.data[0]) M_ptr = M_array.data, it = NULL)                           \
-  for (it = M_ptr; it_index < M_len; it++, it_index++)
+#define _FOR_PTR(_uniq, ptr, len, it, it_index)                                                    \
+  BREAK_BLOCK(it)                                                                                  \
+  DECLARE_SCOPED(s64 PASTE(_uniq, M_idx) = 0, PASTE(_uniq, M_len) = len)                           \
+  DECLARE_SCOPED(s64 it_index = 0)                                                                 \
+  DECLARE_SCOPED(typeof(&ptr[0]) PASTE(_uniq, M_ptr) = ptr)                                        \
+  DECLARE_SCOPED(typeof(&ptr[0]) it = NULL)                                                        \
+  for (it = PASTE(_uniq, M_ptr); PASTE(_uniq, M_idx) < PASTE(_uniq, M_len); PASTE(_uniq, M_ptr)++, \
+      PASTE(_uniq, M_idx)++, it = PASTE(_uniq, M_ptr), it_index = PASTE(_uniq, M_idx))
 
-#define _FOR_PTR(ptr, len, it, it_index)                                                           \
-  DECLARE_SCOPED(s64 it_index = 0, M_len = len)                                                    \
-  DECLARE_SCOPED(typeof(&ptr[0]) M_ptr = ptr, it = NULL)                                           \
-  for (it = M_ptr; it_index < M_len; it++, it_index++)
+#define _FOR_PTR2(ptr, len)            _FOR_PTR(PASTE(M_FOR_, __COUNTER__), ptr, len, it, index)
+#define _FOR_PTR3(ptr, len, it)        _FOR_PTR(PASTE(M_FOR_, __COUNTER__), ptr, len, it, index)
+#define _FOR_PTR4(ptr, len, it, index) _FOR_PTR(PASTE(M_FOR_, __COUNTER__), ptr, len, it, index)
+#define FOR_PTR(...)                   PASTE(_FOR_PTR, NARG(__VA_ARGS__))(__VA_ARGS__)
 
-#define _FOR1(array)               _FOR(array, it, it_index)
-#define _FOR2(array, it)           _FOR(array, it, it_index)
-#define _FOR3(array, it, it_index) _FOR(array, it, it_index)
+#define _FOR(_uniq, array, it, it_index)                                                           \
+  DECLARE_SCOPED(typeof(array) PASTE(_uniq, M_array) = array)                                      \
+  _FOR_PTR(_uniq, PASTE(_uniq, M_array).data, PASTE(_uniq, M_array).count, it, it_index)
+
+#define _FOR1(array)               _FOR(PASTE(M_FOR_, __COUNTER__), array, it, it_index)
+#define _FOR2(array, it)           _FOR(PASTE(M_FOR_, __COUNTER__), array, it, it_index)
+#define _FOR3(array, it, it_index) _FOR(PASTE(M_FOR_, __COUNTER__), array, it, it_index)
 #define FOR(...)                   PASTE(_FOR, NARG(__VA_ARGS__))(__VA_ARGS__)
 
-#define _FOR_PTR2(ptr, len)               _FOR_PTR(ptr, len, it, it_index)
-#define _FOR_PTR3(ptr, len, it)           _FOR_PTR(ptr, len, it, it_index)
-#define _FOR_PTR4(ptr, len, it, it_index) _FOR_PTR(ptr, len, it, it_index)
-#define FOR_PTR(...)                      PASTE(_FOR_PTR, NARG(__VA_ARGS__))(__VA_ARGS__)
+#define _REPEAT(_uniq, times, it)                                                                  \
+  BREAK_BLOCK(it)                                                                                  \
+  DECLARE_SCOPED(s64 PASTE(_uniq, M_it) = 0, PASTE(_uniq, M_end) = times)                          \
+  for (s64 it = PASTE(_uniq, M_it); PASTE(_uniq, M_it) < PASTE(_uniq, M_end);                      \
+       PASTE(_uniq, M_it)++, it = PASTE(_uniq, M_it))
+
+#define _REPEAT1(times)     _REPEAT(PASTE(M_REPEAT_, __COUNTER__), times, it)
+#define _REPEAT2(times, it) _REPEAT(PASTE(M_REPEAT_, __COUNTER__), times, it)
+#define REPEAT(...)         PASTE(_REPEAT, NARG(__VA_ARGS__))(__VA_ARGS__)
 
 // Does bubble sort stuff; user has to make the swaps themself
 #define SLOW_SORT(array)                                                                           \
