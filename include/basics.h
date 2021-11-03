@@ -125,6 +125,9 @@ typedef struct {
 #define _CMP_TYPE_HELPER(T1, T2) _Generic(((T1){0}), T2 : 1, default : 0)
 #define CMP_TYPE(T1, T2)         (_CMP_TYPE_HELPER(T1, T2) && _CMP_TYPE_HELPER(T2, T1))
 
+// NOTE: This forward declaration is required to compile on Clang. It's not clear
+// whether it SHOULD be required, but it is.
+//                        - Albert Liu, Nov 02, 2021 Tue 21:16 EDT
 struct LABEL_T_DO_NOT_USE;
 
 #define _LABEL(name) PASTE(M_LABEL_, name)
