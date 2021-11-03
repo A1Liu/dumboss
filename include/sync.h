@@ -1,7 +1,5 @@
 #pragma once
-
 #include "basics.h"
-#include <stdatomic.h>
 
 // A single producer single consumer Concurrent Queue. In the future it'll
 // pseudo-support multiple consumer by allowing reads that don't alter the begin
