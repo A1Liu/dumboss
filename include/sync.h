@@ -12,20 +12,14 @@ Queue *Queue__create(Buffer buffer, s32 elem_size);
 
 // Attempts to enqueue `count` elements starting at `buffer`. Returns the number
 // of elements actually enqueued.
-s64 Queue__enqueue(Queue *queue, const void *buffer, s64 count);
+s64 Queue__enqueue(Queue *queue, const void *buffer, s64 count, s32 elem_size);
 
 // Attempts to dequeue `count` elements, writing to `buffer`. Returns the number
 // of elements actually dequeued.
-s64 Queue__dequeue(Queue *queue, void *buffer, s64 count);
-
-// THIS FUNCTION DOES NOT DEQUEUE
-// Attempts to copy `count` elements from the beginning of the queue, writing to
-// `buffer`. Returns the number of elements actually copied.
-// THIS FUNCTION DOES NOT DEQUEUE
-s64 Queue__read(Queue *queue, void *buffer, s64 count);
+s64 Queue__dequeue(Queue *queue, void *buffer, s64 count, s32 elem_size);
 
 // Returns the length of the queue in elements.
-s64 Queue__len(const Queue *queue);
+s64 Queue__len(const Queue *queue, s32 elem_size);
 
 // Returns the capacity of the queue in elements.
-s64 Queue__capacity(const Queue *queue);
+s64 Queue__capacity(const Queue *queue, s32 elem_size);
