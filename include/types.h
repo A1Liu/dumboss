@@ -12,4 +12,5 @@ typedef uint8_t u8;
 typedef int8_t s8;
 
 #define U64(i) ((u64)(i))
+#define U32(i) ((u32)(i))
 #define NULL   ((void *)0)

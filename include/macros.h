@@ -79,7 +79,7 @@ struct LABEL_T_DO_NOT_USE;
 
 // NOTE: This ALSO breaks compatibility with GCC.
 //                                    - Albert Liu, Nov 02, 2021 Tue 01:19 EDT
-#define _BREAK_BLOCK_HELPER(label, _internal_label)                                                \
+#define _NAMED_BREAK_HELPER(label, _internal_label)                                                \
   for (const struct LABEL_T_DO_NOT_USE *const _LABEL(label) =                                      \
            (const struct LABEL_T_DO_NOT_USE *const)&&_internal_label;                              \
        ; ({                                                                                        \
@@ -89,14 +89,14 @@ struct LABEL_T_DO_NOT_USE;
          break;                                                                                    \
          _Pragma("clang diagnostic pop");                                                          \
        }))
-#define BREAK_BLOCK(label) _BREAK_BLOCK_HELPER(label, _LABEL(__COUNTER__))
+#define NAMED_BREAK(label) _NAMED_BREAK_HELPER(label, _LABEL(__COUNTER__))
 
 #define FOR_PTR(...)                   PASTE(_FOR_PTR, NARG(__VA_ARGS__))(__VA_ARGS__)
 #define _FOR_PTR2(ptr, len)            _FOR_PTR(PASTE(M_FOR_, __COUNTER__), ptr, len, it, index)
 #define _FOR_PTR3(ptr, len, it)        _FOR_PTR(PASTE(M_FOR_, __COUNTER__), ptr, len, it, index)
 #define _FOR_PTR4(ptr, len, it, index) _FOR_PTR(PASTE(M_FOR_, __COUNTER__), ptr, len, it, index)
 #define _FOR_PTR(_uniq, ptr, len, it, it_index)                                                    \
-  BREAK_BLOCK(it)                                                                                  \
+  NAMED_BREAK(it)                                                                                  \
   DECLARE_SCOPED(s64 PASTE(_uniq, M_idx) = 0, PASTE(_uniq, M_len) = len)                           \
   DECLARE_SCOPED(s64 it_index = 0)                                                                 \
   DECLARE_SCOPED(typeof(&ptr[0]) PASTE(_uniq, M_ptr) = ptr)                                        \
@@ -116,7 +116,7 @@ struct LABEL_T_DO_NOT_USE;
 #define _REPEAT1(times)     _REPEAT(PASTE(M_REPEAT_, __COUNTER__), times, it)
 #define _REPEAT2(times, it) _REPEAT(PASTE(M_REPEAT_, __COUNTER__), times, it)
 #define _REPEAT(_uniq, times, it)                                                                  \
-  BREAK_BLOCK(it)                                                                                  \
+  NAMED_BREAK(it)                                                                                  \
   DECLARE_SCOPED(s64 PASTE(_uniq, M_it) = 0, PASTE(_uniq, M_end) = times)                          \
   for (s64 it = PASTE(_uniq, M_it); PASTE(_uniq, M_it) < PASTE(_uniq, M_end);                      \
        PASTE(_uniq, M_it)++, it = PASTE(_uniq, M_it))

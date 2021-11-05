@@ -13,6 +13,11 @@
 #define a_store(obj, value)      __c11_atomic_store(obj, value, __ATOMIC_SEQ_CST)
 #define a_cxweak(obj, expected, desired)                                                           \
   __c11_atomic_compare_exchange_weak(obj, expected, desired, __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST)
+#define a_cxstrong(obj, expected, desired)                                                         \
+  __c11_atomic_compare_exchange_strong(obj, expected, desired, __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST)
+
+#define READ_MUTEX  U32(1 << 0)
+#define WRITE_MUTEX U32(1 << 1)
 
 // TODO: overflow might happen in certain places idk
 //                                      - Albert Liu, Nov 03, 2021 Wed 00:51 EDT
@@ -25,17 +30,15 @@ struct Queue {
   // eventually we should add a `next` buffer that points to the queue to be
   // used for writing. Also, probably should add a 32-bit `ref_count` field for
   // when multiple people have a reference to the same queue.
-  _Atomic(s64) read_tail;  // lowest element index that's still being read from
-  _Atomic(s64) read_head;  // lowest element index that's safe to read from
-  _Atomic(s64) write_tail; // highest element index of data that's safe to read
-  _Atomic(s64) write_head; // highest element index of data that's safe to write
+  _Atomic(s64) read_head;  // first element index that's safe to read from
+  _Atomic(s64) write_head; // first element index that's safe to write to
   const s64 count;         // size in elements
-  _Atomic(s16) flags;      // Flags
-  const s16 elem_size;     // having a larger elem_size doesn't make sense.
-  s32 read_blocks;         // bitset for whichever blocks are currently locked
-  s32 write_blocks;        // bitset for whichever blocks are currently locked
-  s32 _unused0;
+  _Atomic(u32) flags;      // Flags
+  const s32 elem_size;     // having a larger elem_size doesn't make sense.
+  s64 _unused0;
   s64 _unused1;
+  s64 _unused2;
+  s64 _unused3;
 
   // This is the beginning of the second cache line
   u8 data[];
@@ -54,49 +57,72 @@ Queue *Queue__create(const Buffer buffer, const s32 elem_size) {
 
   Queue *queue = (Queue *)buffer.data;
   a_init(&queue->read_head, 0);
-  a_init(&queue->read_tail, 0);
   a_init(&queue->write_head, 0);
-  a_init(&queue->write_tail, 0);
+  a_init(&queue->flags, 0);
   *((s64 *)&queue->count) = count;
   *((s32 *)&queue->elem_size) = elem_size;
-  queue->read_blocks = 0;
-  queue->write_blocks = 0;
-  queue->_unused0 = 0x1eadbeef;
+  queue->_unused0 = 0x1eadbeef1eadbeef;
   queue->_unused1 = 0x1eadbeef1eadbeef;
+  queue->_unused2 = 0x1eadbeef1eadbeef;
+  queue->_unused3 = 0x1eadbeef1eadbeef;
 
   return queue;
 }
 
 s64 Queue__enqueue(Queue *queue, const void *buffer, s64 count, s32 elem_size) {
   assert(elem_size == queue->elem_size);
-  const s64 queue_size = queue->count;
-  s64 read_tail = a_load(&queue->read_tail), write_head = a_load(&queue->write_head);
-  s64 new_head = min(write_head + count, read_tail + queue_size);
+  if (count == 0) return 0;
 
-  while (!a_cxweak(&queue->write_head, &write_head, new_head)) {
-    new_head = min(write_head + count, read_tail + queue_size);
+  NAMED_BREAK(set_mutex) {
+    u32 flags = a_load(&queue->flags) & ~WRITE_MUTEX;
+    REPEAT(5) {
+      if (a_cxweak(&queue->flags, &flags, flags | WRITE_MUTEX)) break(set_mutex);
+      flags &= ~WRITE_MUTEX;
+    }
+
+    return -1;
   }
 
+  const s64 queue_size = queue->count;
+  s64 read_head = a_load(&queue->read_head), write_head = a_load(&queue->write_head);
+  s64 new_head = min(write_head + count, read_head + queue_size);
   s64 write_count = new_head - write_head;
-  memcpy(&queue->data[write_head * elem_size], buffer, write_count * elem_size);
-  a_store(&queue->write_tail, new_head);
+
+  memcpy(&queue->data[(write_head % queue_size) * elem_size], buffer, write_count * elem_size);
+  a_store(&queue->write_head, new_head);
+
+  u32 flags = a_load(&queue->flags);
+  while (a_cxweak(&queue->flags, &flags, flags & ~WRITE_MUTEX))
+    ;
 
   return write_count;
 }
 
 s64 Queue__dequeue(Queue *queue, void *buffer, s64 count, s32 elem_size) {
   assert(elem_size == queue->elem_size);
-  const s64 queue_size = queue->count;
-  s64 read_head = a_load(&queue->read_head), write_tail = a_load(&queue->write_tail);
-  s64 new_head = min(read_head + count, write_tail);
+  if (count == 0) return 0;
 
-  while (!a_cxweak(&queue->read_head, &read_head, new_head)) {
-    new_head = min(read_head + count, read_head + queue_size);
+  NAMED_BREAK(set_mutex) {
+    u32 flags = a_load(&queue->flags) & (~READ_MUTEX);
+    REPEAT(5) {
+      if (a_cxweak(&queue->flags, &flags, flags | READ_MUTEX)) break(set_mutex);
+      flags &= (~READ_MUTEX);
+    }
+
+    return -1;
   }
 
+  const s64 queue_size = queue->count;
+  s64 read_head = a_load(&queue->read_head), write_head = a_load(&queue->write_head);
+  s64 new_head = min(read_head + count, write_head);
   s64 read_count = new_head - read_head;
-  memcpy(buffer, &queue->data[read_head * elem_size], read_count * elem_size);
-  a_store(&queue->read_tail, new_head);
+
+  memcpy(buffer, &queue->data[(read_head % queue_size) * elem_size], read_count * elem_size);
+  a_store(&queue->read_head, new_head);
+
+  u32 flags = a_load(&queue->flags);
+  while (a_cxweak(&queue->flags, &flags, flags & ~READ_MUTEX))
+    ;
 
   return read_count;
 }
@@ -105,9 +131,9 @@ s64 Queue__len(const Queue *queue, s32 elem_size) {
   assert(elem_size == queue->elem_size);
 
   s64 read_head = queue->read_head;
-  s64 write_tail = queue->write_tail;
+  s64 write_head = queue->write_head;
 
-  return (write_tail - read_head) / elem_size;
+  return (write_head - read_head) / elem_size;
 }
 
 s64 Queue__capacity(const Queue *queue, s32 elem_size) {
