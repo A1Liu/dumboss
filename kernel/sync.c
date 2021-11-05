@@ -86,9 +86,9 @@ s64 Queue__enqueue(Queue *queue, const void *buffer, s64 count, s32 elem_size) {
   const s64 queue_size = queue->count;
   s64 read_head = a_load(&queue->read_head), write_head = a_load(&queue->write_head);
   s64 new_head = min(write_head + count, read_head + queue_size);
-  s64 write_count = new_head - write_head;
+  s64 write_count = new_head - write_head, modular_index = write_head % queue_size;
 
-  memcpy(&queue->data[(write_head % queue_size) * elem_size], buffer, write_count * elem_size);
+  memcpy(&queue->data[modular_index * elem_size], buffer, write_count * elem_size);
   a_store(&queue->write_head, new_head);
 
   u32 flags = a_load(&queue->flags);
@@ -103,10 +103,10 @@ s64 Queue__dequeue(Queue *queue, void *buffer, s64 count, s32 elem_size) {
   if (count == 0) return 0;
 
   NAMED_BREAK(set_mutex) {
-    u32 flags = a_load(&queue->flags) & (~READ_MUTEX);
+    u32 flags = a_load(&queue->flags) & ~READ_MUTEX;
     REPEAT(5) {
       if (a_cxweak(&queue->flags, &flags, flags | READ_MUTEX)) break(set_mutex);
-      flags &= (~READ_MUTEX);
+      flags &= ~READ_MUTEX;
     }
 
     return -1;
@@ -115,9 +115,9 @@ s64 Queue__dequeue(Queue *queue, void *buffer, s64 count, s32 elem_size) {
   const s64 queue_size = queue->count;
   s64 read_head = a_load(&queue->read_head), write_head = a_load(&queue->write_head);
   s64 new_head = min(read_head + count, write_head);
-  s64 read_count = new_head - read_head;
+  s64 read_count = new_head - read_head, modular_index = read_head % queue_size;
 
-  memcpy(buffer, &queue->data[(read_head % queue_size) * elem_size], read_count * elem_size);
+  memcpy(buffer, &queue->data[modular_index * elem_size], read_count * elem_size);
   a_store(&queue->read_head, new_head);
 
   u32 flags = a_load(&queue->flags);

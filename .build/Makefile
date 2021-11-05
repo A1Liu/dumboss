@@ -5,7 +5,7 @@
 # to compilation errors
 
 # Directories
-SRC_DIR := ./src
+KERNEL_DIR := ./kernel
 INCLUDE_DIR := ./include
 BUILD_DIR := ./.build
 OBJ_DIR := $(BUILD_DIR)/obj
@@ -13,9 +13,9 @@ OUT_DIR := $(BUILD_DIR)/out
 DIRS := $(OBJ_DIR) $(OUT_DIR)
 
 # Files
-SRC_FILES := $(wildcard $(SRC_DIR)/*.c)
+KERNEL_FILES := $(wildcard $(KERNEL_DIR)/*.c)
 HEADER_FILES := $(wildcard $(INCLUDE_DIR)/*.h)
-OBJ_FILES := $(patsubst $(SRC_DIR)/%.c,$(OBJ_DIR)/%.o,$(SRC_FILES))
+OBJ_FILES := $(patsubst $(KERNEL_DIR)/%.c,$(OBJ_DIR)/%.o,$(KERNEL_FILES))
 FORMAT_FILES := $(OBJ_FILES:%.o=%.c.format) \
   $(patsubst $(INCLUDE_DIR)/%.h,$(OBJ_DIR)/%.h.format,$(HEADER_FILES))
 
@@ -23,7 +23,7 @@ FORMAT_STYLE := $(shell tr '\n' ',' < $(BUILD_DIR)/clang-format.yaml)
 
 # Changing these flags sometimes seem to result in hard-to-understand compiler
 # errors.
-LDFLAGS := -nostdlib --script src/link.ld
+LDFLAGS := -nostdlib --script kernel/link.ld
 CXXFLAGS := -c -Os --std=gnu17 -target x86_64-unknown-elf -Iinclude -MD        \
             -ffreestanding -fno-stack-protector -fmerge-all-constants -fPIC    \
             -mno-red-zone -nostdlib                                            \
@@ -61,7 +61,7 @@ $(OUT_DIR)/kernel: $(OUT_DIR)/os.elf $(OUT_DIR)/.dir
 $(OUT_DIR)/os.elf: $(OBJ_FILES) $(OUT_DIR)/.dir
 	@ld.lld $(LDFLAGS) -o $(OUT_DIR)/os.elf $(OBJ_FILES)
 
-$(OBJ_DIR)/%.c.format: $(SRC_DIR)/%.c $(BUILD_DIR)/clang-format.yaml $(OBJ_DIR)/.dir
+$(OBJ_DIR)/%.c.format: $(KERNEL_DIR)/%.c $(BUILD_DIR)/clang-format.yaml $(OBJ_DIR)/.dir
 	@clang-format -style='{$(FORMAT_STYLE)}' -i $<
 	@touch $@
 	@echo "formatted $<"
@@ -71,7 +71,7 @@ $(OBJ_DIR)/%.h.format: $(INCLUDE_DIR)/%.h $(BUILD_DIR)/clang-format.yaml $(OBJ_D
 	@touch $@
 	@echo "formatted $<"
 
-$(OBJ_DIR)/%.o: $(SRC_DIR)/%.c $(OBJ_DIR)/.dir
+$(OBJ_DIR)/%.o: $(KERNEL_DIR)/%.c $(OBJ_DIR)/.dir
 	@clang $(CXXFLAGS) -c -o $@ $<
 	@echo "compiled $<"
 
