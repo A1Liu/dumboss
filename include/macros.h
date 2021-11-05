@@ -1,6 +1,12 @@
 #pragma once
 #include "types.h"
 
+#ifdef __DUMBOSS_IMPL__
+#define LIB()
+#else
+#define LIB()
+#endif
+
 #define SWAP(left, right)                                                                          \
   ({                                                                                               \
     typeof(*left) value = *left;                                                                   \

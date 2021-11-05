@@ -8,6 +8,8 @@
 KERNEL_DIR := ./kernel
 INCLUDE_DIR := ./include
 BUILD_DIR := ./.build
+LIB_DIR := ./lib
+USER_DIR := ./user
 OBJ_DIR := $(BUILD_DIR)/obj
 OUT_DIR := $(BUILD_DIR)/out
 DIRS := $(OBJ_DIR) $(OUT_DIR)
