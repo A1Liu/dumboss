@@ -4,6 +4,9 @@
 # Holds outputs of build process
 /.build/out
 
+# Holds caching flags
+/.build/cache
+
 # Golang project script as a binary (could be created as a result of go build)
 /dumboss
 
