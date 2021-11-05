@@ -32,9 +32,10 @@ struct Queue {
   const s64 count;         // size in elements
   _Atomic(s16) flags;      // Flags
   const s16 elem_size;     // having a larger elem_size doesn't make sense.
+  s32 read_blocks;         // bitset for whichever blocks are currently locked
+  s32 write_blocks;        // bitset for whichever blocks are currently locked
   s32 _unused0;
   s64 _unused1;
-  s64 _unused2;
 
   // This is the beginning of the second cache line
   u8 data[];
@@ -58,9 +59,10 @@ Queue *Queue__create(const Buffer buffer, const s32 elem_size) {
   a_init(&queue->write_tail, 0);
   *((s64 *)&queue->count) = count;
   *((s32 *)&queue->elem_size) = elem_size;
+  queue->read_blocks = 0;
+  queue->write_blocks = 0;
   queue->_unused0 = 0x1eadbeef;
   queue->_unused1 = 0x1eadbeef1eadbeef;
-  queue->_unused2 = 0x1eadbeef1eadbeef;
 
   return queue;
 }
@@ -102,10 +104,10 @@ s64 Queue__dequeue(Queue *queue, void *buffer, s64 count, s32 elem_size) {
 s64 Queue__len(const Queue *queue, s32 elem_size) {
   assert(elem_size == queue->elem_size);
 
-  s64 read_tail = queue->read_tail;
-  s64 write_head = queue->write_head;
+  s64 read_head = queue->read_head;
+  s64 write_tail = queue->write_tail;
 
-  return (write_head - read_tail) / elem_size;
+  return (write_tail - read_head) / elem_size;
 }
 
 s64 Queue__capacity(const Queue *queue, s32 elem_size) {
