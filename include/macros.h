@@ -87,7 +87,7 @@ struct LABEL_T_DO_NOT_USE;
 //                                    - Albert Liu, Nov 02, 2021 Tue 01:19 EDT
 #define _NAMED_BREAK_HELPER(label, _internal_label)                                                \
   for (const struct LABEL_T_DO_NOT_USE *const _LABEL(label) =                                      \
-           (const struct LABEL_T_DO_NOT_USE *const)&&_internal_label;                              \
+           (const struct LABEL_T_DO_NOT_USE *const) && _internal_label;                            \
        ; ({                                                                                        \
          _Pragma("clang diagnostic push \"-Wno-unused-label\"");                                   \
          (void)_LABEL(label);                                                                      \
