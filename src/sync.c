@@ -32,9 +32,9 @@ struct Queue {
   // when multiple people have a reference to the same queue.
   _Atomic(s64) read_head;  // first element index that's safe to read from
   _Atomic(s64) write_head; // first element index that's safe to write to
-  const s64 count;         // size in elements
   _Atomic(u32) flags;      // Flags
   const s32 elem_size;     // having a larger elem_size doesn't make sense.
+  const s64 count;         // size in elements
   s64 _unused0;
   s64 _unused1;
   s64 _unused2;
@@ -59,8 +59,8 @@ Queue *Queue__create(const Buffer buffer, const s32 elem_size) {
   a_init(&queue->read_head, 0);
   a_init(&queue->write_head, 0);
   a_init(&queue->flags, 0);
-  *((s64 *)&queue->count) = count;
   *((s32 *)&queue->elem_size) = elem_size;
+  *((s64 *)&queue->count) = count;
   queue->_unused0 = 0x1eadbeef1eadbeef;
   queue->_unused1 = 0x1eadbeef1eadbeef;
   queue->_unused2 = 0x1eadbeef1eadbeef;
