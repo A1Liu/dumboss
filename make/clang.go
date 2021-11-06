@@ -2,6 +2,8 @@ package dumboss
 
 import (
 	"context"
+	"io/ioutil"
+	"os"
 	"strings"
 
 	. "a1liu.com/dumboss/make/engine"
@@ -46,6 +48,17 @@ var (
 	}
 )
 
+func AddClangFile(path string) int {
+	depPath := EscapeSourcePath(DepsDir, path, "dep")
+
+	byteSlice, err := ioutil.ReadFile(depPath)
+	if os.IsNotExist(err) {
+	}
+	CheckErr(err)
+
+	return len(byteSlice)
+}
+
 func MakeClangRule(target string, depFiles ...string) Rule {
 	Assert(strings.HasSuffix(target, ".o"))
 
@@ -56,6 +69,7 @@ func MakeClangRule(target string, depFiles ...string) Rule {
 	}
 
 	run := func(ctx context.Context, path string) {
+		// flags := append([]string{}, ClangFlags..., "-MF", )
 		RunImageCmd(ctx, "clang", ClangFlags)
 	}
 

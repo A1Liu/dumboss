@@ -16,8 +16,9 @@ const (
 )
 
 type RuleDescriptor struct {
-	Kind   ruleKind
-	Target string
+	Kind    ruleKind
+	IsPhony bool
+	Target  string
 }
 
 type Rule struct {

@@ -31,6 +31,7 @@ var (
 	IncludeDir = filepath.Join(ProjectDir, "include")
 	BuildDir   = filepath.Join(ProjectDir, ".build")
 
+	DepsDir  = filepath.Join(BuildDir, "deps")  // dep files
 	CacheDir = filepath.Join(BuildDir, "cache") // cache flag files
 	ObjDir   = filepath.Join(BuildDir, "obj")   // intermediate files
 	OutDir   = filepath.Join(BuildDir, "out")   // output files
@@ -60,25 +61,36 @@ func DirWalk(dirname string) []string {
 	return fileNames
 }
 
+func EscapeSourcePath(targetDir, filePath string, extras ...string) string {
+	Assert(filepath.IsAbs(targetDir))
+
+	abs, err := filepath.Abs(filePath)
+	CheckErr(err)
+	Assert(!strings.HasPrefix(abs, targetDir))
+
+	rel, err := filepath.Rel(ProjectDir, abs)
+	CheckErr(err)
+
+	pathSep := string(os.PathSeparator)
+	cachePathName := strings.Join(append([]string{"C" + rel}, extras...), pathSep)
+	cachePathName = strings.Replace(cachePathName, pathSep, ".", -1)
+
+	return filepath.Join(targetDir, cachePathName)
+}
+
 func CacheIsValid(filePath string) bool {
 	_, callerPath, callerLine, ok := runtime.Caller(0)
 	Assert(ok)
 	callerRelPath, err := filepath.Rel(ProjectDir, callerPath)
 	CheckErr(err)
 
-	abs, err := filepath.Abs(filePath)
-	CheckErr(err)
-	Assert(!strings.HasPrefix(abs, CacheDir))
+	return CacheIsValidTyped(filePath, callerRelPath, string(callerLine))
+}
 
-	rel, err := filepath.Rel(ProjectDir, abs)
-	CheckErr(err)
+func CacheIsValidTyped(filePath string, extras ...string) bool {
+	cachePath := EscapeSourcePath(CacheDir, filePath, extras...)
 
-	cachePathName := filepath.Join("C"+rel, callerRelPath, string(callerLine))
-	cachePathName = strings.Replace(cachePathName, string(os.PathSeparator), ".", -1)
-
-	cachePath := filepath.Join(CacheDir, cachePathName)
-
-	pathStat, err := os.Stat(rel)
+	pathStat, err := os.Stat(filePath)
 	if os.IsNotExist(err) {
 		return false
 	}
