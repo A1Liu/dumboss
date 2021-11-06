@@ -9,11 +9,9 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/fs"
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strings"
 	"time"
 
 	"github.com/docker/docker/api/types"
@@ -99,32 +97,6 @@ func RunImageCmd(ctx context.Context, binary string, args []string) int {
 	CheckErr(err)
 
 	return int(commandStatus)
-}
-
-func needBuild(dockerfileName, imageName string) bool {
-	err := os.MkdirAll(CacheDir, fs.ModeDir|fs.ModePerm)
-	CheckErr(err)
-
-	escapedName := strings.Replace(imageName, string(os.PathSeparator), ".", -1)
-	placeholder := filepath.Join(CacheDir, ".image-"+escapedName)
-	dockerfileName = filepath.Join(BuildDir, dockerfileName)
-
-	dockerfileStat, err := os.Stat(dockerfileName)
-	CheckErr(err)
-	placeholderStat, err := os.Stat(placeholder)
-
-	if os.IsNotExist(err) {
-		file, err := os.Create(placeholder)
-		CheckErr(err)
-		file.Close()
-		return true
-	} else {
-		currentTime := time.Now().Local()
-		err = os.Chtimes(placeholder, currentTime, currentTime)
-		CheckErr(err)
-
-		return dockerfileStat.ModTime().After(placeholderStat.ModTime())
-	}
 }
 
 func buildImage(cli *client.Client, ctx context.Context, dockerfileName, imageName string, forceBuild bool) {

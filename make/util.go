@@ -2,7 +2,6 @@ package dumboss
 
 import (
 	"fmt"
-	"github.com/karrick/godirwalk"
 	"io"
 	"io/fs"
 	"os"
@@ -12,6 +11,8 @@ import (
 	"runtime"
 	"strings"
 	"time"
+
+	dirwalk "github.com/karrick/godirwalk"
 )
 
 var (
@@ -29,7 +30,7 @@ var (
 func DirWalk(dirname string) []string {
 	fileNames := make([]string, 10)
 
-	walker := func(osPathname string, de *godirwalk.Dirent) error {
+	walker := func(osPathname string, de *dirwalk.Dirent) error {
 		if de.IsRegular() {
 			fileNames = append(fileNames, osPathname)
 			fmt.Printf("%s %s\n", de.ModeType(), osPathname)
@@ -38,7 +39,7 @@ func DirWalk(dirname string) []string {
 		return nil
 	}
 
-	err := godirwalk.Walk(dirname, &godirwalk.Options{
+	err := dirwalk.Walk(dirname, &dirwalk.Options{
 		FollowSymbolicLinks: false,
 		Unsorted:            false,
 		Callback:            walker,
