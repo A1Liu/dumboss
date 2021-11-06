@@ -46,9 +46,8 @@ var (
 )
 
 func RunMakeTarget(ctx context.Context, target string) int {
-	cxxFlags := fmt.Sprintf("CXXFLAGS=%v", strings.Join(ClangFlags, " "))
-
-	ldFlags := fmt.Sprintf("LDFLAGS=%v", strings.Join(LdFlags, " "))
+	cxxFlags := "CXXFLAGS=" + strings.Join(ClangFlags, " ")
+	ldFlags := "LDFLAGS=" + strings.Join(LdFlags, " ")
 
 	makeArgs := []string{"-f", ".build/Makefile", cxxFlags, ldFlags, target}
 
