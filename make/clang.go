@@ -64,7 +64,7 @@ func MakeClangRule(target string, depFiles ...string) Rule {
 
 	dependencies := make([]RuleDescriptor, len(depFiles))
 	for index, element := range depFiles {
-		dependencies[index].Kind = CompileRule
+		dependencies[index].Kind = CompileRuleKind
 		dependencies[index].Target = element
 	}
 
@@ -74,7 +74,7 @@ func MakeClangRule(target string, depFiles ...string) Rule {
 	}
 
 	return Rule{
-		RuleDescriptor: RuleDescriptor{Kind: CompileRule, Target: target},
+		RuleDescriptor: RuleDescriptor{Kind: CompileRuleKind, Target: target},
 		Dependencies:   dependencies,
 		Run:            run,
 	}

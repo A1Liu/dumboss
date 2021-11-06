@@ -37,14 +37,14 @@ func main() {
 }
 
 func runTest(ctx context.Context) {
-	desc1 := RuleDescriptor{Kind: 2, Target: "desc1"}
-	desc2 := RuleDescriptor{Kind: 2, Target: "desc2"}
-	desc3 := RuleDescriptor{Kind: 2, Target: "desc3"}
-	desc4 := RuleDescriptor{Kind: 2, Target: "desc4"}
-	desc5 := RuleDescriptor{Kind: 2, Target: "desc5"}
-	desc6 := RuleDescriptor{Kind: 2, Target: "desc6"}
-	desc7 := RuleDescriptor{Kind: 2, Target: "desc7"}
-	desc8 := RuleDescriptor{Kind: 2, Target: "desc8"}
+	desc1 := RuleDescriptor{Kind: NoneRuleKind, Target: "desc1"}
+	desc2 := RuleDescriptor{Kind: NoneRuleKind, Target: "desc2"}
+	desc3 := RuleDescriptor{Kind: NoneRuleKind, Target: "desc3"}
+	desc4 := RuleDescriptor{Kind: NoneRuleKind, Target: "desc4"}
+	desc5 := RuleDescriptor{Kind: NoneRuleKind, Target: "desc5"}
+	desc6 := RuleDescriptor{Kind: NoneRuleKind, Target: "desc6"}
+	desc7 := RuleDescriptor{Kind: NoneRuleKind, Target: "desc7"}
+	desc8 := RuleDescriptor{Kind: NoneRuleKind, Target: "desc8"}
 
 	run := func(ctx context.Context, target string) {
 		fmt.Println("FUCKO:", target)

@@ -78,13 +78,14 @@ func EscapeSourcePath(targetDir, filePath string, extras ...string) string {
 	return filepath.Join(targetDir, cachePathName)
 }
 
-func CacheIsValid(filePath string) bool {
-	_, callerPath, callerLine, ok := runtime.Caller(0)
+func CacheIsValid(filePath string, extras ...string) bool {
+	_, callerPath, callerLine, ok := runtime.Caller(1)
 	Assert(ok)
 	callerRelPath, err := filepath.Rel(ProjectDir, callerPath)
 	CheckErr(err)
 
-	return CacheIsValidTyped(filePath, callerRelPath, string(callerLine))
+	passThrough := append([]string{callerRelPath, string(callerLine)}, extras...)
+	return CacheIsValidTyped(filePath, passThrough...)
 }
 
 func CacheIsValidTyped(filePath string, extras ...string) bool {
@@ -131,12 +132,14 @@ func RunCmd(binary string, args []string) {
 
 func Assert(value bool) {
 	if !value {
-		panic("assertion failed")
+		fmt.Println("assertion failed")
+		panic("")
 	}
 }
 
 func CheckErr(err error) {
 	if err != nil {
-		panic(err.Error())
+		fmt.Println(err.Error())
+		panic("")
 	}
 }
