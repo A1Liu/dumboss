@@ -24,18 +24,20 @@ func main() {
 	case "run":
 		runMakeTarget(ctx, "build")
 		runQemu(ctx)
+	case "build":
+		runBuild(ctx)
 	case "clean":
 		runClean()
 	case "dump":
 		runObjDump(ctx)
-	case "test":
-		runTest(ctx)
+	case "make":
+		runMakeTarget(ctx, os.Args[2])
 	default:
 		runMakeTarget(ctx, os.Args[1])
 	}
 }
 
-func runTest(ctx context.Context) {
+func runBuild(ctx context.Context) {
 	begin := time.Now()
 	var engine Engine
 
@@ -44,9 +46,6 @@ func runTest(ctx context.Context) {
 
 	engine.Make(ctx, kernelDesc)
 	fmt.Printf("compilation took %v seconds\n", time.Now().Sub(begin).Seconds())
-
-	runQemu(ctx)
-	// engine.Make(ctx, desc1)
 }
 
 func runClean() {

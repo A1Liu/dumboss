@@ -53,7 +53,7 @@ type Rule struct {
 }
 
 type Engine struct {
-	rules         map[RuleDescriptor]*Rule
+	rules         sync.Map
 	threadCounter *sem.Weighted
 }
 
@@ -71,19 +71,33 @@ func RuleKindToString(kind ruleKind) string {
 	}
 }
 
-func (eng *Engine) AddRule(rule Rule) {
-	if eng.rules == nil {
-		eng.rules = map[RuleDescriptor]*Rule{}
+func RuleDoNothing(ctx context.Context, target string) {}
+
+func (eng *Engine) getRule(desc RuleDescriptor) *Rule {
+	defaultRule := Rule{
+		RuleDescriptor: desc,
+		TargetKind:     FileTargetKind,
+		Dependencies:   []RuleDescriptor{},
+		Run:            RuleDoNothing,
 	}
 
-	_, contained := eng.rules[rule.RuleDescriptor]
+	stored, contained := eng.rules.LoadOrStore(desc, &defaultRule)
+	rule := stored.(*Rule)
+	if !contained {
+		rule.state.group.Add(1)
+		rule.state.status = NotRun
+	}
+
+	return rule
+}
+
+func (eng *Engine) AddRule(rule Rule) {
+	stored, contained := eng.rules.LoadOrStore(rule.RuleDescriptor, &rule)
 	Assert(!contained)
 
-	r := &rule
-	r.state.group.Add(len(rule.Dependencies) + 1)
+	r := stored.(*Rule)
+	r.state.group.Add(len(r.Dependencies) + 1)
 	r.state.status = NotRun
-
-	eng.rules[rule.RuleDescriptor] = r
 }
 
 func (eng *Engine) Make(ctx context.Context, desc RuleDescriptor) {
@@ -91,9 +105,7 @@ func (eng *Engine) Make(ctx context.Context, desc RuleDescriptor) {
 		eng.threadCounter = sem.NewWeighted(8)
 	}
 
-	rule, ok := eng.rules[desc]
-	Assert(ok)
-
+	rule := eng.getRule(desc)
 	firstCtx := ruleState{}
 	firstCtx.group.Add(1)
 	eng.makeJob(ctx, &firstCtx, rule)
@@ -115,26 +127,12 @@ func (eng *Engine) makeJob(ctx context.Context, parent *ruleState, rule *Rule) {
 	defer rule.state.group.Done()
 
 	for _, desc := range rule.Dependencies {
-		child, ok := eng.rules[desc]
-		if !ok {
-			cacheResult := CheckCache(desc.Target, RuleKindToString(desc.Kind))
-			if !cacheResult.CacheIsValid {
-				atomic.StoreInt32(&rule.state.needsRebuild, 1)
-			}
-
-			rule.state.group.Done()
-			continue
-		}
-
+		child := eng.getRule(desc)
 		go eng.makeJob(ctx, &rule.state, child)
 	}
 
 	for _, desc := range rule.Dependencies {
-		child, ok := eng.rules[desc]
-		if !ok {
-			continue
-		}
-
+		child := eng.getRule(desc)
 		child.state.group.Wait()
 	}
 
@@ -142,13 +140,15 @@ func (eng *Engine) makeJob(ctx context.Context, parent *ruleState, rule *Rule) {
 	needsRebuild := atomic.LoadInt32(&rule.state.needsRebuild) != 0
 	switch rule.TargetKind {
 	case FileTargetKind:
-		cacheResult := CheckCache(desc.Target, RuleKindToString(desc.Kind))
+		cacheResult := CheckUpdateCache(desc.Target, RuleKindToString(desc.Kind))
 		if cacheResult.FileExists && !needsRebuild {
+			finishStatus := FinishedUnchanged
 			if !cacheResult.CacheIsValid {
 				atomic.StoreInt32(&parent.needsRebuild, 1)
+				finishStatus = FinishedRebuild
 			}
 
-			atomic.StoreInt32(&rule.state.status, FinishedRebuild)
+			atomic.StoreInt32(&rule.state.status, finishStatus)
 			return
 		}
 
@@ -171,8 +171,8 @@ func (eng *Engine) makeJob(ctx context.Context, parent *ruleState, rule *Rule) {
 
 	eng.threadCounter.Acquire(ctx, 1)
 	rule.Run(ctx, rule.RuleDescriptor.Target)
-	eng.threadCounter.Release(1)
 	UpdateCache(desc.Target, RuleKindToString(desc.Kind))
+	eng.threadCounter.Release(1)
 }
 
 type CacheResult struct {
