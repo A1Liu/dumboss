@@ -6,6 +6,7 @@ package dumboss
 // Docker documentation.
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"io"
@@ -28,6 +29,8 @@ const (
 	toolsImage  = "dumboss/tools"
 )
 
+// TODO: This eventually needs to only make one container and multithread it.
+//																		- Albert Liu, Nov 06, 2021 Sat 16:22 EDT
 func RunImageCmd(ctx context.Context, binary string, args []string) {
 	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
 	CheckErr(err)
@@ -85,7 +88,8 @@ func RunImageCmd(ctx context.Context, binary string, args []string) {
 	out, err := cli.ContainerLogs(ctx, resp.ID, logOptions)
 	CheckErr(err)
 
-	stdcopy.StdCopy(os.Stdout, os.Stderr, out)
+	_, err = stdcopy.StdCopy(os.Stdout, os.Stderr, out)
+	CheckErr(err)
 
 	removeOptions := types.ContainerRemoveOptions{
 		RemoveVolumes: true,
@@ -95,13 +99,13 @@ func RunImageCmd(ctx context.Context, binary string, args []string) {
 	CheckErr(err)
 
 	if commandStatus != 0 {
-		os.Exit(int(commandStatus))
+		panic(commandStatus)
 	}
 }
 
 func buildImage(cli *client.Client, ctx context.Context, dockerfileName, imageName string, forceBuild bool) {
 	dockerfilePath := filepath.Join(BuildDir, dockerfileName)
-	cacheResult := CheckCache(dockerfilePath)
+	cacheResult := CheckUpdateCache(dockerfilePath)
 	if cacheResult.CacheIsValid && !forceBuild {
 		return
 	}
@@ -114,16 +118,23 @@ func buildImage(cli *client.Client, ctx context.Context, dockerfileName, imageNa
 	CheckErr(err)
 
 	finished := make(chan bool)
-	ioCopy := func(w io.Writer, r io.Reader) {
-		io.Copy(w, r)
+	var logBuffer bytes.Buffer
+	logs := io.Writer(&logBuffer)
+
+	ioCopy := func(r io.Reader) {
+		io.Copy(logs, r)
 		finished <- true
 	}
 
-	go ioCopy(os.Stdout, stdout)
-	go ioCopy(os.Stderr, stderr)
-	err = cmd.Run()
-	<-finished
-	<-finished
+	go ioCopy(stdout)
+	go ioCopy(stderr)
 
-	CheckErr(err)
+	err = cmd.Run()
+	if err != nil {
+		<-finished
+		<-finished
+
+		fmt.Print(logBuffer.String())
+		panic(err)
+	}
 }

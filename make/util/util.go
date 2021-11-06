@@ -36,12 +36,12 @@ var (
 )
 
 func DirWalk(dirname string) []string {
-	fileNames := make([]string, 10)
+	fileNames := make([]string, 10)[:0]
 
 	walker := func(osPathname string, de *dirwalk.Dirent) error {
 		if de.IsRegular() {
-			fileNames = append(fileNames, osPathname)
-			fmt.Printf("%s %s\n", de.ModeType(), osPathname)
+			processed := SimplifyPath(osPathname)
+			fileNames = append(fileNames, processed)
 		}
 
 		return nil
@@ -59,12 +59,26 @@ func DirWalk(dirname string) []string {
 	return fileNames
 }
 
+func SimplifyPath(filePath string) string {
+	abs, err := filepath.Abs(filePath)
+	CheckErr(err)
+
+	if strings.HasPrefix(abs, ProjectDir) {
+		rel, err := filepath.Rel(ProjectDir, abs)
+		CheckErr(err)
+		return rel
+	}
+
+	return abs
+}
+
 func EscapeSourcePath(targetDir, filePath string, extras ...string) string {
 	Assert(filepath.IsAbs(targetDir))
 
 	abs, err := filepath.Abs(filePath)
 	CheckErr(err)
 	Assert(!strings.HasPrefix(abs, targetDir))
+	Assert(strings.HasPrefix(abs, ProjectDir))
 
 	rel, err := filepath.Rel(ProjectDir, abs)
 	CheckErr(err)

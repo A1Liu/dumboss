@@ -3,8 +3,6 @@ package engine
 import (
 	"context"
 	"os"
-	"path/filepath"
-	"runtime"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -17,13 +15,6 @@ type ruleKind int8
 type targetKind int8
 
 const (
-	NotRun int32 = iota
-	Running
-	FinishedRebuild
-	FinishedUnchanged
-)
-
-const (
 	NoneRuleKind ruleKind = iota
 	CompileRuleKind
 )
@@ -32,6 +23,14 @@ const (
 	FileTargetKind targetKind = iota
 	PhonyTargetKind
 	MarkerTargetKind
+	// MutatorTargetKind // for clang-format
+)
+
+const (
+	NotRun int32 = iota
+	Running
+	FinishedRebuild
+	FinishedUnchanged
 )
 
 type RuleDescriptor struct {
@@ -87,12 +86,11 @@ func (eng *Engine) AddRule(rule Rule) {
 	eng.rules[rule.RuleDescriptor] = r
 }
 
-func (eng *Engine) Make(ctx context.Context, kind ruleKind, target string) {
+func (eng *Engine) Make(ctx context.Context, desc RuleDescriptor) {
 	if eng.threadCounter == nil {
 		eng.threadCounter = sem.NewWeighted(8)
 	}
 
-	desc := RuleDescriptor{Kind: kind, Target: target}
 	rule, ok := eng.rules[desc]
 	Assert(ok)
 
@@ -119,11 +117,12 @@ func (eng *Engine) makeJob(ctx context.Context, parent *ruleState, rule *Rule) {
 	for _, desc := range rule.Dependencies {
 		child, ok := eng.rules[desc]
 		if !ok {
-			cacheResult := CheckCacheTyped(desc.Target, RuleKindToString(desc.Kind))
+			cacheResult := CheckCache(desc.Target, RuleKindToString(desc.Kind))
 			if !cacheResult.CacheIsValid {
 				atomic.StoreInt32(&rule.state.needsRebuild, 1)
 			}
 
+			rule.state.group.Done()
 			continue
 		}
 
@@ -143,13 +142,13 @@ func (eng *Engine) makeJob(ctx context.Context, parent *ruleState, rule *Rule) {
 	needsRebuild := atomic.LoadInt32(&rule.state.needsRebuild) != 0
 	switch rule.TargetKind {
 	case FileTargetKind:
-		cacheResult := CheckCacheTyped(desc.Target, RuleKindToString(desc.Kind))
+		cacheResult := CheckCache(desc.Target, RuleKindToString(desc.Kind))
 		if cacheResult.FileExists && !needsRebuild {
 			if !cacheResult.CacheIsValid {
 				atomic.StoreInt32(&parent.needsRebuild, 1)
 			}
 
-			atomic.StoreInt32(&rule.state.status, FinishedUnchanged)
+			atomic.StoreInt32(&rule.state.status, FinishedRebuild)
 			return
 		}
 
@@ -173,6 +172,7 @@ func (eng *Engine) makeJob(ctx context.Context, parent *ruleState, rule *Rule) {
 	eng.threadCounter.Acquire(ctx, 1)
 	rule.Run(ctx, rule.RuleDescriptor.Target)
 	eng.threadCounter.Release(1)
+	UpdateCache(desc.Target, RuleKindToString(desc.Kind))
 }
 
 type CacheResult struct {
@@ -181,18 +181,24 @@ type CacheResult struct {
 	CacheIsValid     bool
 }
 
-func CheckCache(filePath string, extras ...string) CacheResult {
-	_, callerPath, callerLine, ok := runtime.Caller(1)
-	Assert(ok)
-	callerRelPath, err := filepath.Rel(ProjectDir, callerPath)
-	CheckErr(err)
-
-	passThrough := append([]string{callerRelPath, string(callerLine)}, extras...)
-	return CheckCacheTyped(filePath, passThrough...)
+func CheckUpdateCache(filePath string, extras ...string) CacheResult {
+	cachePath := EscapeSourcePath(CacheDir, filePath, extras...)
+	result := checkCache(filePath, cachePath)
+	updateCacheEntry(cachePath)
+	return result
 }
 
-func CheckCacheTyped(filePath string, extras ...string) CacheResult {
+func CheckCache(filePath string, extras ...string) CacheResult {
 	cachePath := EscapeSourcePath(CacheDir, filePath, extras...)
+	return checkCache(filePath, cachePath)
+}
+
+func UpdateCache(filePath string, extras ...string) {
+	cachePath := EscapeSourcePath(CacheDir, filePath, extras...)
+	updateCacheEntry(cachePath)
+}
+
+func checkCache(filePath, cachePath string) CacheResult {
 
 	result := CacheResult{
 		FileExists:       true,
@@ -221,11 +227,12 @@ func CheckCacheTyped(filePath string, extras ...string) CacheResult {
 	}
 
 	cacheModTime, pathModTime := cacheFileStat.ModTime(), pathStat.ModTime()
-
-	currentTime := time.Now().Local()
-	err = os.Chtimes(cachePath, currentTime, currentTime)
-	CheckErr(err)
-
 	result.CacheIsValid = pathModTime.Before(cacheModTime)
 	return result
+}
+
+func updateCacheEntry(cachePath string) {
+	currentTime := time.Now().Local()
+	err := os.Chtimes(cachePath, currentTime, currentTime)
+	CheckErr(err)
 }
