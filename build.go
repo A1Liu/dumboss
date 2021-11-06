@@ -1,14 +1,12 @@
 package main
 
 import (
+	. "a1liu.com/dumboss/make"
 	"context"
 	"fmt"
 	"os"
 	"path/filepath"
 	"time"
-	// "flags"
-
-	. "a1liu.com/dumboss/make"
 )
 
 func main() {

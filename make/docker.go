@@ -12,7 +12,6 @@ import (
 	"io/fs"
 	"os"
 	"os/exec"
-	"path"
 	"path/filepath"
 	"strings"
 	"time"
@@ -103,9 +102,7 @@ func RunImageCmd(ctx context.Context, binary string, args []string) int {
 }
 
 func needBuild(dockerfileName, imageName string) bool {
-	err := os.MkdirAll(path.Dir(dockerfileName), fs.ModeDir|fs.ModePerm)
-	CheckErr(err)
-	err = os.MkdirAll(CacheDir, fs.ModeDir|fs.ModePerm)
+	err := os.MkdirAll(CacheDir, fs.ModeDir|fs.ModePerm)
 	CheckErr(err)
 
 	escapedName := strings.Replace(imageName, string(os.PathSeparator), ".", -1)
@@ -131,11 +128,12 @@ func needBuild(dockerfileName, imageName string) bool {
 }
 
 func buildImage(cli *client.Client, ctx context.Context, dockerfileName, imageName string, forceBuild bool) {
-	if !needBuild(dockerfileName, imageName) && !forceBuild {
+	dockerfilePath := filepath.Join(BuildDir, dockerfileName)
+	if CacheIsValid(dockerfilePath) && !forceBuild {
 		return
 	}
 
-	cmd := exec.Command("docker", "build", "--platform=linux/amd64", "-f", filepath.Join(BuildDir, dockerfileName), "--tag", imageName, ".")
+	cmd := exec.Command("docker", "build", "--platform=linux/amd64", "-f", dockerfilePath, "--tag", imageName, ".")
 
 	stdout, err := cmd.StdoutPipe()
 	CheckErr(err)
