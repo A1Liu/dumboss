@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"time"
 )
 
 func main() {
@@ -24,15 +23,8 @@ func main() {
 	}
 }
 
-func compileTarget(ctx context.Context, target string) int {
-	begin := time.Now()
-	cmdResult := RunImageCmd(ctx, "make", []string{"-f", ".build/Makefile", target})
-	fmt.Printf("the target `%v` took %v seconds\n", target, time.Since(begin).Seconds())
-	return cmdResult
-}
-
 func runQemu(ctx context.Context) {
-	commandStatus := compileTarget(ctx, "build")
+	commandStatus := RunMakeTarget(ctx, "build")
 	if commandStatus != 0 {
 		os.Exit(commandStatus)
 	}
@@ -49,7 +41,7 @@ func runQemu(ctx context.Context) {
 }
 
 func runMakeCmd(ctx context.Context, target string) {
-	commandStatus := compileTarget(ctx, target)
+	commandStatus := RunMakeTarget(ctx, target)
 
 	os.Exit(commandStatus)
 }

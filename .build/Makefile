@@ -8,6 +8,7 @@
 KERNEL_DIR := ./kernel
 INCLUDE_DIR := ./include
 BUILD_DIR := ./.build
+CACHE_DIR := ./.build/cache
 LIB_DIR := ./lib
 USER_DIR := ./user
 OBJ_DIR := $(BUILD_DIR)/obj
@@ -23,15 +24,6 @@ FORMAT_FILES := $(OBJ_FILES:%.o=%.c.format) \
 
 FORMAT_STYLE := $(shell tr '\n' ',' < $(BUILD_DIR)/clang-format.yaml)
 
-# Changing these flags sometimes seem to result in hard-to-understand compiler
-# errors.
-LDFLAGS := -nostdlib --script kernel/link.ld
-CXXFLAGS := -c -Os --std=gnu17 -target x86_64-unknown-elf -Iinclude -MD        \
-            -ffreestanding -fno-stack-protector -fmerge-all-constants -fPIC    \
-            -mno-red-zone -nostdlib                                            \
-            -Wall -Wextra -Werror -Wconversion                                 \
-            -Wno-unused-function -Wno-gcc-compat
-
 -include $(OBJ_FILES:%.o=%.d)
 
 build: $(OUT_DIR)/kernel
@@ -39,7 +31,7 @@ build: $(OUT_DIR)/kernel
 
 .PHONY: clean
 clean: ;
-	@rm -rf $(OUT_DIR) $(OBJ_DIR)
+	@rm -rf $(OUT_DIR) $(OBJ_DIR) $(CACHE_DIR)
 
 format: $(FORMAT_FILES)
 	@# This silences make's "nothing to be done for target" message

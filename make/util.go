@@ -17,7 +17,8 @@ import (
 
 var (
 	ProjectDir = func() string {
-		_, filename, _, _ := runtime.Caller(0)
+		_, filename, _, ok := runtime.Caller(0)
+		Assert(ok)
 		abs, err := filepath.Abs(filename)
 		CheckErr(err)
 
@@ -39,28 +40,35 @@ func DirWalk(dirname string) []string {
 		return nil
 	}
 
-	err := dirwalk.Walk(dirname, &dirwalk.Options{
+	options := dirwalk.Options{
 		FollowSymbolicLinks: false,
 		Unsorted:            false,
 		Callback:            walker,
-	})
+	}
+
+	err := dirwalk.Walk(dirname, &options)
 	CheckErr(err)
 
 	return fileNames
 }
 
 func CacheIsValid(filePath string) bool {
-	abs, err := filepath.Abs(filePath)
+	_, callerPath, callerLine, ok := runtime.Caller(0)
+	Assert(ok)
+	callerRelPath, err := filepath.Rel(ProjectDir, callerPath)
 	CheckErr(err)
 
-	if strings.HasPrefix(abs, CacheDir) {
-		panic("caching a file in the cache directory")
-	}
+	abs, err := filepath.Abs(filePath)
+	CheckErr(err)
+	Assert(!strings.HasPrefix(abs, CacheDir))
 
 	rel, err := filepath.Rel(ProjectDir, abs)
 	CheckErr(err)
 
-	cachePath := filepath.Join(CacheDir, rel)
+	cachePathName := filepath.Join("C"+rel, callerRelPath, string(callerLine))
+	cachePathName = strings.Replace(cachePathName, string(os.PathSeparator), ".", -1)
+
+	cachePath := filepath.Join(CacheDir, cachePathName)
 
 	pathStat, err := os.Stat(rel)
 	if os.IsNotExist(err) {
@@ -70,7 +78,7 @@ func CacheIsValid(filePath string) bool {
 
 	cacheFileStat, err := os.Stat(cachePath)
 	if os.IsNotExist(err) {
-		err = os.MkdirAll(path.Dir(cachePath), fs.ModeDir|fs.ModePerm)
+		err = os.MkdirAll(CacheDir, fs.ModeDir|fs.ModePerm)
 		CheckErr(err)
 		file, err := os.Create(cachePath)
 		CheckErr(err)
@@ -99,6 +107,12 @@ func RunCmd(binary string, args []string) {
 	go io.Copy(os.Stderr, stderr)
 	err = cmd.Run()
 	CheckErr(err)
+}
+
+func Assert(value bool) {
+	if !value {
+		panic("assertion failed")
+	}
 }
 
 func CheckErr(err error) {
