@@ -2,9 +2,10 @@ package dumboss
 
 import (
 	"context"
-	"fmt"
 	"strings"
-	"time"
+
+	. "a1liu.com/dumboss/make/engine"
+	. "a1liu.com/dumboss/make/util"
 )
 
 var (
@@ -45,13 +46,22 @@ var (
 	}
 )
 
-func RunMakeTarget(ctx context.Context, target string) {
-	cxxFlags := "CXXFLAGS=" + strings.Join(ClangFlags, " ")
-	ldFlags := "LDFLAGS=" + strings.Join(LdFlags, " ")
+func MakeClangRule(target string, depFiles ...string) Rule {
+	Assert(strings.HasSuffix(target, ".o"))
 
-	makeArgs := []string{"-f", ".build/Makefile", cxxFlags, ldFlags, target}
+	dependencies := make([]RuleDescriptor, len(depFiles))
+	for index, element := range depFiles {
+		dependencies[index].Kind = CompileRule
+		dependencies[index].Target = element
+	}
 
-	begin := time.Now()
-	RunImageCmd(ctx, "make", makeArgs)
-	fmt.Printf("the target `%v` took %v seconds\n", target, time.Since(begin).Seconds())
+	run := func(ctx context.Context, path string) {
+		RunImageCmd(ctx, "clang", ClangFlags)
+	}
+
+	return Rule{
+		RuleDescriptor: RuleDescriptor{Kind: CompileRule, Target: target},
+		Dependencies:   dependencies,
+		Run:            run,
+	}
 }

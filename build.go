@@ -5,8 +5,12 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
+	"time"
 
 	. "a1liu.com/dumboss/make"
+	. "a1liu.com/dumboss/make/engine"
+	. "a1liu.com/dumboss/make/util"
 )
 
 func main() {
@@ -23,9 +27,72 @@ func main() {
 		runClean()
 	case "dump":
 		runObjDump(ctx)
+	case "test":
+		runTest(ctx)
 	default:
-		RunMakeTarget(ctx, os.Args[1])
+		begin := time.Now()
+		runMakeTarget(ctx, os.Args[1])
+		fmt.Printf("docker stuff took %v seconds\n\n", time.Now().Sub(begin).Seconds())
 	}
+}
+
+func runTest(ctx context.Context) {
+	desc1 := RuleDescriptor{Kind: 2, Target: "desc1"}
+	desc2 := RuleDescriptor{Kind: 2, Target: "desc2"}
+	desc3 := RuleDescriptor{Kind: 2, Target: "desc3"}
+	desc4 := RuleDescriptor{Kind: 2, Target: "desc4"}
+	desc5 := RuleDescriptor{Kind: 2, Target: "desc5"}
+	desc6 := RuleDescriptor{Kind: 2, Target: "desc6"}
+	desc7 := RuleDescriptor{Kind: 2, Target: "desc7"}
+	desc8 := RuleDescriptor{Kind: 2, Target: "desc8"}
+
+	run := func(ctx context.Context, target string) {
+		fmt.Println("FUCKO:", target)
+	}
+
+	var engine Engine
+	engine.AddRule(Rule{
+		RuleDescriptor: desc1,
+		Dependencies:   []RuleDescriptor{desc2, desc3},
+		Run:            run,
+	})
+	engine.AddRule(Rule{
+		RuleDescriptor: desc2,
+		Dependencies:   []RuleDescriptor{desc4},
+		Run:            run,
+	})
+	engine.AddRule(Rule{
+		RuleDescriptor: desc3,
+		Dependencies:   []RuleDescriptor{desc5, desc6, desc7, desc8},
+		Run:            run,
+	})
+	engine.AddRule(Rule{
+		RuleDescriptor: desc4,
+		Dependencies:   []RuleDescriptor{},
+		Run:            run,
+	})
+	engine.AddRule(Rule{
+		RuleDescriptor: desc5,
+		Dependencies:   []RuleDescriptor{desc4},
+		Run:            run,
+	})
+	engine.AddRule(Rule{
+		RuleDescriptor: desc6,
+		Dependencies:   []RuleDescriptor{},
+		Run:            run,
+	})
+	engine.AddRule(Rule{
+		RuleDescriptor: desc7,
+		Dependencies:   []RuleDescriptor{},
+		Run:            run,
+	})
+	engine.AddRule(Rule{
+		RuleDescriptor: desc8,
+		Dependencies:   []RuleDescriptor{},
+		Run:            run,
+	})
+
+	engine.Make(ctx, desc1.Kind, desc1.Target)
 }
 
 func runClean() {
@@ -34,13 +101,13 @@ func runClean() {
 
 func runObjDump(ctx context.Context) {
 	elfPath := filepath.Join(OutDir, "os.elf")
-	RunMakeTarget(ctx, elfPath)
+	runMakeTarget(ctx, elfPath)
 
 	RunImageCmd(ctx, "llvm-objdump", []string{"--arch=x86-64", "-D", elfPath})
 }
 
 func runQemu(ctx context.Context) {
-	RunMakeTarget(ctx, "build")
+	runMakeTarget(ctx, "build")
 
 	// TODO In 20 years when this OS finally has a GUI, we'll need this to make
 	// serial write to stdout again: "-serial", "stdio",
@@ -51,4 +118,15 @@ func runQemu(ctx context.Context) {
 		"-d", "cpu_reset,int",
 		"-smp", "4", "-no-reboot", "-nographic"}
 	RunCmd("qemu-system-x86_64", args)
+}
+
+func runMakeTarget(ctx context.Context, target string) {
+	cxxFlags := "CXXFLAGS=" + strings.Join(ClangFlags, " ")
+	ldFlags := "LDFLAGS=" + strings.Join(LdFlags, " ")
+
+	makeArgs := []string{"-f", ".build/Makefile", cxxFlags, ldFlags, target}
+
+	begin := time.Now()
+	RunImageCmd(ctx, "make", makeArgs)
+	fmt.Printf("the target `%v` took %v seconds\n", target, time.Since(begin).Seconds())
 }

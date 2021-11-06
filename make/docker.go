@@ -12,13 +12,14 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"time"
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/mount"
 	"github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/stdcopy"
+
+	. "a1liu.com/dumboss/make/util"
 )
 
 const (
@@ -27,7 +28,6 @@ const (
 )
 
 func RunImageCmd(ctx context.Context, binary string, args []string) {
-	begin := time.Now()
 	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
 	CheckErr(err)
 
@@ -70,9 +70,6 @@ func RunImageCmd(ctx context.Context, binary string, args []string) {
 
 	err = cli.ContainerStart(ctx, resp.ID, types.ContainerStartOptions{})
 	CheckErr(err)
-
-	compileBegin := time.Now()
-	fmt.Printf("docker stuff took %v seconds\n\n", compileBegin.Sub(begin).Seconds())
 
 	statusCh, errCh := cli.ContainerWait(ctx, resp.ID, container.WaitConditionNotRunning)
 	var commandStatus int64

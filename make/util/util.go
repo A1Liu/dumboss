@@ -1,4 +1,4 @@
-package dumboss
+package util
 
 import (
 	"fmt"
@@ -22,7 +22,7 @@ var (
 		abs, err := filepath.Abs(filename)
 		CheckErr(err)
 
-		return path.Dir(path.Dir(abs))
+		return path.Dir(path.Dir(path.Dir(abs)))
 	}()
 
 	UserDir    = filepath.Join(ProjectDir, "user")
