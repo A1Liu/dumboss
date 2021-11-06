@@ -24,8 +24,12 @@ var (
 
 		return path.Dir(path.Dir(abs))
 	}()
+
 	BuildDir = filepath.Join(ProjectDir, ".build")
-	CacheDir = filepath.Join(BuildDir, "cache")
+
+	CacheDir = filepath.Join(BuildDir, "cache") // cache flag files
+	ObjDir   = filepath.Join(BuildDir, "obj")   // intermediate files
+	OutDir   = filepath.Join(BuildDir, "out")   // output files
 )
 
 func DirWalk(dirname string) []string {

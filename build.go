@@ -18,9 +18,15 @@ func main() {
 	switch os.Args[1] {
 	case "run":
 		runQemu(ctx)
+	case "clean":
+		runClean(ctx)
 	default:
 		runMakeCmd(ctx, os.Args[1])
 	}
+}
+
+func runClean(ctx context.Context) {
+	RunCmd("rm", []string{"-rf", CacheDir, OutDir, ObjDir})
 }
 
 func runQemu(ctx context.Context) {

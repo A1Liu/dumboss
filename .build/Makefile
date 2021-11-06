@@ -29,10 +29,6 @@ FORMAT_STYLE := $(shell tr '\n' ',' < $(BUILD_DIR)/clang-format.yaml)
 build: $(OUT_DIR)/kernel
 	@# This silences make's "nothing to be done for target" message
 
-.PHONY: clean
-clean: ;
-	@rm -rf $(OUT_DIR) $(OBJ_DIR) $(CACHE_DIR)
-
 format: $(FORMAT_FILES)
 	@# This silences make's "nothing to be done for target" message
 
