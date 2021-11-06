@@ -26,7 +26,7 @@ const (
 	toolsImage  = "dumboss/tools"
 )
 
-func RunImageCmd(ctx context.Context, binary string, args []string) int {
+func RunImageCmd(ctx context.Context, binary string, args []string) {
 	begin := time.Now()
 	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
 	CheckErr(err)
@@ -40,14 +40,14 @@ func RunImageCmd(ctx context.Context, binary string, args []string) int {
 	containerConfig := container.Config{
 		Image:      toolsImage,
 		Cmd:        cmdBinary,
-		WorkingDir: "/root/dumboss",
+		WorkingDir: ProjectDir,
 	}
 	hostConfig := container.HostConfig{
 		Mounts: []mount.Mount{
 			{
 				Type:   mount.TypeBind,
 				Source: ProjectDir,
-				Target: "/root/dumboss",
+				Target: ProjectDir,
 			},
 		},
 	}
@@ -96,7 +96,9 @@ func RunImageCmd(ctx context.Context, binary string, args []string) int {
 	err = cli.ContainerRemove(ctx, resp.ID, removeOptions)
 	CheckErr(err)
 
-	return int(commandStatus)
+	if commandStatus != 0 {
+		os.Exit(int(commandStatus))
+	}
 }
 
 func buildImage(cli *client.Client, ctx context.Context, dockerfileName, imageName string, forceBuild bool) {

@@ -45,14 +45,13 @@ var (
 	}
 )
 
-func RunMakeTarget(ctx context.Context, target string) int {
+func RunMakeTarget(ctx context.Context, target string) {
 	cxxFlags := "CXXFLAGS=" + strings.Join(ClangFlags, " ")
 	ldFlags := "LDFLAGS=" + strings.Join(LdFlags, " ")
 
 	makeArgs := []string{"-f", ".build/Makefile", cxxFlags, ldFlags, target}
 
 	begin := time.Now()
-	cmdResult := RunImageCmd(ctx, "make", makeArgs)
+	RunImageCmd(ctx, "make", makeArgs)
 	fmt.Printf("the target `%v` took %v seconds\n", target, time.Since(begin).Seconds())
-	return cmdResult
 }

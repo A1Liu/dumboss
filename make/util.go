@@ -25,7 +25,11 @@ var (
 		return path.Dir(path.Dir(abs))
 	}()
 
-	BuildDir = filepath.Join(ProjectDir, ".build")
+	UserDir    = filepath.Join(ProjectDir, "user")
+	LibDir     = filepath.Join(ProjectDir, "lib")
+	KernelDir  = filepath.Join(ProjectDir, "kernel")
+	IncludeDir = filepath.Join(ProjectDir, "include")
+	BuildDir   = filepath.Join(ProjectDir, ".build")
 
 	CacheDir = filepath.Join(BuildDir, "cache") // cache flag files
 	ObjDir   = filepath.Join(BuildDir, "obj")   // intermediate files

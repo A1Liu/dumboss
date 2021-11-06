@@ -32,15 +32,6 @@ build: $(OUT_DIR)/kernel
 format: $(FORMAT_FILES)
 	@# This silences make's "nothing to be done for target" message
 
-.PHONY: objdump
-objdump: $(OUT_DIR)/dump
-	@echo "----------------------------------------------------------"
-	@echo "OBJDUMP: file written to $(OUT_DIR)/dump"
-	@echo "----------------------------------------------------------"
-
-$(OUT_DIR)/dump: $(OUT_DIR)/os.elf
-	@llvm-objdump --arch=x86-64 -D $(OUT_DIR)/os.elf > $(OUT_DIR)/dump
-
 $(OUT_DIR)/kernel: $(OUT_DIR)/os.elf $(OUT_DIR)/.dir
 	@cp $(OUT_DIR)/os.elf $(OUT_DIR)/os
 	@llvm-strip -s -K mmio -K fb -K bootboot -K environment -K initstack $(OUT_DIR)/os

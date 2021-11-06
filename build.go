@@ -1,11 +1,12 @@
 package main
 
 import (
-	. "a1liu.com/dumboss/make"
 	"context"
 	"fmt"
 	"os"
 	"path/filepath"
+
+	. "a1liu.com/dumboss/make"
 )
 
 func main() {
@@ -19,21 +20,27 @@ func main() {
 	case "run":
 		runQemu(ctx)
 	case "clean":
-		runClean(ctx)
+		runClean()
+	case "dump":
+		runObjDump(ctx)
 	default:
-		runMakeCmd(ctx, os.Args[1])
+		RunMakeTarget(ctx, os.Args[1])
 	}
 }
 
-func runClean(ctx context.Context) {
+func runClean() {
 	RunCmd("rm", []string{"-rf", CacheDir, OutDir, ObjDir})
 }
 
+func runObjDump(ctx context.Context) {
+	elfPath := filepath.Join(OutDir, "os.elf")
+	RunMakeTarget(ctx, elfPath)
+
+	RunImageCmd(ctx, "llvm-objdump", []string{"--arch=x86-64", "-D", elfPath})
+}
+
 func runQemu(ctx context.Context) {
-	commandStatus := RunMakeTarget(ctx, "build")
-	if commandStatus != 0 {
-		os.Exit(commandStatus)
-	}
+	RunMakeTarget(ctx, "build")
 
 	// TODO In 20 years when this OS finally has a GUI, we'll need this to make
 	// serial write to stdout again: "-serial", "stdio",
@@ -44,10 +51,4 @@ func runQemu(ctx context.Context) {
 		"-d", "cpu_reset,int",
 		"-smp", "4", "-no-reboot", "-nographic"}
 	RunCmd("qemu-system-x86_64", args)
-}
-
-func runMakeCmd(ctx context.Context, target string) {
-	commandStatus := RunMakeTarget(ctx, target)
-
-	os.Exit(commandStatus)
 }
