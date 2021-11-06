@@ -53,41 +53,49 @@ func runTest(ctx context.Context) {
 	var engine Engine
 	engine.AddRule(Rule{
 		RuleDescriptor: desc1,
+		TargetKind:     FileTargetKind,
 		Dependencies:   []RuleDescriptor{desc2, desc3},
 		Run:            run,
 	})
 	engine.AddRule(Rule{
 		RuleDescriptor: desc2,
+		TargetKind:     FileTargetKind,
 		Dependencies:   []RuleDescriptor{desc4},
 		Run:            run,
 	})
 	engine.AddRule(Rule{
 		RuleDescriptor: desc3,
+		TargetKind:     FileTargetKind,
 		Dependencies:   []RuleDescriptor{desc5, desc6, desc7, desc8},
 		Run:            run,
 	})
 	engine.AddRule(Rule{
 		RuleDescriptor: desc4,
+		TargetKind:     FileTargetKind,
 		Dependencies:   []RuleDescriptor{},
 		Run:            run,
 	})
 	engine.AddRule(Rule{
 		RuleDescriptor: desc5,
+		TargetKind:     FileTargetKind,
 		Dependencies:   []RuleDescriptor{desc4},
 		Run:            run,
 	})
 	engine.AddRule(Rule{
 		RuleDescriptor: desc6,
+		TargetKind:     FileTargetKind,
 		Dependencies:   []RuleDescriptor{},
 		Run:            run,
 	})
 	engine.AddRule(Rule{
 		RuleDescriptor: desc7,
+		TargetKind:     FileTargetKind,
 		Dependencies:   []RuleDescriptor{},
 		Run:            run,
 	})
 	engine.AddRule(Rule{
 		RuleDescriptor: desc8,
+		TargetKind:     FileTargetKind,
 		Dependencies:   []RuleDescriptor{},
 		Run:            run,
 	})

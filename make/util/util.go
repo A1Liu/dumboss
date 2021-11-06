@@ -3,14 +3,11 @@ package util
 import (
 	"fmt"
 	"io"
-	"io/fs"
 	"os"
 	"os/exec"
-	"path"
 	"path/filepath"
 	"runtime"
 	"strings"
-	"time"
 
 	dirwalk "github.com/karrick/godirwalk"
 )
@@ -22,7 +19,7 @@ var (
 		abs, err := filepath.Abs(filename)
 		CheckErr(err)
 
-		return path.Dir(path.Dir(path.Dir(abs)))
+		return filepath.Dir(filepath.Dir(filepath.Dir(abs)))
 	}()
 
 	UserDir    = filepath.Join(ProjectDir, "user")
@@ -76,45 +73,6 @@ func EscapeSourcePath(targetDir, filePath string, extras ...string) string {
 	cachePathName = strings.Replace(cachePathName, pathSep, ".", -1)
 
 	return filepath.Join(targetDir, cachePathName)
-}
-
-func CacheIsValid(filePath string, extras ...string) bool {
-	_, callerPath, callerLine, ok := runtime.Caller(1)
-	Assert(ok)
-	callerRelPath, err := filepath.Rel(ProjectDir, callerPath)
-	CheckErr(err)
-
-	passThrough := append([]string{callerRelPath, string(callerLine)}, extras...)
-	return CacheIsValidTyped(filePath, passThrough...)
-}
-
-func CacheIsValidTyped(filePath string, extras ...string) bool {
-	cachePath := EscapeSourcePath(CacheDir, filePath, extras...)
-
-	pathStat, err := os.Stat(filePath)
-	if os.IsNotExist(err) {
-		return false
-	}
-	CheckErr(err)
-
-	cacheFileStat, err := os.Stat(cachePath)
-	if os.IsNotExist(err) {
-		err = os.MkdirAll(CacheDir, fs.ModeDir|fs.ModePerm)
-		CheckErr(err)
-		file, err := os.Create(cachePath)
-		CheckErr(err)
-		file.Close()
-		return false
-	}
-	CheckErr(err)
-
-	cacheModTime, pathModTime := cacheFileStat.ModTime(), pathStat.ModTime()
-
-	currentTime := time.Now().Local()
-	err = os.Chtimes(cachePath, currentTime, currentTime)
-	CheckErr(err)
-
-	return pathModTime.Before(cacheModTime)
 }
 
 func RunCmd(binary string, args []string) {

@@ -19,6 +19,7 @@ import (
 	"github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/stdcopy"
 
+	. "a1liu.com/dumboss/make/engine"
 	. "a1liu.com/dumboss/make/util"
 )
 
@@ -100,7 +101,8 @@ func RunImageCmd(ctx context.Context, binary string, args []string) {
 
 func buildImage(cli *client.Client, ctx context.Context, dockerfileName, imageName string, forceBuild bool) {
 	dockerfilePath := filepath.Join(BuildDir, dockerfileName)
-	if CacheIsValid(dockerfilePath) && !forceBuild {
+	cacheResult := CheckCache(dockerfilePath)
+	if cacheResult.CacheIsValid && !forceBuild {
 		return
 	}
 

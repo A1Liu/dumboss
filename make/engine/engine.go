@@ -2,20 +2,26 @@ package engine
 
 import (
 	"context"
+	"io/fs"
+	"os"
+	"path/filepath"
+	"runtime"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	. "a1liu.com/dumboss/make/util"
 	sem "golang.org/x/sync/semaphore"
 )
 
-type ruleKind int
+type ruleKind int8
+type targetKind int8
 
 const (
-	NotRun            int32 = 0
-	Running           int32 = 1
-	FinishedRebuild   int32 = 2
-	FinishedUnchanged int32 = 3
+	NotRun int32 = iota
+	Running
+	FinishedRebuild
+	FinishedUnchanged
 )
 
 const (
@@ -23,10 +29,15 @@ const (
 	CompileRuleKind
 )
 
+const (
+	FileTargetKind targetKind = iota
+	PhonyTargetKind
+	MarkerTargetKind
+)
+
 type RuleDescriptor struct {
-	Kind    ruleKind
-	IsPhony bool
-	Target  string
+	Kind   ruleKind
+	Target string
 }
 
 type ruleState struct {
@@ -37,6 +48,7 @@ type ruleState struct {
 
 type Rule struct {
 	RuleDescriptor
+	TargetKind   targetKind
 	Dependencies []RuleDescriptor
 	state        ruleState
 	Run          func(ctx context.Context, target string)
@@ -108,7 +120,8 @@ func (eng *Engine) makeJob(ctx context.Context, parent *ruleState, rule *Rule) {
 	for _, desc := range rule.Dependencies {
 		child, ok := eng.rules[desc]
 		if !ok {
-			if !CacheIsValidTyped(desc.Target, RuleKindToString(desc.Kind)) {
+			cacheResult := CheckCacheTyped(desc.Target, RuleKindToString(desc.Kind))
+			if !cacheResult.CacheIsValid {
 				atomic.StoreInt32(&rule.state.needsRebuild, 1)
 			}
 
@@ -128,9 +141,30 @@ func (eng *Engine) makeJob(ctx context.Context, parent *ruleState, rule *Rule) {
 	}
 
 	desc := rule.RuleDescriptor
-	cacheValid := !rule.IsPhony && CacheIsValidTyped(desc.Target, RuleKindToString(desc.Kind))
-	if atomic.LoadInt32(&rule.state.needsRebuild) == 0 && cacheValid {
-		atomic.StoreInt32(&rule.state.status, FinishedUnchanged)
+	needsRebuild := atomic.LoadInt32(&rule.state.needsRebuild) != 0
+	switch rule.TargetKind {
+	case FileTargetKind:
+		cacheResult := CheckCacheTyped(desc.Target, RuleKindToString(desc.Kind))
+		if cacheResult.FileExists && !needsRebuild {
+			if !cacheResult.CacheIsValid {
+				atomic.StoreInt32(&parent.needsRebuild, 1)
+			}
+
+			atomic.StoreInt32(&rule.state.status, FinishedUnchanged)
+			return
+		}
+
+	case MarkerTargetKind:
+		if !needsRebuild {
+			atomic.StoreInt32(&rule.state.status, FinishedUnchanged)
+			return
+		}
+
+	case PhonyTargetKind:
+		// Always execute the rule
+
+	default:
+		Assert(false)
 		return
 	}
 
@@ -140,4 +174,63 @@ func (eng *Engine) makeJob(ctx context.Context, parent *ruleState, rule *Rule) {
 	eng.threadCounter.Acquire(ctx, 1)
 	rule.Run(ctx, rule.RuleDescriptor.Target)
 	eng.threadCounter.Release(1)
+}
+
+type CacheResult struct {
+	FileExists       bool
+	CacheEntryExists bool
+	CacheIsValid     bool
+}
+
+func CheckCache(filePath string, extras ...string) CacheResult {
+	_, callerPath, callerLine, ok := runtime.Caller(1)
+	Assert(ok)
+	callerRelPath, err := filepath.Rel(ProjectDir, callerPath)
+	CheckErr(err)
+
+	passThrough := append([]string{callerRelPath, string(callerLine)}, extras...)
+	return CheckCacheTyped(filePath, passThrough...)
+}
+
+func CheckCacheTyped(filePath string, extras ...string) CacheResult {
+	cachePath := EscapeSourcePath(CacheDir, filePath, extras...)
+
+	result := CacheResult{
+		FileExists:       true,
+		CacheEntryExists: true,
+	}
+
+	pathStat, err := os.Stat(filePath)
+	if os.IsNotExist(err) {
+		result.FileExists = false
+	} else {
+		CheckErr(err)
+	}
+
+	cacheFileStat, err := os.Stat(cachePath)
+	if os.IsNotExist(err) {
+		err = os.MkdirAll(CacheDir, fs.ModeDir|fs.ModePerm)
+		CheckErr(err)
+		file, err := os.Create(cachePath)
+		CheckErr(err)
+		file.Close()
+
+		result.CacheEntryExists = false
+	} else {
+		CheckErr(err)
+	}
+
+	if !result.CacheEntryExists || !result.FileExists {
+		result.CacheIsValid = false
+		return result
+	}
+
+	cacheModTime, pathModTime := cacheFileStat.ModTime(), pathStat.ModTime()
+
+	currentTime := time.Now().Local()
+	err = os.Chtimes(cachePath, currentTime, currentTime)
+	CheckErr(err)
+
+	result.CacheIsValid = pathModTime.Before(cacheModTime)
+	return result
 }
