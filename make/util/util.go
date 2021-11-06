@@ -3,6 +3,7 @@ package util
 import (
 	"fmt"
 	"io"
+	"io/fs"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -86,6 +87,14 @@ func RunCmd(binary string, args []string) {
 	go io.Copy(os.Stderr, stderr)
 	err = cmd.Run()
 	CheckErr(err)
+}
+
+func EnsurePath(path string) {
+	err := os.MkdirAll(filepath.Dir(path), fs.ModeDir|fs.ModePerm)
+	CheckErr(err)
+	file, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE, fs.ModePerm)
+	CheckErr(err)
+	file.Close()
 }
 
 func Assert(value bool) {

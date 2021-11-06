@@ -2,7 +2,6 @@ package engine
 
 import (
 	"context"
-	"io/fs"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -209,11 +208,7 @@ func CheckCacheTyped(filePath string, extras ...string) CacheResult {
 
 	cacheFileStat, err := os.Stat(cachePath)
 	if os.IsNotExist(err) {
-		err = os.MkdirAll(CacheDir, fs.ModeDir|fs.ModePerm)
-		CheckErr(err)
-		file, err := os.Create(cachePath)
-		CheckErr(err)
-		file.Close()
+		EnsurePath(cachePath)
 
 		result.CacheEntryExists = false
 	} else {
