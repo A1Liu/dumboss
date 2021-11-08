@@ -127,8 +127,8 @@ func AddClangRule(eng *Engine, sourcePath string) RuleDescriptor {
 
 	run := func(ctx context.Context, target string) {
 		flags := append([]string{"-MF", depPath, "-o", targetPath, sourcePath}, ClangFlags...)
-		RunImageCmd(ctx, "clang", flags)
-		fmt.Printf("Finished compiling `%v`\n", target)
+		RunCmd("clang", flags)
+		fmt.Printf("Finished compiling `%v`\n", sourcePath)
 	}
 
 	rule := Rule{
