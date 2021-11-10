@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 	"time"
 
 	. "a1liu.com/dumboss/make"
@@ -72,10 +71,7 @@ func runQemu(ctx context.Context) {
 }
 
 func runMakeTarget(ctx context.Context, target string) {
-	cxxFlags := "CXXFLAGS=" + strings.Join(ClangFlags, " ")
-	ldFlags := "LDFLAGS=" + strings.Join(LdFlags, " ")
-
-	makeArgs := []string{"-f", ".build/Makefile", cxxFlags, ldFlags, target}
+	makeArgs := []string{"-f", ".build/Makefile", target}
 
 	begin := time.Now()
 	RunImageCmd(ctx, "make", makeArgs)

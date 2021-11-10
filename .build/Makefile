@@ -20,9 +20,19 @@ KERNEL_FILES := $(wildcard $(KERNEL_DIR)/*.c)
 HEADER_FILES := $(wildcard $(INCLUDE_DIR)/*.h)
 OBJ_FILES := $(patsubst $(KERNEL_DIR)/%.c,$(OBJ_DIR)/%.o,$(KERNEL_FILES))
 FORMAT_FILES := $(OBJ_FILES:%.o=%.c.format) \
-  $(patsubst $(INCLUDE_DIR)/%.h,$(OBJ_DIR)/%.h.format,$(HEADER_FILES))
+								$(patsubst $(INCLUDE_DIR)/%.h,$(OBJ_DIR)/%.h.format,$(HEADER_FILES))
 
 FORMAT_STYLE := $(shell tr '\n' ',' < $(BUILD_DIR)/clang-format.yaml)
+
+# Changing these flags sometimes seem to result in hard-to-understand compiler
+# errors.
+LDFLAGS := -nostdlib --script kernel/link.ld
+
+CXXFLAGS := -c -Os --std=gnu17 -target x86_64-unknown-elf -Iinclude -MD        \
+            -ffreestanding -fno-stack-protector -fmerge-all-constants -fPIC    \
+            -mno-red-zone -nostdlib                                            \
+            -Wall -Wextra -Werror -Wconversion                                 \
+            -Wno-unused-function -Wno-gcc-compat
 
 -include $(OBJ_FILES:%.o=%.d)
 

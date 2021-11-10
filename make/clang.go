@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	. "a1liu.com/dumboss/make/engine"
+	. "a1liu.com/dumboss/make/make"
 	. "a1liu.com/dumboss/make/util"
 )
 
@@ -40,14 +41,6 @@ var (
 
 		"-Wno-unused-function",
 		"-Wno-gcc-compat",
-	}
-
-	// Changing these flags sometimes seem to result in hard-to-understand compiler
-	// errors.
-	LdFlags = []string{
-		"-nostdlib",
-		"--script",
-		"kernel/link.ld",
 	}
 )
 
@@ -84,7 +77,7 @@ func AddOsElfRule(eng *Engine) RuleDescriptor {
 	outputPath := filepath.Join(OutDir, "os.elf")
 
 	deps := make([]RuleDescriptor, 10)[:0]
-	flags := append([]string{"-o", outputPath}, LdFlags...)
+	flags := []string{"-o", outputPath, "-T", "kernel/link.ld", "-nostdlib"}
 	for _, file := range DirWalk(KernelDir) {
 		if !strings.HasSuffix(file, ".c") || strings.HasPrefix(file, "/") {
 			continue
@@ -113,6 +106,12 @@ func AddOsElfRule(eng *Engine) RuleDescriptor {
 }
 
 func AddClangRule(eng *Engine, sourcePath string) RuleDescriptor {
+	rule := MakeClangRule(sourcePath)
+	eng.AddRule(rule)
+	return rule.RuleDescriptor
+}
+
+func MakeClangRule(sourcePath string) Rule {
 	depPath := EscapeSourcePath(DepsDir, sourcePath, "dep")
 	targetPath := EscapeSourcePath(ObjDir, sourcePath, "o")
 
@@ -140,48 +139,21 @@ func AddClangRule(eng *Engine, sourcePath string) RuleDescriptor {
 	fileBytes, err := ioutil.ReadFile(depPath)
 	if os.IsNotExist(err) {
 		rule.Dependencies = []RuleDescriptor{sourceDesc, depDesc}
-		eng.AddRule(rule)
-		return rule.RuleDescriptor
+		return rule
 	} else {
 		CheckErr(err)
 	}
 
-	cursor := 0
-	for index, b := range fileBytes {
-		if b == ':' {
-			Assert(fileBytes[index+1] == ' ')
-			cursor = index + 2
-			break
-		}
-	}
-
 	deps := make([]RuleDescriptor, 10)[:0]
-	depBytes := fileBytes[cursor:]
-	cursor = -1
-	for index, b := range depBytes {
-		switch b {
-		case ' ':
-			fallthrough
-		case '\\':
-			fallthrough
-		case '\n':
-			if cursor >= 0 {
-				pathBytes := depBytes[cursor:index]
-				if pathBytes[0] != '/' {
-					newDep := RuleDescriptor{Kind: CompileRuleKind, Target: string(pathBytes)}
-					deps = append(deps, newDep)
-				}
-				cursor = -1
-			}
-
-		default:
-			if cursor == -1 {
-				cursor = index
-			}
+	for _, depPath := range ParseMakerule(fileBytes).Deps {
+		if depPath[0] == '/' {
+			continue
 		}
+
+		newDep := RuleDescriptor{Kind: CompileRuleKind, Target: string(depPath)}
+		deps = append(deps, newDep)
 	}
 
 	rule.Dependencies = deps
-	eng.AddRule(rule)
-	return rule.RuleDescriptor
+	return rule
 }

@@ -40,6 +40,7 @@ in the same way (`dumboss build` to build and `dumboss run` to run)
 8. Maybe don't map all of phyiscal memory lmao
 9. No file-system. Just a k-v store, 128-bit key that maps to a set of blocks on the disk.
 10. Permissions are based on programs, not users.
+11. Maybe never support dylibs.
 
 ## Scrapped Ideas
 1. Integer divide-by-zero always results in a zero. (THIS IS NOT POSSIBLE ON X64 FEELSBADMAN)
