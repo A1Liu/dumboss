@@ -1,4 +1,6 @@
-#include "logging.h"
+#include "basics.h"
+#include <log.h>
+#include <macros.h>
 
 #define BUF_SIZE 200
 
@@ -7,7 +9,7 @@ void serial__write(char a);
 
 static s64 write_prefix_to_buffer(String out, sloc loc) {
   any args[] = {make_any(loc.file), make_any(loc.line)};
-  return basics__fmt(out, "[%f:%f]: ", 2, args);
+  return any__fmt(out, "[%f:%f]: ", 2, args);
 }
 
 void logging__log(sloc loc, s32 count, const any *args) {
@@ -15,7 +17,7 @@ void logging__log(sloc loc, s32 count, const any *args) {
   s64 written = write_prefix_to_buffer(out, loc);
 
   for (s32 i = 0; i < count; i++) {
-    s64 fmt_try = basics__fmt_any(Str__suffix(out, min(written, BUF_SIZE)), args[i]);
+    s64 fmt_try = any__fmt_any(Str__suffix(out, min(written, BUF_SIZE)), args[i]);
     assert(fmt_try >= 0);
     written += fmt_try;
   }
@@ -34,7 +36,7 @@ void logging__log(sloc loc, s32 count, const any *args) {
 void logging__log_fmt(sloc loc, const char *fmt, s32 count, const any *args) {
   String out = Str__new(buffer, BUF_SIZE);
   s64 written = write_prefix_to_buffer(out, loc);
-  s64 fmt_try = basics__fmt(Str__suffix(out, written), fmt, count, args);
+  s64 fmt_try = any__fmt(Str__suffix(out, written), fmt, count, args);
   if (fmt_try < 0) {
     if (fmt_try < -count - 1) {
       logging__log_fmt(loc, "too many parameters (expected %f, got %f)", 2,

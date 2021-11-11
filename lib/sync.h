@@ -1,9 +1,7 @@
 #pragma once
-#include "basics.h"
-#include "logging.h"
-#include "memory.h"
 #include <stdatomic.h>
 #include <stddef.h>
+#include <types.h>
 
 typedef struct _QueueBlock _QueueBlock;
 typedef struct {
@@ -12,7 +10,9 @@ typedef struct {
   const s32 elem_size; // having a larger elem_size doesn't make sense.
 } Queue;
 
-#define NULL_QUEUE ((Queue){.ptr = NULL, .elem_size = 0, .count = 0})
+#define Queue_BLOCKED   S64(-1)
+#define Queue_TYPE_FAIL S64(-2)
+#define NULL_QUEUE      ((Queue){.ptr = NULL, .elem_size = 0, .count = 0})
 
 // Creates a queue using the provided buffer.
 Queue Queue__create(Buffer buffer, s32 elem_size);
@@ -32,6 +32,10 @@ s64 Queue__len(const Queue queue, s32 elem_size);
 s64 Queue__capacity(const Queue queue, s32 elem_size);
 
 #ifdef __DUMBOSS_IMPL__
+#undef __DUMBOSS_IMPL__
+#include <log.h>
+#include <macros.h>
+#define __DUMBOSS_IMPL__
 
 // TODO: Add more macros for clang builtin as needed. Builtins list is here:
 // https://releases.llvm.org/10.0.0/tools/clang/docs/LanguageExtensions.html
@@ -94,13 +98,11 @@ Queue Queue__create(const Buffer buffer, const s32 elem_size) {
   ptr->_unused3 = 0x1eadbeef1eadbeef;
   ptr->_unused3 = 0x1eadbeef1eadbeef;
 
-  Queue queue = (Queue){.ptr = ptr, .elem_size = elem_size, .count = count};
-
-  return queue;
+  return (Queue){.ptr = ptr, .elem_size = elem_size, .count = count};
 }
 
 s64 Queue__enqueue(Queue queue, const void *buffer, s64 count, s32 elem_size) {
-  assert(elem_size == queue.elem_size);
+  if (elem_size != queue.elem_size) return Queue_TYPE_FAIL;
   if (count == 0) return 0;
 
   NAMED_BREAK(set_mutex) {
@@ -110,7 +112,7 @@ s64 Queue__enqueue(Queue queue, const void *buffer, s64 count, s32 elem_size) {
       flags &= ~WRITE_MUTEX;
     }
 
-    return -1;
+    return Queue_BLOCKED;
   }
 
   const s64 queue_size = queue.count;
@@ -129,7 +131,7 @@ s64 Queue__enqueue(Queue queue, const void *buffer, s64 count, s32 elem_size) {
 }
 
 s64 Queue__dequeue(Queue queue, void *buffer, s64 count, s32 elem_size) {
-  assert(elem_size == queue.elem_size);
+  if (elem_size != queue.elem_size) return Queue_TYPE_FAIL;
   if (count == 0) return 0;
 
   NAMED_BREAK(set_mutex) {
@@ -139,7 +141,7 @@ s64 Queue__dequeue(Queue queue, void *buffer, s64 count, s32 elem_size) {
       flags &= ~READ_MUTEX;
     }
 
-    return -1;
+    return Queue_BLOCKED;
   }
 
   const s64 queue_size = queue.count;
@@ -158,7 +160,7 @@ s64 Queue__dequeue(Queue queue, void *buffer, s64 count, s32 elem_size) {
 }
 
 s64 Queue__len(const Queue queue, s32 elem_size) {
-  assert(elem_size == queue.elem_size);
+  if (elem_size != queue.elem_size) return Queue_TYPE_FAIL;
 
   s64 read_head = queue.ptr->read_head;
   s64 write_head = queue.ptr->write_head;
@@ -167,7 +169,7 @@ s64 Queue__len(const Queue queue, s32 elem_size) {
 }
 
 s64 Queue__capacity(const Queue queue, s32 elem_size) {
-  assert(elem_size == queue.elem_size);
+  if (elem_size != queue.elem_size) return Queue_TYPE_FAIL;
 
   return queue.count / elem_size;
 }

@@ -1,5 +1,8 @@
 #include "alloc.h"
-#include "logging.h"
+#include "basics.h"
+#include <bitset.h>
+#include <log.h>
+#include <types.h>
 
 #define SIZE_CLASS_COUNT 12
 

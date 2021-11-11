@@ -1,22 +1,15 @@
 #pragma once
 #include <types.h>
 
-typedef struct {
-  const char *file;
-  u32 line;
-} sloc;
-
+// TODO Should the formatting stuff in basics be moved to logging? I'm not sure
+// where else in the codebase it would be used, and right now (Jun 27 2021) its
+// only being used here.
 #define SWAP(left, right)                                                                          \
   ({                                                                                               \
     typeof(*left) value = *left;                                                                   \
     *left = *right;                                                                                \
     *right = value;                                                                                \
   })
-
-#define __LOC__                                                                                    \
-  (sloc) {                                                                                         \
-    .file = __FILE__, .line = __LINE__                                                             \
-  }
 
 #define NARG(...)                                                                                  \
   NARG_INTERNAL_PRIVATE(0, ##__VA_ARGS__, 70, 69, 68, 67, 66, 65, 64, 63, 62, 61, 60, 59, 58, 57,  \
@@ -181,3 +174,27 @@ struct LABEL_T_DO_NOT_USE;
     typeof(x + y) _x = x, _y = y;                                                                  \
     (_x > _y) ? _x : _y;                                                                           \
   })
+
+#define align_up(value, _align)                                                                    \
+  ({                                                                                               \
+    u64 M_align = _align;                                                                          \
+    assert(M_align && (__builtin_popcountl(M_align) == 1), "alignment wasn't a power of 2");       \
+    __builtin_align_up(value, M_align);                                                            \
+  })
+#define align_down(value, _align)                                                                  \
+  ({                                                                                               \
+    u64 M_align = _align;                                                                          \
+    assert(M_align && (__builtin_popcountl(M_align) == 1), "alignment wasn't a power of 2");       \
+    __builtin_align_down(value, M_align);                                                          \
+  })
+#define is_aligned(value, _align)                                                                  \
+  ({                                                                                               \
+    u64 M_align = _align;                                                                          \
+    assert(M_align && (__builtin_popcountl(M_align) == 1), "alignment wasn't a power of 2");       \
+    __builtin_is_aligned(value, M_align);                                                          \
+  })
+
+#define make_any_array(...)                                                                        \
+  (any[]) {                                                                                        \
+    FOR_ARGS(make_any, __VA_ARGS__)                                                                \
+  }

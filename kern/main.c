@@ -1,8 +1,9 @@
 #include "alloc.h"
+#include "basics.h"
 #include "bootboot.h"
 #include "descriptor_tables.h"
-#include "logging.h"
 #include "memory.h"
+#include <log.h>
 
 typedef struct {
   u32 eax, ebx, ecx, edx;

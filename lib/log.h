@@ -1,12 +1,7 @@
-#pragma once
-
-// TODO Should the formatting stuff in basics be moved to logging? I'm not sure
-// where else in the codebase it would be used, and right now (Jun 27 2021) its
-// only being used here.
-#include "basics.h"
+#include <types.h>
 
 void logging__log(sloc loc, int32_t count, const any *args);
-void logging__log_fmt(sloc loc, const char *fmt, int32_t count, const any *args);
+void logging__log_fmt(sloc loc, const char *fmt, s32 count, const any *args);
 
 #define log(...) logging__log(__LOC__, NARG(__VA_ARGS__), make_any_array(__VA_ARGS__))
 
@@ -33,7 +28,7 @@ void logging__log_fmt(sloc loc, const char *fmt, int32_t count, const any *args)
     const char *const fmt = "dbg(%f) = ("                                      \
         FOR_ARGS_SEP(__DEBUG_FORMAT, __COMMA_STRING, __VA_ARGS__) ")";         \
     const any args[] = { FOR_ARGS(make_any, #__VA_ARGS__, ##__VA_ARGS__) };    \
-    const int32_t nargs = 1 + NARG(__VA_ARGS__);                               \
+    const s32 nargs = 1 + NARG(__VA_ARGS__);                                   \
     logging__log_fmt(__LOC__, fmt, nargs, args);                               \
     _Pragma("clang diagnostic pop");                                           \
   })

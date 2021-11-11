@@ -1,5 +1,7 @@
 #include "descriptor_tables.h"
-#include "logging.h"
+#include "basics.h"
+#include <log.h>
+#include <macros.h>
 
 // Used Phil Opperman's x86_64 rust code to figure out how to do this
 // https://github.com/rust-osdev/x86_64/blob/master/src/structures/idt.rs
