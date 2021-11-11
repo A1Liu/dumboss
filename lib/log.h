@@ -1,3 +1,6 @@
+#ifndef __LIB_LOG__
+#define __LIB_LOG__
+#include <basics.h>
 #include <types.h>
 
 void logging__log(sloc loc, int32_t count, const any *args);
@@ -33,3 +36,5 @@ void logging__log_fmt(sloc loc, const char *fmt, s32 count, const any *args);
     _Pragma("clang diagnostic pop");                                           \
   })
 // clang-format on
+
+#endif

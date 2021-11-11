@@ -1,4 +1,5 @@
-#pragma once
+#ifndef __LIB_MACROS__
+#define __LIB_MACROS__
 #include <types.h>
 
 // TODO Should the formatting stuff in basics be moved to logging? I'm not sure
@@ -128,42 +129,6 @@ struct LABEL_T_DO_NOT_USE;
                               right = M_array.data + M_left_index + 1;                             \
          M_left_index < M_right_bound; M_left_index++, left++, right++)
 
-#define read_register(...)       PASTE(_read_register, NARG(__VA_ARGS__))(__VA_ARGS__)
-#define _read_register1(reg)     _read_register3(reg, u64, "")
-#define _read_register2(reg, ty) _read_register3(reg, ty, "")
-#define _read_register3(reg, ty, suffix)                                                           \
-  ({                                                                                               \
-    _Static_assert(sizeof(ty) <= 8, "read_register only takes a type with size <= 8");             \
-    ty value;                                                                                      \
-    asm("mov" suffix " %%" #reg ", %0" : "=r"(value));                                             \
-    value;                                                                                         \
-  })
-
-#define write_register(...)          PASTE(_write_register, NARG(__VA_ARGS__))(__VA_ARGS__)
-#define _write_register2(reg, value) _write_register3(reg, value, "")
-#define _write_register3(reg, value, suffix)                                                       \
-  ({                                                                                               \
-    _Static_assert(sizeof(value) <= 8, "read_register only takes a type with size <= 8");          \
-    typeof(value) v = value;                                                                       \
-    asm("mov" suffix " %0, %%" #reg : : "r"(v) : #reg);                                            \
-    v;                                                                                             \
-  })
-
-#define out8(port, val)                                                                            \
-  ({                                                                                               \
-    u8 v = val;                                                                                    \
-    asm volatile("outb %0, %1" : : "a"(v), "Nd"(port));                                            \
-    v;                                                                                             \
-  })
-
-#define in8(port)                                                                                  \
-  ({                                                                                               \
-    u8 ret;                                                                                        \
-    u16 p = port;                                                                                  \
-    asm volatile("inb %1, %0" : "=a"(ret) : "Nd"(p));                                              \
-    ret;                                                                                           \
-  })
-
 #define min(x, y)                                                                                  \
   ({                                                                                               \
     typeof(x + y) _x = x, _y = y;                                                                  \
@@ -198,3 +163,5 @@ struct LABEL_T_DO_NOT_USE;
   (any[]) {                                                                                        \
     FOR_ARGS(make_any, __VA_ARGS__)                                                                \
   }
+
+#endif

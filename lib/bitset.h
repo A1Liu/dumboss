@@ -1,4 +1,5 @@
-#pragma once
+#ifndef __LIB_BITSET__
+#define __LIB_BITSET__
 #include <types.h>
 
 typedef struct {
@@ -13,6 +14,7 @@ bool BitSet__get_any(BitSet bits, s64 begin, s64 end);
 void BitSet__set(BitSet bits, s64 idx, bool value);
 void BitSet__set_all(BitSet bits, bool value);
 void BitSet__set_range(BitSet bits, s64 begin, s64 end, bool value);
+#endif
 
 #ifdef __DUMBOSS_IMPL__
 #undef __DUMBOSS_IMPL__

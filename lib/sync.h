@@ -1,4 +1,5 @@
-#pragma once
+#ifndef __LIB_SYNC__
+#define __LIB_SYNC__
 #include <stdatomic.h>
 #include <stddef.h>
 #include <types.h>
@@ -30,6 +31,7 @@ s64 Queue__len(const Queue queue, s32 elem_size);
 
 // Returns the capacity of the queue in elements.
 s64 Queue__capacity(const Queue queue, s32 elem_size);
+#endif
 
 #ifdef __DUMBOSS_IMPL__
 #undef __DUMBOSS_IMPL__

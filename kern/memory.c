@@ -1,7 +1,10 @@
 #include "memory.h"
 #include "alloc.h"
-#include "basics.h"
+#include "util.h"
+#include <asm.h>
+#include <basics.h>
 #include <log.h>
+#include <macros.h>
 
 // Used Phil Opperman's x86_64 rust code to make these macros
 // https://github.com/rust-osdev/x86_64/blob/master/src/structures/paging/page_table.rs
