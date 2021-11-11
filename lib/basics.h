@@ -62,6 +62,11 @@ s64 strlen(const char *str);
 void memcpy(void *dest, const void *src, s64 count);
 void memset(void *buffer, u8 value, s64 len);
 
+// Shuts down the program. Akin to exit.
+// TODO: use `exit(s32 value);` instead.
+//                  - Albert Liu, Nov 11, 2021 Thu 17:06 EST
+_Noreturn void shutdown(void);
+
 // clang-format off
 #define make_any(value)                                                        \
   _Generic((value),                                                            \

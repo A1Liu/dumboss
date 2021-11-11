@@ -3,6 +3,10 @@
 #include <macro_utils.h>
 #include <types.h>
 
+static inline void asm_hlt(void) {
+  asm volatile("hlt");
+}
+
 #define read_register(...)       PASTE(_read_register, NARG(__VA_ARGS__))(__VA_ARGS__)
 #define _read_register1(reg)     _read_register3(reg, u64, "")
 #define _read_register2(reg, ty) _read_register3(reg, ty, "")

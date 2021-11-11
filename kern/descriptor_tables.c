@@ -1,5 +1,4 @@
 #include "descriptor_tables.h"
-#include "util.h"
 #include <asm.h>
 #include <basics.h>
 #include <log.h>

@@ -1,5 +1,4 @@
 #include "alloc.h"
-#include "util.h"
 #include <basics.h>
 #include <bitset.h>
 #include <log.h>
