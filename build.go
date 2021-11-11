@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"time"
@@ -20,10 +21,8 @@ func main() {
 	ctx := context.Background()
 	switch os.Args[1] {
 	case "run":
-		runMakeTarget(ctx, "build")
+		runMakeTarget(ctx, "kern")
 		runQemu(ctx)
-	case "build":
-		runMakeTarget(ctx, "build")
 	case "clean":
 		runClean()
 	case "dump":
@@ -59,8 +58,16 @@ func runQemu(ctx context.Context) {
 }
 
 func runMakeTarget(ctx context.Context, target string) {
-	makeArgs := []string{"-f", ".build/Makefile", target}
+	err := os.MkdirAll(OutDir, fs.ModeDir|fs.ModePerm)
+	CheckErr(err)
+	err = os.MkdirAll(CacheDir, fs.ModeDir|fs.ModePerm)
+	CheckErr(err)
+	err = os.MkdirAll(DepsDir, fs.ModeDir|fs.ModePerm)
+	CheckErr(err)
+	err = os.MkdirAll(ObjDir, fs.ModeDir|fs.ModePerm)
+	CheckErr(err)
 
+	makeArgs := []string{"-f", ".build/Makefile", target}
 	begin := time.Now()
 	RunImageCmdSingle(ctx, "make", makeArgs)
 	fmt.Printf("the target `%v` took %v seconds\n", target, time.Since(begin).Seconds())
