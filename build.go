@@ -62,6 +62,6 @@ func runMakeTarget(ctx context.Context, target string) {
 	makeArgs := []string{"-f", ".build/Makefile", target}
 
 	begin := time.Now()
-	RunImageCmd(ctx, "make", makeArgs)
+	RunImageCmdSingle(ctx, "make", makeArgs)
 	fmt.Printf("the target `%v` took %v seconds\n", target, time.Since(begin).Seconds())
 }
