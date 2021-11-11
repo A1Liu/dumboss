@@ -25,7 +25,7 @@ var (
 
 	UserDir    = filepath.Join(ProjectDir, "user")
 	LibDir     = filepath.Join(ProjectDir, "lib")
-	KernelDir  = filepath.Join(ProjectDir, "kernel")
+	KernelDir  = filepath.Join(ProjectDir, "kern")
 	IncludeDir = filepath.Join(ProjectDir, "include")
 	BuildDir   = filepath.Join(ProjectDir, ".build")
 
@@ -50,6 +50,7 @@ func DirWalk(dirname string) []string {
 	options := dirwalk.Options{
 		FollowSymbolicLinks: false,
 		Unsorted:            false,
+		AllowNonDirectory:   true,
 		Callback:            walker,
 	}
 

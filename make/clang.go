@@ -44,8 +44,8 @@ var (
 	}
 )
 
-func AddKernelRule(eng *Engine) RuleDescriptor {
-	osElfDescriptor := AddOsElfRule(eng)
+func addKernelRule(eng *Engine) RuleDescriptor {
+	osElfDescriptor := addOsElfRule(eng)
 
 	tempPath := filepath.Join(OutDir, "os")
 	outputPath := filepath.Join(OutDir, "kernel")
@@ -70,7 +70,7 @@ func AddKernelRule(eng *Engine) RuleDescriptor {
 	return rule.RuleDescriptor
 }
 
-func AddOsElfRule(eng *Engine) RuleDescriptor {
+func addOsElfRule(eng *Engine) RuleDescriptor {
 	err := os.MkdirAll(OutDir, fs.ModeDir|fs.ModePerm)
 	CheckErr(err)
 
@@ -106,12 +106,16 @@ func AddOsElfRule(eng *Engine) RuleDescriptor {
 }
 
 func AddClangRule(eng *Engine, sourcePath string) RuleDescriptor {
-	rule := MakeClangRule(sourcePath)
+	rule := ClangRule(sourcePath, ClangFlags...)
 	eng.AddRule(rule)
 	return rule.RuleDescriptor
 }
 
-func MakeClangRule(sourcePath string) Rule {
+func AddMakeRule(eng *Engine, sourcePath string) RuleDescriptor {
+	return RuleDescriptor{}
+}
+
+func ClangRule(sourcePath string, compilationFlags ...string) Rule {
 	depPath := EscapeSourcePath(DepsDir, sourcePath, "dep")
 	targetPath := EscapeSourcePath(ObjDir, sourcePath, "o")
 
@@ -125,7 +129,7 @@ func MakeClangRule(sourcePath string) Rule {
 	targetDesc := RuleDescriptor{Kind: CompileRuleKind, Target: targetPath}
 
 	run := func(ctx context.Context, target string) {
-		flags := append([]string{"-MF", depPath, "-o", targetPath, sourcePath}, ClangFlags...)
+		flags := append([]string{"-MF", depPath, "-o", targetPath, sourcePath}, compilationFlags...)
 		RunCmd("clang", flags)
 		fmt.Printf("Finished compiling `%v`\n", sourcePath)
 	}

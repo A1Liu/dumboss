@@ -8,7 +8,6 @@ import (
 	"time"
 
 	. "a1liu.com/dumboss/make"
-	. "a1liu.com/dumboss/make/engine"
 	. "a1liu.com/dumboss/make/util"
 )
 
@@ -24,27 +23,16 @@ func main() {
 		runMakeTarget(ctx, "build")
 		runQemu(ctx)
 	case "build":
-		runBuild(ctx)
+		runMakeTarget(ctx, "build")
 	case "clean":
 		runClean()
 	case "dump":
-		runObjDump(ctx)
+		runMakeTarget(ctx, "dump")
 	case "make":
 		runMakeTarget(ctx, os.Args[2])
 	default:
 		runMakeTarget(ctx, os.Args[1])
 	}
-}
-
-func runBuild(ctx context.Context) {
-	begin := time.Now()
-	var engine Engine
-
-	kernelDesc := AddKernelRule(&engine)
-	fmt.Printf("engine setup took %v seconds\n", time.Now().Sub(begin).Seconds())
-
-	engine.Make(ctx, kernelDesc)
-	fmt.Printf("compilation took %v seconds\n", time.Now().Sub(begin).Seconds())
 }
 
 func runClean() {

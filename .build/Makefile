@@ -5,7 +5,7 @@
 # to compilation errors
 
 # Directories
-KERNEL_DIR := ./kernel
+KERNEL_DIR := ./kern
 INCLUDE_DIR := ./include
 BUILD_DIR := ./.build
 CACHE_DIR := ./.build/cache
@@ -26,7 +26,7 @@ FORMAT_STYLE := $(shell tr '\n' ',' < $(BUILD_DIR)/clang-format.yaml)
 
 # Changing these flags sometimes seem to result in hard-to-understand compiler
 # errors.
-LDFLAGS := -nostdlib --script kernel/link.ld
+LDFLAGS := -nostdlib --script kern/link.ld
 
 CXXFLAGS := -c -Os --std=gnu17 -target x86_64-unknown-elf -Iinclude -MD        \
             -ffreestanding -fno-stack-protector -fmerge-all-constants -fPIC    \
