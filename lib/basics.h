@@ -104,6 +104,37 @@ static any inline any__char(char value) {
 static any inline any__any(any value) {
   return value;
 }
+
+#define min(x, y)                                                                                  \
+  ({                                                                                               \
+    typeof(x + y) _x = x, _y = y;                                                                  \
+    (_x > _y) ? _y : _x;                                                                           \
+  })
+#define max(x, y)                                                                                  \
+  ({                                                                                               \
+    typeof(x + y) _x = x, _y = y;                                                                  \
+    (_x > _y) ? _x : _y;                                                                           \
+  })
+
+#define align_up(value, _align)                                                                    \
+  ({                                                                                               \
+    u64 M_align = _align;                                                                          \
+    assert(M_align && (__builtin_popcountl(M_align) == 1), "alignment wasn't a power of 2");       \
+    __builtin_align_up(value, M_align);                                                            \
+  })
+#define align_down(value, _align)                                                                  \
+  ({                                                                                               \
+    u64 M_align = _align;                                                                          \
+    assert(M_align && (__builtin_popcountl(M_align) == 1), "alignment wasn't a power of 2");       \
+    __builtin_align_down(value, M_align);                                                          \
+  })
+#define is_aligned(value, _align)                                                                  \
+  ({                                                                                               \
+    u64 M_align = _align;                                                                          \
+    assert(M_align && (__builtin_popcountl(M_align) == 1), "alignment wasn't a power of 2");       \
+    __builtin_is_aligned(value, M_align);                                                          \
+  })
+
 #endif
 
 #ifdef __DUMBOSS_IMPL__

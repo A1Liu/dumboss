@@ -1,5 +1,4 @@
 #pragma once
-#include <macros.h>
 #include <types.h>
 
 static inline void asm_hlt(void) {

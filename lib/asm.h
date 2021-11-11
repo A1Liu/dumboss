@@ -1,6 +1,6 @@
 #ifndef __LIB_ASM__
 #define __LIB_ASM__
-#include <macros.h>
+#include <macro_utils.h>
 #include <types.h>
 
 #define read_register(...)       PASTE(_read_register, NARG(__VA_ARGS__))(__VA_ARGS__)

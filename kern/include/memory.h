@@ -1,6 +1,6 @@
 #pragma once
 #include "bootboot.h"
-#include "types.h"
+#include <types.h>
 
 #define MMapEnt__ALLOC_FAILURE     ((void *)~(u64)0)
 #define MEMORY__KERNEL_SPACE_BEGIN ((u64)0xffff800000000000ull)
