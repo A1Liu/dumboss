@@ -7,7 +7,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	. "a1liu.com/dumboss/make/util"
+	. "a1liu.com/dumboss/util"
 	sem "golang.org/x/sync/semaphore"
 )
 

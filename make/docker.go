@@ -1,4 +1,4 @@
-package dumboss
+package main
 
 // This code is a wrapper around Docker functionality, in the hopes that it won't
 // be that much of a pain to set up on windows. We will have to see though. It's
@@ -21,8 +21,8 @@ import (
 	"github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/stdcopy"
 
-	. "a1liu.com/dumboss/make/engine"
-	. "a1liu.com/dumboss/make/util"
+	. "a1liu.com/dumboss/engine"
+	. "a1liu.com/dumboss/util"
 )
 
 const (

@@ -224,6 +224,7 @@ MMap memory__init(BOOTBOOT *bb) {
   }
 
   PageTable *table = (PageTable *)read_page_table();
+  traverse_table((u64)table, 4);
 
   PageTableIndices indices = page_table_indices(MEMORY__KERNEL_SPACE_BEGIN);
   assert(indices.p3 == 0);

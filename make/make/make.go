@@ -1,8 +1,8 @@
 package makefiles
 
 import (
-	. "a1liu.com/dumboss/make/engine"
-	. "a1liu.com/dumboss/make/util"
+	. "a1liu.com/dumboss/engine"
+	. "a1liu.com/dumboss/util"
 )
 
 func SerializeMakeruleString(rule Rule) []byte {

@@ -8,8 +8,7 @@ import (
 	"path/filepath"
 	"time"
 
-	. "a1liu.com/dumboss/make"
-	. "a1liu.com/dumboss/make/util"
+	. "a1liu.com/dumboss/util"
 )
 
 func main() {

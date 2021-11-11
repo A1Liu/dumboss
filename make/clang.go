@@ -1,4 +1,4 @@
-package dumboss
+package main
 
 import (
 	"context"
@@ -9,9 +9,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	. "a1liu.com/dumboss/make/engine"
-	. "a1liu.com/dumboss/make/make"
-	. "a1liu.com/dumboss/make/util"
+	. "a1liu.com/dumboss/engine"
+	. "a1liu.com/dumboss/make"
+	. "a1liu.com/dumboss/util"
 )
 
 var (
