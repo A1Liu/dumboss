@@ -10,7 +10,7 @@ static inline void asm_outw(u16 port, u16 val) {
   asm volatile("outw %0, %1" : : "a"(val), "Nd"(port));
 }
 
-_Noreturn void shutdown(void) {
+_Noreturn void ext__shutdown(void) {
   // Cause immediate shutdown when in a virtual machine
   // https://wiki.osdev.org/Shutdown
   asm_outw(0xB004, 0x2000);
@@ -31,7 +31,7 @@ static s64 write_prefix_to_buffer(String out, sloc loc) {
   return any__fmt(out, "[%f:%f]: ", 2, args);
 }
 
-void logging__log(sloc loc, s32 count, const any *args) {
+void ext__log(sloc loc, s32 count, const any *args) {
   String out = Str__new(buffer, BUF_SIZE);
   s64 written = write_prefix_to_buffer(out, loc);
 
@@ -52,18 +52,18 @@ void logging__log(sloc loc, s32 count, const any *args) {
   serial__write('\n');
 }
 
-void logging__log_fmt(sloc loc, const char *fmt, s32 count, const any *args) {
+void ext__log_fmt(sloc loc, const char *fmt, s32 count, const any *args) {
   String out = Str__new(buffer, BUF_SIZE);
   s64 written = write_prefix_to_buffer(out, loc);
   s64 fmt_try = any__fmt(Str__suffix(out, written), fmt, count, args);
   if (fmt_try < 0) {
     if (fmt_try < -count - 1) {
-      logging__log_fmt(loc, "too many parameters (expected %f, got %f)", 2,
-                       make_any_array(-fmt_try, count));
-      shutdown();
+      ext__log_fmt(loc, "too many parameters (expected %f, got %f)", 2,
+                   make_any_array(-fmt_try, count));
+      exit(1);
     } else {
-      logging__log_fmt(loc, "failed to log parameter at index %f", 1, make_any_array(-fmt_try - 1));
-      shutdown();
+      ext__log_fmt(loc, "failed to log parameter at index %f", 1, make_any_array(-fmt_try - 1));
+      exit(1);
     }
   }
 

@@ -1,18 +1,14 @@
 #ifndef __LIB_LOG__
 #define __LIB_LOG__
 #include <basics.h>
+#include <external.h>
 #include <types.h>
 
-void logging__log(sloc loc, int32_t count, const any *args);
-void logging__log_fmt(sloc loc, const char *fmt, s32 count, const any *args);
+#define log(...) ext__log(__LOC__, NARG(__VA_ARGS__), make_any_array(__VA_ARGS__))
 
-#define log(...) logging__log(__LOC__, NARG(__VA_ARGS__), make_any_array(__VA_ARGS__))
+#define log_fmt(fmt, ...) ext__log_fmt(__LOC__, fmt, NARG(__VA_ARGS__), make_any_array(__VA_ARGS__))
 
-#define log_fmt(fmt, ...)                                                                          \
-  logging__log_fmt(__LOC__, fmt, NARG(__VA_ARGS__), make_any_array(__VA_ARGS__))
-
-#define panic(...)                                                                                 \
-  ((NARG(__VA_ARGS__) ? log_fmt("" __VA_ARGS__) : log_fmt("panicked!")), shutdown())
+#define panic(...) ((NARG(__VA_ARGS__) ? log_fmt("" __VA_ARGS__) : log_fmt("panicked!")), exit(1))
 
 #define assert(expression, ...)                                                                    \
   ((expression)                                                                                    \
@@ -32,7 +28,7 @@ void logging__log_fmt(sloc loc, const char *fmt, s32 count, const any *args);
         FOR_ARGS_SEP(__DEBUG_FORMAT, __COMMA_STRING, __VA_ARGS__) ")";         \
     const any args[] = { FOR_ARGS(make_any, #__VA_ARGS__, ##__VA_ARGS__) };    \
     const s32 nargs = 1 + NARG(__VA_ARGS__);                                   \
-    logging__log_fmt(__LOC__, fmt, nargs, args);                               \
+    ext__log_fmt(__LOC__, fmt, nargs, args);                               \
     _Pragma("clang diagnostic pop");                                           \
   })
 // clang-format on

@@ -67,5 +67,5 @@ void _start(void) {
   alloc__validate_heap();
 
   log_fmt("Kernel main end");
-  shutdown();
+  exit(0);
 }

@@ -27,6 +27,31 @@ typedef struct {
   u32 line;
 } sloc;
 
+typedef enum __attribute__((packed)) {
+  type_id_bool,
+  type_id_u8,
+  type_id_i8,
+  type_id_u16,
+  type_id_i16,
+  type_id_u32,
+  type_id_i32,
+  type_id_u64,
+  type_id_i64,
+  type_id_char,
+  type_id_char_ptr,
+} type_id;
+
+typedef struct {
+  union {
+    u64 u64_value;
+    s64 i64_value;
+    char char_value;
+    bool bool_value;
+    void *ptr;
+  };
+  type_id type;
+} any;
+
 #define U64(i) ((u64)(i))
 #define U32(i) ((u32)(i))
 #define S64(i) ((s64)(i))

@@ -1,31 +1,7 @@
 #ifndef __LIB_BASICS__
 #define __LIB_BASICS__
+#include <external.h>
 #include <types.h>
-
-typedef enum __attribute__((packed)) {
-  type_id_bool,
-  type_id_u8,
-  type_id_i8,
-  type_id_u16,
-  type_id_i16,
-  type_id_u32,
-  type_id_i32,
-  type_id_u64,
-  type_id_i64,
-  type_id_char,
-  type_id_char_ptr,
-} type_id;
-
-typedef struct {
-  union {
-    u64 u64_value;
-    s64 i64_value;
-    char char_value;
-    bool bool_value;
-    void *ptr;
-  };
-  type_id type;
-} any;
 
 String Str__new(char *data, s64 count);
 bool Str__is_null(String str);
@@ -65,7 +41,9 @@ void memset(void *buffer, u8 value, s64 len);
 // Shuts down the program. Akin to exit.
 // TODO: use `exit(s32 value);` instead.
 //                  - Albert Liu, Nov 11, 2021 Thu 17:06 EST
-_Noreturn void shutdown(void);
+_Noreturn static inline exit(s32 code) {
+  ext__shutdown();
+}
 
 // clang-format off
 #define make_any(value)                                                        \
