@@ -61,7 +61,7 @@ $(KERNEL_TMP_PREFIX).%.c.o: $(KERNEL_DIR)/%.c
 # FORMAT_FILES := $(OBJ_FILES:%.o=%.c.format) \
 #                 $(patsubst $(INCLUDE_DIR)/%.h,$(OBJ_DIR)/%.h.format,$(HEADER_FILES))
 #
-# FORMAT_STYLE := $(shell tr '\n' ',' < $(BUILD_DIR)/clang-format.yaml)
+# FORMAT_STYLE := $(shell tr '\n' ',' < $(PROJECT_DIR)/clang-format.yaml)
 
 # .PHONY: format
 # format: $(FORMAT_FILES)
