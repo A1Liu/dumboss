@@ -142,9 +142,9 @@ func buildImage(cli *client.Client, ctx context.Context, dockerfileName, imageNa
 	go ioCopy(stderr)
 
 	err = cmd.Run()
+	<-finished
+	<-finished
 	if err != nil {
-		<-finished
-		<-finished
 
 		fmt.Print(logBuffer.String())
 		panic(err)

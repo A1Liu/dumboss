@@ -23,16 +23,17 @@ var (
 		return filepath.Dir(filepath.Dir(filepath.Dir(abs)))
 	}()
 
-	UserDir    = filepath.Join(ProjectDir, "user")
-	LibDir     = filepath.Join(ProjectDir, "lib")
-	KernelDir  = filepath.Join(ProjectDir, "kern")
-	IncludeDir = filepath.Join(ProjectDir, "include")
-	BuildDir   = filepath.Join(ProjectDir, ".build")
+	UserDir     = filepath.Join(ProjectDir, "user")
+	LibDir      = filepath.Join(ProjectDir, "lib")
+	KernelDir   = filepath.Join(ProjectDir, "kern")
+	IncludeDir  = filepath.Join(ProjectDir, "include")
+	BuildDir    = filepath.Join(ProjectDir, "build")
+	DotBuildDir = filepath.Join(ProjectDir, ".build")
 
-	DepsDir  = filepath.Join(BuildDir, "deps")  // dep files
-	CacheDir = filepath.Join(BuildDir, "cache") // cache flag files
-	ObjDir   = filepath.Join(BuildDir, "obj")   // intermediate files
-	OutDir   = filepath.Join(BuildDir, "out")   // output files
+	DepsDir  = filepath.Join(DotBuildDir, "deps")  // dep files
+	CacheDir = filepath.Join(DotBuildDir, "cache") // cache flag files
+	ObjDir   = filepath.Join(DotBuildDir, "obj")   // intermediate files
+	OutDir   = filepath.Join(DotBuildDir, "out")   // output files
 )
 
 func DirWalk(dirname string) []string {

@@ -11,5 +11,5 @@ RUN mformat -i kernel -f 1440 ::
 RUN mmd -i kernel ::/EFI
 RUN mmd -i kernel ::/EFI/BOOT
 RUN mmd -i kernel ::/BOOTBOOT
-COPY .build/bootboot.efi ./bootboot.efi
+COPY build/bootboot.efi ./bootboot.efi
 RUN mcopy -i kernel bootboot.efi ::/EFI/BOOT/BOOTX64.EFI && rm ./bootboot.efi

@@ -49,8 +49,8 @@ func runQemu(ctx context.Context) {
 	// serial write to stdout again: "-serial", "stdio",
 	// TODO We should be able to modify these parameters without editing the build script
 	args := []string{"-bios", filepath.Join(BuildDir, "OVMF.bin"),
-		"-drive", "file=" + filepath.Join(BuildDir, "out", "kernel") + ",format=raw",
-		"-D", filepath.Join(BuildDir, "out", "qemu-logs.txt"),
+		"-drive", "file=" + filepath.Join(DotBuildDir, "out", "kernel") + ",format=raw",
+		"-D", filepath.Join(DotBuildDir, "out", "qemu-logs.txt"),
 		"-d", "cpu_reset,int",
 		"-smp", "4", "-no-reboot", "-nographic"}
 	RunCmd("qemu-system-x86_64", args)
@@ -66,7 +66,7 @@ func runMakeTarget(ctx context.Context, target string) {
 	err = os.MkdirAll(ObjDir, fs.ModeDir|fs.ModePerm)
 	CheckErr(err)
 
-	makeArgs := []string{"-f", ".build/Makefile", target}
+	makeArgs := []string{"-f", filepath.Join(ProjectDir, "Makefile"), target}
 	begin := time.Now()
 	RunImageCmdSingle(ctx, "make", makeArgs)
 	fmt.Printf("the target `%v` took %v seconds\n", target, time.Since(begin).Seconds())
