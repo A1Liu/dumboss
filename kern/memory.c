@@ -125,7 +125,7 @@ void *map_page(PageTable4 *_p4, u64 virtual_begin, void *kernel_begin) {
     return (void *)virtual_begin;
   }
 
-  assert(false);
+  return NULL;
 }
 
 static void traverse_table(u64 table_entry, u16 table_level);

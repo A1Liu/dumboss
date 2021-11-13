@@ -154,9 +154,9 @@ struct LABEL_T_DO_NOT_USE;
 Ensure something is true.
 Examples:
 
-  ensure(x < 10); // this will assert if x >= 10
-  ensure(x < 10) x = 2; // this will set x = 2 if x >= 10 (and also assert for safety
-  ensure(x < 10) { // this will return NULL if x < 10
+  ensure(x < 10); // this will panic if x >= 10
+  ensure(x < 10) x = 2; // this will set x = 2 if x >= 10 (and also assert for safety)
+  ensure(x < 10) { // this will return NULL if x >= 10
     return NULL;
     // it will also assert for safety if the block doesn't return
   }
@@ -171,7 +171,7 @@ Examples:
 
   prevent(x < 10); // this will panic if x < 10
   prevent(x < 10) x = 10; // this will set x = 10 if x < 10 (and also assert for safety)
-  prevent(x < 10) { // this will return NULL if x >= 10
+  prevent(x < 10) { // this will return NULL if x < 10
     return NULL;
     // it will also assert for safety if the block doesn't return
   }
