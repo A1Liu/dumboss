@@ -6,8 +6,7 @@
 #include <macros.h>
 #include <types.h>
 
-#define MMapEnt__ALLOC_FAILURE ((void *)~(u64)0)
-#define SIZE_CLASS_COUNT       12
+#define SIZE_CLASS_COUNT 12
 
 typedef struct {
   MMapEnt *data;
@@ -39,7 +38,6 @@ typedef struct {
 } GlobalState;
 
 static GlobalState *GLOBAL;
-
 const char *const memory__bootboot_mmap_typename[] = {"Used", "Free", "ACPI", "MMIO"};
 
 // get physical address from kernel address
@@ -120,28 +118,27 @@ void memory__init(BOOTBOOT *bb) {
   mmap.memory_size = align_up(mmap.memory_size, _4KB << SIZE_CLASS_COUNT);
   s64 max_page_idx = address_to_page(mmap.memory_size);
 
-  u64 *usable_pages_data = alloc_from_entries(mmap, max_page_idx / 8, 8);
-  assert(usable_pages_data != MMapEnt__ALLOC_FAILURE);
+  u64 *usable_pages_data = alloc_from_entries(mmap, (max_page_idx - 1) / 8 + 1, 8);
   GLOBAL->usable_pages = BitSet__from_raw(usable_pages_data, max_page_idx);
   BitSet__set_all(GLOBAL->usable_pages, false);
 
-  u64 *free_pages_data = alloc_from_entries(mmap, max_page_idx / 8, 8);
-  assert(free_pages_data != MMapEnt__ALLOC_FAILURE);
+  u64 *free_pages_data = alloc_from_entries(mmap, (max_page_idx - 1) / 8 + 1, 8);
   GLOBAL->free_pages = BitSet__from_raw(free_pages_data, max_page_idx);
   BitSet__set_all(GLOBAL->free_pages, false);
 
-  for (s64 i = 0; i < SIZE_CLASS_COUNT - 1; i++) {
-    s64 num_buddy_pairs = page_to_buddy(max_page_idx, i);
-    u64 *data = alloc_from_entries(mmap, num_buddy_pairs / 8, 8);
-    assert(data != MMapEnt__ALLOC_FAILURE);
-    BitSet buddies = BitSet__from_raw(data, num_buddy_pairs);
-    BitSet__set_all(buddies, false);
+  FOR_PTR(GLOBAL->size_classes, SIZE_CLASS_COUNT, info, class) {
+    BitSet buddies = BitSet__from_raw(NULL, 0);
 
-    GLOBAL->size_classes[i].freelist = NULL;
-    GLOBAL->size_classes[i].buddies = buddies;
+    if (class != SIZE_CLASS_COUNT - 1) {
+      s64 num_buddy_pairs = page_to_buddy(max_page_idx, class);
+      u64 *data = alloc_from_entries(mmap, (num_buddy_pairs - 1) / 8 + 1, 8);
+      buddies = BitSet__from_raw(data, num_buddy_pairs);
+      BitSet__set_all(buddies, false);
+    }
+
+    info->freelist = NULL;
+    info->buddies = buddies;
   }
-  GLOBAL->size_classes[SIZE_CLASS_COUNT - 1].freelist = NULL;
-  GLOBAL->size_classes[SIZE_CLASS_COUNT - 1].buddies = BitSet__from_raw(NULL, 0);
 
   s64 available_memory = 0;
   FOR(mmap, entry) {
@@ -170,7 +167,7 @@ void memory__init(BOOTBOOT *bb) {
 }
 
 static void *alloc_from_entries(MMap mmap, s64 _size, s64 _align) {
-  if (_size <= 0 || _align < 0) return NULL;
+  assert(_size > 0 && _align >= 0);
 
   u64 align = max((u64)_align, 1);
   u64 size = align_up((u64)_size, align);
@@ -185,7 +182,7 @@ static void *alloc_from_entries(MMap mmap, s64 _size, s64 _align) {
     return (void *)(aligned_ptr + MEMORY__KERNEL_SPACE_BEGIN);
   }
 
-  return NULL;
+  assert(false);
 }
 
 static void *pop_freelist(s64 size_class) {
@@ -226,6 +223,7 @@ static inline void remove_from_freelist(s64 page, s64 size_class) {
 
       assert(false);
     }
+
     info->freelist = next;
   }
 }
@@ -332,6 +330,10 @@ void unsafe_mark_memory_usability(void *data, s64 count, bool usable) {
   assert(addr == align_down(addr, _4KB));
 
   const s64 begin_page = address_to_page(addr), end_page = begin_page + count;
+
+  bool any_are_free = BitSet__get_any(GLOBAL->free_pages, begin_page, end_page);
+  assert(!any_are_free, "if you're marking memory usability, the marked pages can't be free");
+
   BitSet__set_range(GLOBAL->usable_pages, begin_page, end_page, usable);
 }
 
