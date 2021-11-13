@@ -1,6 +1,7 @@
 #include "bootboot.h"
 #include "descriptor_tables.h"
 #include "memory.h"
+#include "page_tables.h"
 #include <asm.h>
 #include <basics.h>
 #include <macros.h>
@@ -39,7 +40,7 @@ void _start(void) {
   log("--------------------------------------------------");
 
   u32 gb_pages = asm_cpuid(0x80000001).edx & CPUID_PDPE1GB;
-  if (gb_pages) log("Gb pages are enabled");
+  if (gb_pages) log("gb pages are enabled");
 
   memory__init(&bootboot);
 
@@ -52,9 +53,13 @@ void _start(void) {
   u16 segment = Gdt__add_entry(gdt, GDT__KERNEL_CODE);
   load_gdt(gdt, segment);
 
+  log_fmt("global descriptor table INIT_COMPLETE");
+
   Idt *idt = Idt__new(alloc(1), 1 * _4KB);
   IdtEntry__set_handler(&idt->double_fault, Idt__double_fault);
   load_idt(idt);
+
+  log_fmt("interrupt descriptor table INIT_COMPLETE");
 
   // divide_by_zero();
 
@@ -63,6 +68,8 @@ void _start(void) {
   free(hello, 5);
   alloc__validate_heap();
 
-  log_fmt("Kernel main end");
+  log_fmt("finished messing with allocator");
+
+  log_fmt("-Kernel main end");
   exit(0);
 }

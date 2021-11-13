@@ -20,7 +20,7 @@ func main() {
 	ctx := context.Background()
 	switch os.Args[1] {
 	case "run":
-		runMakeTarget(ctx, "kern")
+		runMakeTarget(ctx, "build")
 		runQemu(ctx)
 	case "clean":
 		runClean()

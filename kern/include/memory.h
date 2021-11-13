@@ -6,7 +6,7 @@
 
 #define _4KB (4096)
 #define _2MB (2 * 1024 * 1024)
-// #define _1GB ((u64)1073741824)
+#define _1GB (1024 * 1024 * 1024)
 
 void memory__init(BOOTBOOT *bb);
 

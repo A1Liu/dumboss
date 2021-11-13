@@ -110,6 +110,8 @@ void memory__init(BOOTBOOT *bb) {
   // Hacky solution to quickly get everything into a higher-half kernel
   UNSAFE_HACKY_higher_half_init();
 
+  log_fmt("higher-half addressing INIT COMPLETE");
+
   // Initialize allocator
   GLOBAL = alloc_from_entries(mmap, sizeof(*GLOBAL), 8);
   memset(GLOBAL, 0, sizeof(*GLOBAL));
@@ -161,7 +163,7 @@ void memory__init(BOOTBOOT *bb) {
   assert(available_memory == GLOBAL->free_memory);
   GLOBAL->heap_size = available_memory;
   alloc__validate_heap();
-  log_fmt("heap validated");
+  log_fmt("global allocator INIT_COMPLETE");
 
   // Build a new page table using functions that assume higher-half kernel
 }
