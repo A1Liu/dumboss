@@ -1,7 +1,6 @@
 #include "alloc.h"
 #include <basics.h>
 #include <bitset.h>
-#include <log.h>
 #include <macros.h>
 #include <types.h>
 

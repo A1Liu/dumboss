@@ -79,12 +79,12 @@ struct LABEL_T_DO_NOT_USE;
 #define _FOR_PTR4(ptr, len, it, index) _FOR_PTR(PASTE(M_FOR_, __COUNTER__), ptr, len, it, index)
 #define _FOR_PTR(_uniq, ptr, len, it, it_index)                                                    \
   NAMED_BREAK(it)                                                                                  \
-  DECLARE_SCOPED(s64 PASTE(_uniq, M_idx) = 0, PASTE(_uniq, M_len) = len)                           \
+  DECLARE_SCOPED(s64 PASTE(_uniq, M_idx) = 0, PASTE(_uniq, M_len) = (len))                         \
   DECLARE_SCOPED(s64 it_index = 0)                                                                 \
-  DECLARE_SCOPED(typeof(&ptr[0]) PASTE(_uniq, M_ptr) = ptr)                                        \
-  DECLARE_SCOPED(typeof(&ptr[0]) it = NULL)                                                        \
-  for (it = PASTE(_uniq, M_ptr); PASTE(_uniq, M_idx) < PASTE(_uniq, M_len); PASTE(_uniq, M_ptr)++, \
-      PASTE(_uniq, M_idx)++, it = PASTE(_uniq, M_ptr), it_index = PASTE(_uniq, M_idx))
+  DECLARE_SCOPED(typeof(&ptr[0]) PASTE(_uniq, M_ptr) = (ptr))                                      \
+  for (typeof(&ptr[0]) it = PASTE(_uniq, M_ptr); PASTE(_uniq, M_idx) < PASTE(_uniq, M_len);        \
+       PASTE(_uniq, M_ptr)++, PASTE(_uniq, M_idx)++, it = PASTE(_uniq, M_ptr),                     \
+                       it_index = PASTE(_uniq, M_idx))
 
 #define FOR(...)                   PASTE(_FOR, NARG(__VA_ARGS__))(__VA_ARGS__)
 #define _FOR1(array)               _FOR(PASTE(M_FOR_, __COUNTER__), array, it, it_index)
@@ -116,5 +116,68 @@ struct LABEL_T_DO_NOT_USE;
   (any[]) {                                                                                        \
     FOR_ARGS(make_any, __VA_ARGS__)                                                                \
   }
+
+#define log(...)          ext__log(__LOC__, NARG(__VA_ARGS__), make_any_array(__VA_ARGS__))
+#define log_fmt(fmt, ...) ext__log_fmt(__LOC__, fmt, NARG(__VA_ARGS__), make_any_array(__VA_ARGS__))
+
+#define panic(...) ((NARG(__VA_ARGS__) ? log_fmt("" __VA_ARGS__) : log_fmt("panicked!")), exit(1))
+
+#define __DEBUG_FORMAT(x) "%f"
+#define __COMMA_STRING()  ", "
+
+// pragmas here are to disable warnings for the debug output, because it doesn't
+// really matter whether the last result is used when you're debugging.
+// clang-format off
+#define dbg(...)                                                               \
+  ({                                                                           \
+    _Pragma("clang diagnostic push \"-Wno-unused-value\"");                    \
+    const char *const fmt = "dbg(%f) = ("                                      \
+        FOR_ARGS_SEP(__DEBUG_FORMAT, __COMMA_STRING, __VA_ARGS__) ")";         \
+    const any args[] = { FOR_ARGS(make_any, #__VA_ARGS__, ##__VA_ARGS__) };    \
+    const s32 nargs = 1 + NARG(__VA_ARGS__);                                   \
+    ext__log_fmt(__LOC__, fmt, nargs, args);                               \
+    _Pragma("clang diagnostic pop");                                           \
+  })
+// clang-format on
+
+#define assume(expression, ...)                                                                    \
+  ((expression)                                                                                    \
+       ?: (NARG(__VA_ARGS__) ? panic("false assumption: " __VA_ARGS__)                             \
+                             : panic("false assumption: `%f`", #expression)))
+
+#define assert(expression, ...)                                                                    \
+  ((expression)                                                                                    \
+       ?: (NARG(__VA_ARGS__) ? panic("failed assertion: " __VA_ARGS__)                             \
+                             : panic("failed assertion: `%f`", #expression)))
+
+/*
+Ensure something is true.
+Examples:
+
+  ensure(x < 10); // this will assert if x >= 10
+  ensure(x < 10) x = 2; // this will set x = 2 if x >= 10 (and also assert for safety
+  ensure(x < 10) { // this will return NULL if x < 10
+    return NULL;
+    // it will also assert for safety if the block doesn't return
+  }
+*/
+#define _ensure(_uniq, expr)                                                                       \
+  for (typeof(expr) PASTE(_uniq, M_expr) = (expr); !PASTE(_uniq, M_expr); assert(expr))
+#define ensure(expr) _ensure(PASTE(M_ENSURE_, __COUNTER__), expr)
+
+/*
+Prevent something from being true.
+Examples:
+
+  prevent(x < 10); // this will panic if x < 10
+  prevent(x < 10) x = 10; // this will set x = 10 if x < 10 (and also assert for safety)
+  prevent(x < 10) { // this will return NULL if x >= 10
+    return NULL;
+    // it will also assert for safety if the block doesn't return
+  }
+*/
+#define _prevent(_uniq, expr)                                                                      \
+  for (typeof(expr) PASTE(_uniq, M_expr) = (expr); PASTE(_uniq, M_expr); assert(!(expr)))
+#define prevent(expr) _prevent(PASTE(M_PREVENT_, __COUNTER__), expr)
 
 #endif

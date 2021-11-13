@@ -38,13 +38,6 @@ s64 strlen(const char *str);
 void memcpy(void *dest, const void *src, s64 count);
 void memset(void *buffer, u8 value, s64 len);
 
-// Shuts down the program. Akin to exit.
-// TODO: use `exit(s32 value);` instead.
-//                  - Albert Liu, Nov 11, 2021 Thu 17:06 EST
-_Noreturn static inline exit(s32 code) {
-  ext__shutdown();
-}
-
 // clang-format off
 #define make_any(value)                                                        \
   _Generic((value),                                                            \
@@ -122,7 +115,6 @@ static any inline any__any(any value) {
 
 #ifdef __DUMBOSS_IMPL__
 #undef __DUMBOSS_IMPL__
-#include <log.h>
 #include <macros.h>
 #include <types.h>
 #define __DUMBOSS_IMPL__

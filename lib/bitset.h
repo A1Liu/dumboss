@@ -18,7 +18,6 @@ void BitSet__set_range(BitSet bits, s64 begin, s64 end, bool value);
 
 #ifdef __DUMBOSS_IMPL__
 #undef __DUMBOSS_IMPL__
-#include <log.h>
 #include <macros.h>
 #define __DUMBOSS_IMPL__
 

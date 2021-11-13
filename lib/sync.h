@@ -35,7 +35,6 @@ s64 Queue__capacity(const Queue queue, s32 elem_size);
 
 #ifdef __DUMBOSS_IMPL__
 #undef __DUMBOSS_IMPL__
-#include <log.h>
 #include <macros.h>
 #define __DUMBOSS_IMPL__
 

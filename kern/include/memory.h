@@ -30,6 +30,6 @@ u64 physical_address(void *ptr);
 void *kernel_address(u64 address);
 
 // Read the value of cr3
-PageTable4 *read_page_table(void);
+PageTable4 *get_page_table(void);
 
-void phys_map(PageTable4 *_p4, u64 virtual_begin, u64 physical_begin, s32 page_count);
+void *map_page(PageTable4 *_p4, u64 virtual_begin, void *kernel_begin);

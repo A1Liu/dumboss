@@ -1,7 +1,6 @@
 #include "descriptor_tables.h"
 #include <asm.h>
 #include <basics.h>
-#include <log.h>
 #include <macros.h>
 
 // Used Phil Opperman's x86_64 rust code to figure out how to do this

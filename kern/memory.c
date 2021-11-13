@@ -2,7 +2,6 @@
 #include "alloc.h"
 #include <asm.h>
 #include <basics.h>
-#include <log.h>
 #include <macros.h>
 
 // Used Phil Opperman's x86_64 rust code to make these macros
@@ -36,8 +35,8 @@
 
 const char *const memory__bootboot_mmap_typename[] = {"Used", "Free", "ACPI", "MMIO"};
 
-PageTable4 *read_page_table(void) {
-  return read_register(cr3, PageTable4 *, "q");
+PageTable4 *get_page_table(void) {
+  return (PageTable4 *)(read_register(cr3, u64, "q") + MEMORY__KERNEL_SPACE_BEGIN);
 }
 
 #define PageTable__ENTRY_COUNT 512
@@ -89,21 +88,44 @@ static u64 indices_to_address(PageTableIndices indices) {
   return address;
 }
 
-void phys_map(PageTable4 *_p4, u64 virtual_begin, u64 physical_begin, s32 page_count) {
+void *map_page(PageTable4 *_p4, u64 virtual_begin, void *kernel_begin) {
   PageTable *p4 = (PageTable *)_p4;
+  u64 addr = physical_address(kernel_begin);
+  PageTableIndices indices = page_table_indices(virtual_begin);
 
-  (void)page_count;
-  (void)p4;
-  (void)virtual_begin;
-  (void)physical_begin;
-}
+  ensure(p4 != NULL && is_aligned(p4, _4KB)) return NULL;
+  ensure(addr % _4KB == 0) return NULL;
+  ensure(indices.p0 == 0) return NULL;
 
-void phys_map3(PageTable3 *_p3, PageTableIndices virtual_indices, u64 physical_begin,
-               s32 page_count) {
-  (void)_p3;
-  (void)virtual_indices;
-  (void)physical_begin;
-  (void)page_count;
+  u64 p4_entry = p4->entries[indices.p4];
+  if (p4_entry == 0) {
+    // allocate stuffos
+    assert(false);
+  }
+
+  PageTable *p3 = kernel_address(p4_entry & PTE_ADDRESS);
+  u64 p3_entry = p3->entries[indices.p3];
+  if (p3_entry == 0) {
+    // allocate stuffos
+    assert(false);
+  }
+
+  PageTable *p2 = kernel_address(p3_entry & PTE_ADDRESS);
+  u64 p2_entry = p2->entries[indices.p2];
+  if (p2_entry == 0) {
+    // allocate stuffos
+    assert(false);
+  }
+
+  PageTable *p1 = kernel_address(p2_entry & PTE_ADDRESS);
+  u64 p1_entry = p1->entries[indices.p1];
+  if (p1_entry == 0) {
+    p1->entries[indices.p1] = addr;
+    // allocate stuffos
+    return (void *)virtual_begin;
+  }
+
+  assert(false);
 }
 
 static void traverse_table(u64 table_entry, u16 table_level);
@@ -124,6 +146,7 @@ void *kernel_address(u64 address) {
 }
 
 static void *phys_alloc_from_entries(MMap mmap, s64 _size, s64 _align);
+
 MMap memory__init(BOOTBOOT *bb) {
   // Calculation described in bootboot specification
   MMap mmap = {.data = &bb->mmap, .count = (bb->size - 128) / 16, .memory_size = 0};
@@ -161,8 +184,9 @@ MMap memory__init(BOOTBOOT *bb) {
     memset(safety_alloc, 42, safety_size);
   }
 
-  PageTable *table = (PageTable *)read_page_table();
-
+  // Hacky solution to quickly get everything into a higher-half kernel
+  //
+  PageTable *table = read_register(cr3, PageTable *, "q");
   PageTableIndices indices = page_table_indices(MEMORY__KERNEL_SPACE_BEGIN);
   assert(indices.p3 == 0);
   assert(indices.p2 == 0);
@@ -171,6 +195,8 @@ MMap memory__init(BOOTBOOT *bb) {
   table->entries[indices.p4] = table->entries[0];
   table->entries[0] = 0;
   write_register(cr3, table);
+
+  // Building a new page table using functions that assume higher-half kernel
 
   return mmap;
 }

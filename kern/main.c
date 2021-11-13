@@ -4,7 +4,6 @@
 #include "memory.h"
 #include <asm.h>
 #include <basics.h>
-#include <log.h>
 #include <macros.h>
 
 typedef struct {
