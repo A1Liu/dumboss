@@ -6,7 +6,8 @@
 #include <macros.h>
 #include <types.h>
 
-#define SIZE_CLASS_COUNT 12
+#define MMapEnt__ALLOC_FAILURE ((void *)~(u64)0)
+#define SIZE_CLASS_COUNT       12
 
 typedef struct {
   MMapEnt *data;
@@ -78,7 +79,6 @@ static inline s64 page_to_buddy(s64 page_index, s64 size_class) {
 }
 
 static void *alloc_from_entries(MMap mmap, s64 size, s64 align);
-static void *phys_alloc_from_entries(MMap mmap, s64 _size, s64 _align);
 
 void memory__init(BOOTBOOT *bb) {
   // Calculation described in bootboot specification
@@ -109,14 +109,6 @@ void memory__init(BOOTBOOT *bb) {
     log_fmt("entry: free entry size %f", it->size);
   }
 
-  // First page in physical memory isn't used right now.
-  u64 first_ptr = MMapEnt_Ptr(&mmap.data[0]);
-  if (first_ptr < _4KB) {
-    s64 safety_size = _4KB - (s64)first_ptr;
-    void *safety_alloc = phys_alloc_from_entries(mmap, safety_size, 1);
-    memset(safety_alloc, 42, safety_size);
-  }
-
   // Hacky solution to quickly get everything into a higher-half kernel
   UNSAFE_HACKY_higher_half_init();
 
@@ -131,6 +123,7 @@ void memory__init(BOOTBOOT *bb) {
   u64 *usable_pages_data = alloc_from_entries(mmap, max_page_idx / 8, 8);
   assert(usable_pages_data != MMapEnt__ALLOC_FAILURE);
   GLOBAL->usable_pages = BitSet__from_raw(usable_pages_data, max_page_idx);
+  BitSet__set_all(GLOBAL->usable_pages, false);
 
   u64 *free_pages_data = alloc_from_entries(mmap, max_page_idx / 8, 8);
   assert(free_pages_data != MMapEnt__ALLOC_FAILURE);
@@ -150,33 +143,23 @@ void memory__init(BOOTBOOT *bb) {
   GLOBAL->size_classes[SIZE_CLASS_COUNT - 1].freelist = NULL;
   GLOBAL->size_classes[SIZE_CLASS_COUNT - 1].buddies = BitSet__from_raw(NULL, 0);
 
-  for (s64 i = 0, previous_end = 0; i < mmap.count; i++) {
-    MMapEnt *entry = &mmap.data[i];
-    u64 end_address = align_down(entry->ptr + entry->size, _4KB);
-    entry->ptr = align_up(entry->ptr, _4KB);
-    s64 begin = address_to_page(entry->ptr);
-    assert(begin >= previous_end);
-
-    if (begin != previous_end) BitSet__set_range(GLOBAL->usable_pages, previous_end, begin, false);
-
-    s64 end = address_to_page(end_address);
-    entry->size = end_address - entry->ptr;
-    BitSet__set_range(GLOBAL->usable_pages, begin, end, true);
-    previous_end = end;
-  }
-
-  log_fmt("After setting up allocator");
   s64 available_memory = 0;
-  for (s64 i = 0; i < mmap.count; i++) {
-    log_fmt("%fk bytes at %f", mmap.data[i].size / 1024, mmap.data[i].ptr);
-    available_memory += (s64)mmap.data[i].size;
+  FOR(mmap, entry) {
+    u64 begin = align_up(entry->ptr, _4KB);
+    u64 end = align_down(entry->ptr + entry->size, _4KB);
+    s64 begin_page = address_to_page(begin);
+    s64 end_page = address_to_page(end);
+    u64 size = max(end, begin) - begin;
+
+    log_fmt("%fk bytes at %f", size / 1024, begin);
+    available_memory += (s64)size;
+
+    BitSet__set_range(GLOBAL->usable_pages, begin_page, end_page, true);
+    free(kernel_address(begin), size / _4KB);
+
+    entry->size = size;
+    entry->ptr = begin;
   }
-  log_fmt("");
-
-  for (s64 i = 0; i < mmap.count; i++)
-    free(kernel_address(mmap.data[i].ptr), mmap.data[i].size / _4KB);
-
-  log_fmt("after adding memory to allocator");
 
   assert(available_memory == GLOBAL->free_memory);
   GLOBAL->heap_size = available_memory;
@@ -187,12 +170,7 @@ void memory__init(BOOTBOOT *bb) {
 }
 
 static void *alloc_from_entries(MMap mmap, s64 _size, s64 _align) {
-  u64 address = (u64)phys_alloc_from_entries(mmap, _size, _align);
-  return (void *)(address + MEMORY__KERNEL_SPACE_BEGIN);
-}
-
-static void *phys_alloc_from_entries(MMap mmap, s64 _size, s64 _align) {
-  if (_size <= 0 || _align < 0) return MMapEnt__ALLOC_FAILURE;
+  if (_size <= 0 || _align < 0) return NULL;
 
   u64 align = max((u64)_align, 1);
   u64 size = align_up((u64)_size, align);
@@ -204,10 +182,10 @@ static void *phys_alloc_from_entries(MMap mmap, s64 _size, s64 _align) {
 
     it->ptr = aligned_ptr + size;
     it->size = aligned_size - size;
-    return (void *)aligned_ptr;
+    return (void *)(aligned_ptr + MEMORY__KERNEL_SPACE_BEGIN);
   }
 
-  return MMapEnt__ALLOC_FAILURE;
+  return NULL;
 }
 
 static void *pop_freelist(s64 size_class) {
@@ -326,15 +304,6 @@ void *alloc(s64 count) {
   return data;
 }
 
-void unsafe_mark_memory_usability(void *data, s64 count, bool usable) {
-  assert(data != NULL);
-  u64 addr = physical_address(data);
-  assert(addr == align_down(addr, _4KB));
-
-  const s64 begin_page = address_to_page(addr), end_page = begin_page + count;
-  BitSet__set_range(GLOBAL->usable_pages, begin_page, end_page, usable);
-}
-
 static void free_at_size_class(s64 page, s64 size_class);
 
 void free(void *data, s64 count) {
@@ -355,6 +324,15 @@ void free(void *data, s64 count) {
     free_at_size_class(page, 0);
 
   BitSet__set_range(GLOBAL->free_pages, begin_page, end_page, true);
+}
+
+void unsafe_mark_memory_usability(void *data, s64 count, bool usable) {
+  assert(data != NULL);
+  u64 addr = physical_address(data);
+  assert(addr == align_down(addr, _4KB));
+
+  const s64 begin_page = address_to_page(addr), end_page = begin_page + count;
+  BitSet__set_range(GLOBAL->usable_pages, begin_page, end_page, usable);
 }
 
 static void free_at_size_class(s64 page, s64 size_class) {
