@@ -13,13 +13,14 @@ You can also use `go install` to create a build script called `dumboss` that wor
 in the same way (`dumboss build` to build and `dumboss run` to run)
 
 ## ToDo
-1. add arbitrary page mapping, remap some stuff in the kernel to be less scary
+1. remap some stuff in the kernel to be less scary
 2. add GDT stuff (pseudo-done?)
 3. add real kernel panic stuff
 4. update logging to use serial interrupts instead of like busy-waiting
 5. add better support for multi-threading stuffs
-6. add support for running programs! (syscalls or something idk)
-7. add file system (https://wiki.osdev.org/AHCI)
+   (https://wiki.osdev.org/Brendan%27s_Multi-tasking_Tutorial)
+6. add file system (https://wiki.osdev.org/AHCI)
+7. add support for running programs! (syscalls or something idk)
 8. add modified round robin scheduling
 9. some drivers baby! (https://wiki.osdev.org/Virtio)
 0. hardware resource permissions? Capabilites?
@@ -29,18 +30,15 @@ in the same way (`dumboss build` to build and `dumboss run` to run)
 ## Ideas
 1. ?-byte messages passed through `io_uring`-like interface
 2. Larger messages passed through shared memory
-3. Default program code is LLVM bitcode, certain included programs are flat binaries
-   (LLVM bitcode is `.bc`, executables will probably be `.opq` for "opaque")
-4. C support for async-await?
-5. How lightweight can processes and threads be?
+3. How lightweight can processes and threads be?
    [https://www.youtube.com/watch?v=KXuZi9aeGTw](https://www.youtube.com/watch?v=KXuZi9aeGTw)
-6. Microkernel with monolithic kernel manager thingy in userspace.
-7. Maybe don't map all of physical memory lmao
-8. Just do Ext but without directories and filenames. Programs ask for raw inodes.
+4. Microkernel with monolithic kernel manager thingy in userspace.
+5. Maybe don't map all of physical memory lmao
+6. Just do Ext but without directories and filenames. Programs ask for raw inodes.
    Then, we can add a filesystem thingy on top if we want.
-9. Permissions are based (at least partly) on programs.
-10. Maybe never support dylibs.
-11. Allocator is global source of truth for what memory is being used
+7. Permissions are based (at least partly) on programs.
+8. Maybe never support dylibs.
+9. Allocator is global source of truth for what memory is being used
 
 ## Scrapped Ideas
 1. Integer divide-by-zero always results in a zero. (THIS IS NOT POSSIBLE ON X64 FEELSBADMAN)

@@ -5,26 +5,36 @@
 #include <types.h>
 
 typedef struct _QueueBlock _QueueBlock;
+
 typedef struct {
   struct _QueueBlock *const ptr;
   const s64 count;     // size in elements
   const s32 elem_size; // having a larger elem_size doesn't make sense.
 } Queue;
 
-#define Queue_BLOCKED   S64(-1)
-#define Queue_TYPE_FAIL S64(-2)
-#define NULL_QUEUE      ((Queue){.ptr = NULL, .elem_size = 0, .count = 0})
+typedef enum __attribute__((packed)) {
+  Queue__Success = 0,
+  Queue__Blocked,
+  Queue__TypeError,
+} Queue__ResultKind;
+
+typedef struct {
+  Queue__ResultKind kind;
+  s64 count;
+} Queue__Result;
+
+#define NULL_QUEUE ((Queue){.ptr = NULL, .elem_size = 0, .count = 0})
 
 // Creates a queue using the provided buffer.
 Queue Queue__create(Buffer buffer, s32 elem_size);
 
 // Attempts to enqueue `count` elements starting at `buffer`. Returns the number
 // of elements actually enqueued.
-s64 Queue__enqueue(Queue queue, const void *buffer, s64 count, s32 elem_size);
+Queue__Result Queue__enqueue(Queue queue, const void *buffer, s64 count, s32 elem_size);
 
 // Attempts to dequeue `count` elements, writing to `buffer`. Returns the number
 // of elements actually dequeued.
-s64 Queue__dequeue(Queue queue, void *buffer, s64 count, s32 elem_size);
+Queue__Result Queue__dequeue(Queue queue, void *buffer, s64 count, s32 elem_size);
 
 // Returns the length of the queue in elements.
 s64 Queue__len(const Queue queue, s32 elem_size);
@@ -37,6 +47,16 @@ s64 Queue__capacity(const Queue queue, s32 elem_size);
 #undef __DUMBOSS_IMPL__
 #include <macros.h>
 #define __DUMBOSS_IMPL__
+
+#define Queue__BLOCKED                                                                             \
+  (Queue__Result) {                                                                                \
+    .kind = Queue__Blocked, .count = 0,                                                            \
+  }
+
+#define Queue__TYPE_ERROR                                                                          \
+  (Queue__Result) {                                                                                \
+    .kind = Queue__TypeError, .count = 0,                                                          \
+  }
 
 // TODO: Add more macros for clang builtin as needed. Builtins list is here:
 // https://releases.llvm.org/10.0.0/tools/clang/docs/LanguageExtensions.html
@@ -102,9 +122,9 @@ Queue Queue__create(const Buffer buffer, const s32 elem_size) {
   return (Queue){.ptr = ptr, .elem_size = elem_size, .count = count};
 }
 
-s64 Queue__enqueue(Queue queue, const void *buffer, s64 count, s32 elem_size) {
-  if (elem_size != queue.elem_size) return Queue_TYPE_FAIL;
-  if (count == 0) return 0;
+Queue__Result Queue__enqueue(Queue queue, const void *buffer, s64 count, s32 elem_size) {
+  if (elem_size != queue.elem_size) return Queue__TYPE_ERROR;
+  if (count == 0) return (Queue__Result){.kind = Queue__Success, .count = 0};
 
   NAMED_BREAK(set_mutex) {
     u32 flags = a_load(&queue.ptr->flags) & ~WRITE_MUTEX;
@@ -113,7 +133,7 @@ s64 Queue__enqueue(Queue queue, const void *buffer, s64 count, s32 elem_size) {
       flags &= ~WRITE_MUTEX;
     }
 
-    return Queue_BLOCKED;
+    return Queue__BLOCKED;
   }
 
   const s64 queue_size = queue.count;
@@ -128,12 +148,12 @@ s64 Queue__enqueue(Queue queue, const void *buffer, s64 count, s32 elem_size) {
   while (a_cxweak(&queue.ptr->flags, &flags, flags & ~WRITE_MUTEX))
     ;
 
-  return write_count;
+  return (Queue__Result){.kind = Queue__Success, .count = write_count};
 }
 
-s64 Queue__dequeue(Queue queue, void *buffer, s64 count, s32 elem_size) {
-  if (elem_size != queue.elem_size) return Queue_TYPE_FAIL;
-  if (count == 0) return 0;
+Queue__Result Queue__dequeue(Queue queue, void *buffer, s64 count, s32 elem_size) {
+  if (elem_size != queue.elem_size) return Queue__TYPE_ERROR;
+  if (count == 0) return (Queue__Result){.kind = Queue__Success, .count = 0};
 
   NAMED_BREAK(set_mutex) {
     u32 flags = a_load(&queue.ptr->flags) & ~READ_MUTEX;
@@ -142,7 +162,7 @@ s64 Queue__dequeue(Queue queue, void *buffer, s64 count, s32 elem_size) {
       flags &= ~READ_MUTEX;
     }
 
-    return Queue_BLOCKED;
+    return Queue__BLOCKED;
   }
 
   const s64 queue_size = queue.count;
@@ -157,11 +177,11 @@ s64 Queue__dequeue(Queue queue, void *buffer, s64 count, s32 elem_size) {
   while (a_cxweak(&queue.ptr->flags, &flags, flags & ~READ_MUTEX))
     ;
 
-  return read_count;
+  return (Queue__Result){.kind = Queue__Success, .count = read_count};
 }
 
 s64 Queue__len(const Queue queue, s32 elem_size) {
-  if (elem_size != queue.elem_size) return Queue_TYPE_FAIL;
+  if (elem_size != queue.elem_size) return -1;
 
   s64 read_head = queue.ptr->read_head;
   s64 write_head = queue.ptr->write_head;
@@ -170,7 +190,7 @@ s64 Queue__len(const Queue queue, s32 elem_size) {
 }
 
 s64 Queue__capacity(const Queue queue, s32 elem_size) {
-  if (elem_size != queue.elem_size) return Queue_TYPE_FAIL;
+  if (elem_size != queue.elem_size) return -1;
 
   return queue.count / elem_size;
 }
