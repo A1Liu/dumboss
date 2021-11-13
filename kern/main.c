@@ -70,6 +70,6 @@ void _start(void) {
 
   log_fmt("finished messing with allocator");
 
-  log_fmt("-Kernel main end");
+  log_fmt("Kernel main end");
   exit(0);
 }

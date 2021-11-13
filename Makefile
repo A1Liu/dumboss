@@ -28,7 +28,8 @@ CFLAGS := -c --std=gnu17 -target x86_64-unknown-elf -MD                        \
           -ffreestanding -fno-stack-protector -fmerge-all-constants -fPIC      \
           -mno-red-zone -nostdlib -isystem./lib                                \
           -Wall -Wextra -Werror -Wconversion                                   \
-          -Wno-unused-function -Wno-gcc-compat
+          -Wno-unused-function -Wno-gcc-compat                                 \
+          -Wno-unused-variable
 
 # Kernel
 KERNEL_DIR := ./kern
