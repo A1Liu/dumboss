@@ -1,4 +1,3 @@
-#include "alloc.h"
 #include "bootboot.h"
 #include "descriptor_tables.h"
 #include "memory.h"
@@ -42,8 +41,7 @@ void _start(void) {
   u32 gb_pages = asm_cpuid(0x80000001).edx & CPUID_PDPE1GB;
   if (gb_pages) log("Gb pages are enabled");
 
-  MMap mmap = memory__init(&bootboot);
-  alloc__init(mmap);
+  memory__init(&bootboot);
 
   GdtInfo gdt_info = current_gdt();
 

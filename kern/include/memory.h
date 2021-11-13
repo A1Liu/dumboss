@@ -9,19 +9,7 @@
 // #define _2MB ((u64)2097152)
 // #define _1GB ((u64)1073741824)
 
-typedef struct PageTable4 PageTable4;
-
-typedef struct {
-  MMapEnt *data;
-  s64 count;
-  u64 memory_size;
-} MMap;
-
-extern const char *const memory__bootboot_mmap_typename[];
-
-void *alloc_from_entries(MMap mmap, s64 size, s64 align);
-
-MMap memory__init(BOOTBOOT *bb);
+void memory__init(BOOTBOOT *bb);
 
 // get physical address from kernel address
 u64 physical_address(void *ptr);
@@ -29,7 +17,14 @@ u64 physical_address(void *ptr);
 // get kernel address from physical address
 void *kernel_address(u64 address);
 
-// Read the value of cr3
-PageTable4 *get_page_table(void);
+// Allocate `count` contiguous pages, each of size 4kb
+void *alloc(s64 count);
 
-void *map_page(PageTable4 *_p4, u64 virtual_begin, void *kernel_begin);
+// Free contiguous pages starting at data
+void free(void *data, s64 count);
+
+// Free contiguous pages starting at data that were not usable before
+void unsafe_mark_memory_usability(void *data, s64 count, bool usable);
+
+// Check that the heap is in a valid state
+void alloc__validate_heap(void);

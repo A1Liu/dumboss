@@ -1,134 +1,45 @@
 #include "memory.h"
-#include "alloc.h"
+#include "page_tables.h"
 #include <asm.h>
 #include <basics.h>
+#include <bitset.h>
 #include <macros.h>
+#include <types.h>
 
-// Used Phil Opperman's x86_64 rust code to make these macros
-// https://github.com/rust-osdev/x86_64/blob/master/src/structures/paging/page_table.rs
+#define SIZE_CLASS_COUNT 12
 
-#define PTE_PRESENT         U64(1)
-#define PTE_WRITABLE        (U64(1) << 1)
-#define PTE_USER_ACCESSIBLE (U64(1) << 2)
-#define PTE_WRITE_THROUGH   (U64(1) << 3)
-#define PTE_NO_CACHE        (U64(1) << 4)
-#define PTE_ACCESSED        (U64(1) << 5)
-#define PTE_DIRTY           (U64(1) << 6)
-#define PTE_HUGE_PAGE       (U64(1) << 7)
-#define PTE_GLOBAL          (U64(1) << 8)
-#define PTE_BIT_9           (U64(1) << 9)
-#define PTE_BIT_10          (U64(1) << 10)
-#define PTE_BIT_11          (U64(1) << 11)
-#define PTE_BIT_52          (U64(1) << 52)
-#define PTE_BIT_53          (U64(1) << 53)
-#define PTE_BIT_54          (U64(1) << 54)
-#define PTE_BIT_55          (U64(1) << 55)
-#define PTE_BIT_56          (U64(1) << 56)
-#define PTE_BIT_57          (U64(1) << 57)
-#define PTE_BIT_58          (U64(1) << 58)
-#define PTE_BIT_59          (U64(1) << 59)
-#define PTE_BIT_60          (U64(1) << 60)
-#define PTE_BIT_61          (U64(1) << 61)
-#define PTE_BIT_62          (U64(1) << 62)
-#define PTE_NO_EXECUTE      (U64(1) << 63)
-#define PTE_ADDRESS         U64(0x000ffffffffff000)
+typedef struct {
+  MMapEnt *data;
+  s64 count;
+  u64 memory_size;
+} MMap;
+
+typedef struct memory__FreeBlock {
+  struct memory__FreeBlock *next;
+  struct memory__FreeBlock *prev;
+  s64 size_class;
+} FreeBlock;
+
+typedef struct {
+  FreeBlock *freelist;
+  BitSet buddies;
+} SizeClassInfo;
+
+typedef struct {
+  s64 heap_size;
+  s64 free_memory;
+
+  // NOTE: This is used for checking correctness. Maybe its not necessary?
+  BitSet usable_pages;
+  BitSet free_pages;
+
+  // NOTE: The smallest size class is 4kb.
+  SizeClassInfo size_classes[SIZE_CLASS_COUNT];
+} GlobalState;
+
+static GlobalState *GLOBAL;
 
 const char *const memory__bootboot_mmap_typename[] = {"Used", "Free", "ACPI", "MMIO"};
-
-PageTable4 *get_page_table(void) {
-  return (PageTable4 *)(read_register(cr3, u64, "q") + MEMORY__KERNEL_SPACE_BEGIN);
-}
-
-#define PageTable__ENTRY_COUNT 512
-
-typedef struct {
-  volatile u64 entries[PageTable__ENTRY_COUNT];
-} PageTable;
-_Static_assert(sizeof(PageTable) == _4KB, "PageTables should be 4KB");
-
-typedef struct PageTable3 PageTable3;
-typedef struct PageTable2 PageTable2;
-typedef struct PageTable1 PageTable1;
-
-typedef struct {
-  union {
-    struct {
-      u16 p0;
-      u16 p1;
-      u16 p2;
-      u16 p3;
-      u16 p4;
-    };
-    u16 indices[5];
-  };
-} PageTableIndices;
-
-static PageTableIndices page_table_indices(u64 address) {
-  u64 p1 = address >> 12, p2 = p1 >> 9;
-  u64 p3 = p2 >> 9, p4 = p3 >> 9;
-
-  return (PageTableIndices){
-      .p0 = (u16)(address % _4KB),
-      .p1 = (u16)(p1 % PageTable__ENTRY_COUNT),
-      .p2 = (u16)(p2 % PageTable__ENTRY_COUNT),
-      .p3 = (u16)(p3 % PageTable__ENTRY_COUNT),
-      .p4 = (u16)(p4 % PageTable__ENTRY_COUNT),
-  };
-}
-
-static u64 indices_to_address(PageTableIndices indices) {
-  u64 address = (U64(indices.p4) << 39) | (U64(indices.p3) << 30) | (U64(indices.p2) << 21) |
-                (U64(indices.p1) << 12);
-
-  // This sign-extends the address for the top 16 bits, as required by x86_64
-  // before Intel Ice Lake
-  s64 signed_address_shifted = (s64)(address << 16);
-  address = (u64)(signed_address_shifted >> 16);
-
-  return address;
-}
-
-void *map_page(PageTable4 *_p4, u64 virtual_begin, void *kernel_begin) {
-  PageTable *p4 = (PageTable *)_p4;
-  u64 addr = physical_address(kernel_begin);
-  PageTableIndices indices = page_table_indices(virtual_begin);
-
-  ensure(p4 != NULL && is_aligned(p4, _4KB)) return NULL;
-  ensure(addr % _4KB == 0) return NULL;
-  ensure(indices.p0 == 0) return NULL;
-
-  u64 p4_entry = p4->entries[indices.p4];
-  if (p4_entry == 0) {
-    // allocate stuffos
-    assert(false);
-  }
-
-  PageTable *p3 = kernel_address(p4_entry & PTE_ADDRESS);
-  u64 p3_entry = p3->entries[indices.p3];
-  if (p3_entry == 0) {
-    // allocate stuffos
-    assert(false);
-  }
-
-  PageTable *p2 = kernel_address(p3_entry & PTE_ADDRESS);
-  u64 p2_entry = p2->entries[indices.p2];
-  if (p2_entry == 0) {
-    // allocate stuffos
-    assert(false);
-  }
-
-  PageTable *p1 = kernel_address(p2_entry & PTE_ADDRESS);
-  u64 p1_entry = p1->entries[indices.p1];
-  if (p1_entry == 0) {
-    p1->entries[indices.p1] = addr;
-    // allocate stuffos
-    return (void *)virtual_begin;
-  }
-
-  return NULL;
-}
-
-static void traverse_table(u64 table_entry, u16 table_level);
 
 // get physical address from kernel address
 u64 physical_address(void *ptr) {
@@ -145,9 +56,31 @@ void *kernel_address(u64 address) {
   return (void *)(address + MEMORY__KERNEL_SPACE_BEGIN);
 }
 
+static inline s64 address_to_page(u64 address) {
+  return (s64)(address / _4KB);
+}
+
+static inline u64 page_to_address(s64 page) {
+  return ((u64)page) * _4KB;
+}
+
+static inline bool valid_page_for_size_class(s64 page, s64 size_class) {
+  return (page >> size_class << size_class) == page;
+}
+
+static inline s64 buddy_page_for_page(s64 page_index, s64 size_class) {
+  assert(valid_page_for_size_class(page_index, size_class));
+  return page_index ^ (((s64)1) << size_class);
+}
+
+static inline s64 page_to_buddy(s64 page_index, s64 size_class) {
+  return page_index >> (size_class + 1);
+}
+
+static void *alloc_from_entries(MMap mmap, s64 size, s64 align);
 static void *phys_alloc_from_entries(MMap mmap, s64 _size, s64 _align);
 
-MMap memory__init(BOOTBOOT *bb) {
+void memory__init(BOOTBOOT *bb) {
   // Calculation described in bootboot specification
   MMap mmap = {.data = &bb->mmap, .count = (bb->size - 128) / 16, .memory_size = 0};
   u64 memory_size = 0;
@@ -185,23 +118,75 @@ MMap memory__init(BOOTBOOT *bb) {
   }
 
   // Hacky solution to quickly get everything into a higher-half kernel
-  //
-  PageTable *table = read_register(cr3, PageTable *, "q");
-  PageTableIndices indices = page_table_indices(MEMORY__KERNEL_SPACE_BEGIN);
-  assert(indices.p3 == 0);
-  assert(indices.p2 == 0);
-  assert(indices.p1 == 0);
-  assert(indices.p0 == 0);
-  table->entries[indices.p4] = table->entries[0];
-  table->entries[0] = 0;
-  write_register(cr3, table);
+  UNSAFE_HACKY_higher_half_init();
 
-  // Building a new page table using functions that assume higher-half kernel
+  // Initialize allocator
+  GLOBAL = alloc_from_entries(mmap, sizeof(*GLOBAL), 8);
+  memset(GLOBAL, 0, sizeof(*GLOBAL));
 
-  return mmap;
+  // Build basic buddy system structure
+  mmap.memory_size = align_up(mmap.memory_size, _4KB << SIZE_CLASS_COUNT);
+  s64 max_page_idx = address_to_page(mmap.memory_size);
+
+  u64 *usable_pages_data = alloc_from_entries(mmap, max_page_idx / 8, 8);
+  assert(usable_pages_data != MMapEnt__ALLOC_FAILURE);
+  GLOBAL->usable_pages = BitSet__from_raw(usable_pages_data, max_page_idx);
+
+  u64 *free_pages_data = alloc_from_entries(mmap, max_page_idx / 8, 8);
+  assert(free_pages_data != MMapEnt__ALLOC_FAILURE);
+  GLOBAL->free_pages = BitSet__from_raw(free_pages_data, max_page_idx);
+  BitSet__set_all(GLOBAL->free_pages, false);
+
+  for (s64 i = 0; i < SIZE_CLASS_COUNT - 1; i++) {
+    s64 num_buddy_pairs = page_to_buddy(max_page_idx, i);
+    u64 *data = alloc_from_entries(mmap, num_buddy_pairs / 8, 8);
+    assert(data != MMapEnt__ALLOC_FAILURE);
+    BitSet buddies = BitSet__from_raw(data, num_buddy_pairs);
+    BitSet__set_all(buddies, false);
+
+    GLOBAL->size_classes[i].freelist = NULL;
+    GLOBAL->size_classes[i].buddies = buddies;
+  }
+  GLOBAL->size_classes[SIZE_CLASS_COUNT - 1].freelist = NULL;
+  GLOBAL->size_classes[SIZE_CLASS_COUNT - 1].buddies = BitSet__from_raw(NULL, 0);
+
+  for (s64 i = 0, previous_end = 0; i < mmap.count; i++) {
+    MMapEnt *entry = &mmap.data[i];
+    u64 end_address = align_down(entry->ptr + entry->size, _4KB);
+    entry->ptr = align_up(entry->ptr, _4KB);
+    s64 begin = address_to_page(entry->ptr);
+    assert(begin >= previous_end);
+
+    if (begin != previous_end) BitSet__set_range(GLOBAL->usable_pages, previous_end, begin, false);
+
+    s64 end = address_to_page(end_address);
+    entry->size = end_address - entry->ptr;
+    BitSet__set_range(GLOBAL->usable_pages, begin, end, true);
+    previous_end = end;
+  }
+
+  log_fmt("After setting up allocator");
+  s64 available_memory = 0;
+  for (s64 i = 0; i < mmap.count; i++) {
+    log_fmt("%fk bytes at %f", mmap.data[i].size / 1024, mmap.data[i].ptr);
+    available_memory += (s64)mmap.data[i].size;
+  }
+  log_fmt("");
+
+  for (s64 i = 0; i < mmap.count; i++)
+    free(kernel_address(mmap.data[i].ptr), mmap.data[i].size / _4KB);
+
+  log_fmt("after adding memory to allocator");
+
+  assert(available_memory == GLOBAL->free_memory);
+  GLOBAL->heap_size = available_memory;
+  alloc__validate_heap();
+  log_fmt("heap validated");
+
+  // Build a new page table using functions that assume higher-half kernel
 }
 
-void *alloc_from_entries(MMap mmap, s64 _size, s64 _align) {
+static void *alloc_from_entries(MMap mmap, s64 _size, s64 _align) {
   u64 address = (u64)phys_alloc_from_entries(mmap, _size, _align);
   return (void *)(address + MEMORY__KERNEL_SPACE_BEGIN);
 }
@@ -225,75 +210,172 @@ static void *phys_alloc_from_entries(MMap mmap, s64 _size, s64 _align) {
   return MMapEnt__ALLOC_FAILURE;
 }
 
-static void traverse_table(u64 table_entry, u16 table_level) {
-  const static char *const prefixes[] = {"| | | +-", "| | +-", "| +-", "+-", ""};
-  const static char *const page_size_for_entry[] = {"", "4Kb", "2Mb", "1Gb", ""};
+static void *pop_freelist(s64 size_class) {
+  assert(size_class < SIZE_CLASS_COUNT);
 
-  if (!table_level | (table_entry & PTE_HUGE_PAGE)) {
-    // Probs wont ever happen
-    return;
-  }
+  SizeClassInfo *info = &GLOBAL->size_classes[size_class];
+  FreeBlock *block = info->freelist;
 
-  u16 count = 0;
-  PageTable *table = (PageTable *)(table_entry & PTE_ADDRESS);
-  FOR_PTR(table->entries, PageTable__ENTRY_COUNT) {
-    u64 entry = *it;
-    if (!entry) continue;
-    count++;
-  }
+  assert(block != NULL);
+  assert(block->size_class == size_class);
+  assert(block->prev == NULL);
 
-  log_fmt("%fp%f table with %f children", prefixes[table_level], table_level, count);
+  info->freelist = block->next;
+  if (info->freelist != NULL) info->freelist->prev = NULL;
+  return block;
+}
 
-  enum Mode { TABLE = 0, EMPTY, PAGE };
-  enum Mode mode = TABLE;
-  s64 type_count = 0;
+static inline void remove_from_freelist(s64 page, s64 size_class) {
+  assert(size_class < SIZE_CLASS_COUNT);
+  assert(valid_page_for_size_class(page, size_class));
 
-#define FINISH_MODE                                                                                \
-  switch (mode) {                                                                                  \
-  case TABLE:                                                                                      \
-    break;                                                                                         \
-                                                                                                   \
-  case EMPTY:                                                                                      \
-    log_fmt("%f%f empty p%f entries", prefixes[table_level - 1], type_count, table_level);         \
-    type_count = 0;                                                                                \
-    break;                                                                                         \
-                                                                                                   \
-  case PAGE:                                                                                       \
-    log_fmt("%f%f %f page entries", prefixes[table_level - 1], type_count,                         \
-            page_size_for_entry[table_level]);                                                     \
-    type_count = 0;                                                                                \
-    break;                                                                                         \
-  }
+  FreeBlock *block = kernel_address(page_to_address(page));
+  assert(block->size_class == size_class);
 
-  FOR_PTR(table->entries, PageTable__ENTRY_COUNT) {
-    u64 entry = *it;
+  SizeClassInfo *info = &GLOBAL->size_classes[size_class];
+  FreeBlock *prev = block->prev, *next = block->next;
+  if (next != NULL) next->prev = prev;
+  if (prev != NULL) {
+    prev->next = next;
+  } else {
+    if (info->freelist != block) {
+      log_fmt("in size class %f: freelist=%f and block=%f", size_class, (u64)info->freelist,
+              (u64)block);
+      s64 counter = 0;
+      for (FreeBlock *i = info->freelist; i != NULL; i = i->next, counter++) {
+        log_fmt("%f: block=%f", counter, (u64)i);
+      }
 
-    enum Mode new_mode;
-    if (!entry) new_mode = EMPTY;
-    else if ((table_level == 1) || (entry & PTE_HUGE_PAGE))
-      new_mode = PAGE;
-    else
-      new_mode = TABLE;
-
-    if (mode != new_mode) FINISH_MODE;
-
-    switch (new_mode) {
-    case TABLE:
-      traverse_table(entry, table_level - 1);
-      break;
-
-    case EMPTY:
-      type_count++;
-      break;
-
-    case PAGE:
-      type_count++;
-      break;
+      assert(false);
     }
+    info->freelist = next;
+  }
+}
 
-    mode = new_mode;
+static inline void add_to_freelist(s64 page, s64 size_class) {
+  assert(size_class < SIZE_CLASS_COUNT);
+  assert(valid_page_for_size_class(page, size_class));
+
+  FreeBlock *block = kernel_address(page_to_address(page));
+  SizeClassInfo *info = &GLOBAL->size_classes[size_class];
+  block->size_class = size_class;
+  block->prev = NULL;
+  block->next = info->freelist;
+  if (block->next != NULL) block->next->prev = block;
+  info->freelist = block;
+}
+
+void alloc__validate_heap(void) {
+  s64 calculated_free_memory = 0;
+  for (s64 i = 0; i < SIZE_CLASS_COUNT; i++) {
+    s64 size = (s64)((1 << i) * _4KB);
+    FreeBlock *block = GLOBAL->size_classes[i].freelist;
+    for (; block != NULL; block = block->next) {
+      assert(block->size_class == i);
+      calculated_free_memory += size;
+    }
   }
 
-  FINISH_MODE;
-#undef FINISH_MODE
+  assert(calculated_free_memory == GLOBAL->free_memory);
+}
+
+void *alloc(s64 count) {
+  if (count <= 0) return NULL;
+
+  s64 size_class = smallest_greater_power2(count);
+  for (; size_class < SIZE_CLASS_COUNT; size_class++)
+    if (GLOBAL->size_classes[size_class].freelist != NULL) break;
+
+  if (size_class >= SIZE_CLASS_COUNT) // tried to allocate too much data
+    return NULL;
+
+  GLOBAL->free_memory -= count * (s64)_4KB;
+
+  void *const data = pop_freelist(size_class);
+  const u64 addr = physical_address(data);
+  const s64 begin_page = address_to_page(addr), end_page = begin_page + count;
+  assert(BitSet__get_all(GLOBAL->usable_pages, begin_page, end_page));
+  assert(BitSet__get_all(GLOBAL->free_pages, begin_page, end_page));
+  BitSet__set_range(GLOBAL->free_pages, begin_page, end_page, false);
+
+  if (size_class != SIZE_CLASS_COUNT - 1) {
+    s64 buddy_index = page_to_buddy(begin_page, size_class);
+    assert(BitSet__get(GLOBAL->size_classes[size_class].buddies, buddy_index));
+    BitSet__set(GLOBAL->size_classes[size_class].buddies, buddy_index, false);
+  }
+
+  if (size_class == 0) return data;
+
+  for (s64 i = size_class - 1, page = begin_page; i >= 0; i--) {
+    if ((1 << (i + 1)) == count) return data;
+
+    SizeClassInfo *info = &GLOBAL->size_classes[i];
+    s64 size = 1 << i, buddy_index = page_to_buddy(page, i);
+    assert(!BitSet__get(info->buddies, buddy_index));
+
+    if (count <= size) {
+      add_to_freelist(page + size, i);
+      BitSet__set(info->buddies, buddy_index, true);
+    } else {
+      count -= size;
+      page += size;
+    }
+  }
+
+  // TODO this is probably unreachable
+  return data;
+}
+
+void unsafe_mark_memory_usability(void *data, s64 count, bool usable) {
+  assert(data != NULL);
+  u64 addr = physical_address(data);
+  assert(addr == align_down(addr, _4KB));
+
+  const s64 begin_page = address_to_page(addr), end_page = begin_page + count;
+  BitSet__set_range(GLOBAL->usable_pages, begin_page, end_page, usable);
+}
+
+static void free_at_size_class(s64 page, s64 size_class);
+
+void free(void *data, s64 count) {
+  assert(data != NULL);
+  const u64 addr = physical_address(data);
+  assert(addr == align_down(addr, _4KB));
+
+  const s64 begin_page = address_to_page(addr), end_page = begin_page + count;
+  for (s64 i = begin_page; i < end_page; i++) {
+    assert(!BitSet__get(GLOBAL->free_pages, i), "index: %f", i - begin_page);
+  }
+  assert(BitSet__get_all(GLOBAL->usable_pages, begin_page, end_page));
+  assert(!BitSet__get_any(GLOBAL->free_pages, begin_page, end_page));
+
+  // TODO should probably do some math here to not have to iterate over every
+  // page in data
+  for (s64 page = begin_page; page < end_page; page++)
+    free_at_size_class(page, 0);
+
+  BitSet__set_range(GLOBAL->free_pages, begin_page, end_page, true);
+}
+
+static void free_at_size_class(s64 page, s64 size_class) {
+  assert(valid_page_for_size_class(page, size_class));
+  GLOBAL->free_memory += (1 << size_class) * _4KB;
+
+  for (s64 i = size_class; i < SIZE_CLASS_COUNT - 1; i++) {
+    assert(valid_page_for_size_class(page, i));
+
+    SizeClassInfo *info = &GLOBAL->size_classes[i];
+    const s64 buddy_index = page_to_buddy(page, i);
+    const s64 buddy_page = buddy_page_for_page(page, i);
+    const bool buddy_is_free = BitSet__get(info->buddies, buddy_index);
+    BitSet__set(info->buddies, buddy_index, !buddy_is_free);
+
+    if (!buddy_is_free) return add_to_freelist(page, i);
+
+    remove_from_freelist(buddy_page, i);
+    page = min(page, buddy_page);
+  }
+
+  assert(valid_page_for_size_class(page, SIZE_CLASS_COUNT - 1));
+  add_to_freelist(page, SIZE_CLASS_COUNT - 1);
 }
