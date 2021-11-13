@@ -4,8 +4,8 @@
 
 #define MEMORY__KERNEL_SPACE_BEGIN ((u64)0xffff800000000000ull)
 
-#define _4KB 4096
-// #define _2MB ((u64)2097152)
+#define _4KB (4096)
+#define _2MB (2 * 1024 * 1024)
 // #define _1GB ((u64)1073741824)
 
 void memory__init(BOOTBOOT *bb);
@@ -16,8 +16,13 @@ u64 physical_address(void *ptr);
 // get kernel address from physical address
 void *kernel_address(u64 address);
 
-// Allocate `count` contiguous pages, each of size 4kb
+// Allocate `count` contiguous pages
+// Pages are zeroed.
 void *alloc(s64 count);
+
+// Allocate `count` contiguous pages
+// Pages are not zeroed.
+void *alloc_raw(s64 count);
 
 // Free contiguous pages starting at data
 void free(void *data, s64 count);

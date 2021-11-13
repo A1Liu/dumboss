@@ -24,8 +24,6 @@ func main() {
 		runQemu(ctx)
 	case "clean":
 		runClean()
-	case "dump":
-		runMakeTarget(ctx, "dump")
 	case "make":
 		runMakeTarget(ctx, os.Args[2])
 	default:

@@ -38,8 +38,8 @@ KERNEL_OBJS := $(foreach kern_tmp,$(KERNEL_FILES),$(call obj_path,$(kern_tmp)))
 
 -include $(foreach kern_tmp,$(KERNEL_FILES),$(call dep_path,$(kern_tmp)))
 
-.PHONY: kern
-kern: $(OUT_DIR)/kernel
+.PHONY: build
+build: $(OUT_DIR)/kernel
 	@# This silences make's "nothing to be done for target" message
 
 $(OUT_DIR)/kernel: $(OUT_DIR)/os.elf
@@ -48,6 +48,10 @@ $(OUT_DIR)/kernel: $(OUT_DIR)/os.elf
 	@mcopy -i /root/kernel $(OUT_DIR)/os ::/BOOTBOOT/INITRD && rm $(OUT_DIR)/os
 	@mv /root/kernel $(OUT_DIR)/kernel # copies from image to mount
 	@echo 'finished building kernel'
+
+.PHONY: kern
+kern: $(OUT_DIR)/os.elf
+	@# This silences make's "nothing to be done for target" message
 
 $(OUT_DIR)/os.elf: $(KERNEL_OBJS)
 	@ld.lld -nostdlib --script $(KERNEL_DIR)/link.ld -o $(OUT_DIR)/os.elf $(KERNEL_OBJS)

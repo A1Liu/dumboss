@@ -9,6 +9,7 @@ typedef struct {
 
 BitSet BitSet__from_raw(u64 *data, s64 size);
 bool BitSet__get(BitSet bits, s64 idx);
+s64 BitSet__get_count(BitSet bits, s64 begin, s64 end);
 bool BitSet__get_all(BitSet bits, s64 begin, s64 end);
 bool BitSet__get_any(BitSet bits, s64 begin, s64 end);
 void BitSet__set(BitSet bits, s64 idx, bool value);
@@ -32,6 +33,31 @@ bool BitSet__get(const BitSet bits, s64 idx) {
   const u64 v = bits.data[idx / 64];
   u32 bit_offset = idx % 64;
   return 0 != ((U64(1) << bit_offset) & v);
+}
+
+s64 BitSet__get_count(BitSet bits, s64 begin, s64 end) {
+  assert(0 <= begin);
+  assert(begin <= end);
+  assert(end <= bits.count);
+
+  const s64 fast_begin = (s64)align_up((u64)begin, 64), fast_end = (s64)align_down((u64)end, 64);
+
+  s64 count = 0;
+  if (fast_begin >= fast_end) {
+    for (s64 i = begin; i < end; i++)
+      if (BitSet__get(bits, i)) count++;
+
+    return count;
+  }
+
+  for (s64 i = begin; i < fast_begin; i++)
+    if (BitSet__get(bits, i)) count++;
+  for (s64 i = fast_begin / 64; i < fast_end / 64; i++)
+    count += __builtin_popcountl(bits.data[i]);
+  for (s64 i = fast_end; i < end; i++)
+    if (BitSet__get(bits, i)) count++;
+
+  return count;
 }
 
 bool BitSet__get_all(const BitSet bits, s64 begin, s64 end) {

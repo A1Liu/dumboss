@@ -35,13 +35,12 @@ in the same way (`dumboss build` to build and `dumboss run` to run)
 5. How lightweight can processes and threads be?
    [https://www.youtube.com/watch?v=KXuZi9aeGTw](https://www.youtube.com/watch?v=KXuZi9aeGTw)
 6. Microkernel with monolithic kernel manager thingy in userspace.
-7. Switch to C++ because honestly some light template use would probably help
-   with correctness. Or use macros? Hmmm? Macros? Interesting.
-8. Maybe don't map all of phyiscal memory lmao
-9. Just do Ext but without directories and filenames. Programs ask for inodes.
-10. Permissions are based (at least partly) on programs.
-11. Maybe never support dylibs.
-12. Allocator is global source of truth for what memory exists
+7. Maybe don't map all of physical memory lmao
+8. Just do Ext but without directories and filenames. Programs ask for raw inodes.
+   Then, we can add a filesystem thingy on top if we want.
+9. Permissions are based (at least partly) on programs.
+10. Maybe never support dylibs.
+11. Allocator is global source of truth for what memory is being used
 
 ## Scrapped Ideas
 1. Integer divide-by-zero always results in a zero. (THIS IS NOT POSSIBLE ON X64 FEELSBADMAN)

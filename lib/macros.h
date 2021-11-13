@@ -161,9 +161,7 @@ Examples:
     // it will also assert for safety if the block doesn't return
   }
 */
-#define _ensure(_uniq, expr)                                                                       \
-  for (typeof(expr) PASTE(_uniq, M_expr) = (expr); !PASTE(_uniq, M_expr); assert(expr))
-#define ensure(expr) _ensure(PASTE(M_ENSURE_, __COUNTER__), expr)
+#define ensure(expr) for (; !(expr); assert(expr))
 
 /*
 Prevent something from being true.
@@ -176,8 +174,6 @@ Examples:
     // it will also assert for safety if the block doesn't return
   }
 */
-#define _prevent(_uniq, expr)                                                                      \
-  for (typeof(expr) PASTE(_uniq, M_expr) = (expr); PASTE(_uniq, M_expr); assert(!(expr)))
-#define prevent(expr) _prevent(PASTE(M_PREVENT_, __COUNTER__), expr)
+#define prevent(expr) for (; expr; assert(!(expr)))
 
 #endif

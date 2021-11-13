@@ -256,6 +256,14 @@ void alloc__validate_heap(void) {
 }
 
 void *alloc(s64 count) {
+  void *data = alloc_raw(count);
+  ensure(data) return NULL;
+
+  memset(data, 0, count * _4KB);
+  return data;
+}
+
+void *alloc_raw(s64 count) {
   if (count <= 0) return NULL;
 
   s64 size_class = smallest_greater_power2(count);
@@ -326,19 +334,24 @@ void free(void *data, s64 count) {
 
 void unsafe_mark_memory_usability(void *data, s64 count, bool usable) {
   assert(data != NULL);
-  u64 addr = physical_address(data);
+  const u64 addr = physical_address(data);
   assert(addr == align_down(addr, _4KB));
 
   const s64 begin_page = address_to_page(addr), end_page = begin_page + count;
 
-  bool any_are_free = BitSet__get_any(GLOBAL->free_pages, begin_page, end_page);
+  const bool any_are_free = BitSet__get_any(GLOBAL->free_pages, begin_page, end_page);
   assert(!any_are_free, "if you're marking memory usability, the marked pages can't be free");
+
+  const s64 existing_pages = BitSet__get_count(GLOBAL->usable_pages, begin_page, end_page);
+  GLOBAL->heap_size -= existing_pages * _4KB;
+  if (usable) {
+    GLOBAL->heap_size += count * _4KB;
+  }
 
   BitSet__set_range(GLOBAL->usable_pages, begin_page, end_page, usable);
 }
 
 static void free_at_size_class(s64 page, s64 size_class) {
-  assert(valid_page_for_size_class(page, size_class));
   GLOBAL->free_memory += (1 << size_class) * _4KB;
 
   for (s64 i = size_class; i < SIZE_CLASS_COUNT - 1; i++) {
