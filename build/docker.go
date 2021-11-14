@@ -21,7 +21,6 @@ import (
 	"github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/stdcopy"
 
-	. "a1liu.com/dumboss/engine"
 	. "a1liu.com/dumboss/util"
 )
 
@@ -142,9 +141,9 @@ func buildImage(cli *client.Client, ctx context.Context, dockerfileName, imageNa
 	go ioCopy(stderr)
 
 	err = cmd.Run()
-	<-finished
-	<-finished
 	if err != nil {
+		<-finished
+		<-finished
 
 		fmt.Print(logBuffer.String())
 		panic(err)

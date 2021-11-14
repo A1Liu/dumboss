@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"time"
 
 	dirwalk "github.com/karrick/godirwalk"
 )
@@ -125,4 +126,66 @@ func CheckErr(err error) {
 		fmt.Println(err.Error())
 		panic("")
 	}
+}
+
+type CacheResult struct {
+	FileExists       bool
+	CacheEntryExists bool
+	CacheIsValid     bool
+}
+
+func CheckUpdateCache(filePath string, extras ...string) CacheResult {
+	cachePath := EscapeSourcePath(CacheDir, filePath, extras...)
+	result := checkCache(filePath, cachePath)
+	updateCacheEntry(cachePath)
+	return result
+}
+
+func CheckCache(filePath string, extras ...string) CacheResult {
+	cachePath := EscapeSourcePath(CacheDir, filePath, extras...)
+	return checkCache(filePath, cachePath)
+}
+
+func UpdateCache(filePath string, extras ...string) {
+	cachePath := EscapeSourcePath(CacheDir, filePath, extras...)
+	updateCacheEntry(cachePath)
+}
+
+func checkCache(filePath, cachePath string) CacheResult {
+
+	result := CacheResult{
+		FileExists:       true,
+		CacheEntryExists: true,
+	}
+
+	pathStat, err := os.Stat(filePath)
+	if os.IsNotExist(err) {
+		result.FileExists = false
+	} else {
+		CheckErr(err)
+	}
+
+	cacheFileStat, err := os.Stat(cachePath)
+	if os.IsNotExist(err) {
+		EnsurePath(cachePath)
+
+		result.CacheEntryExists = false
+	} else {
+		CheckErr(err)
+	}
+
+	if !result.CacheEntryExists || !result.FileExists {
+		result.CacheIsValid = false
+		return result
+	}
+
+	cacheModTime, pathModTime := cacheFileStat.ModTime(), pathStat.ModTime()
+	result.CacheIsValid = pathModTime.Before(cacheModTime)
+	return result
+}
+
+func updateCacheEntry(cachePath string) {
+	currentTime := time.Now().Local()
+	err := os.Chtimes(cachePath, currentTime, currentTime)
+	CheckErr(err)
 }
