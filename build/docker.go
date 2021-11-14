@@ -29,17 +29,7 @@ const (
 	toolsImage  = "dumboss/tools"
 )
 
-func RunImageCmdSingle(ctx context.Context, binary string, args []string) {
-	runImageCmd(ctx, binary, args, true)
-}
-
 func RunImageCmd(ctx context.Context, binary string, args []string) {
-	runImageCmd(ctx, binary, args, false)
-}
-
-// TODO: This eventually needs to only make one container and multithread it.
-//																		- Albert Liu, Nov 06, 2021 Sat 16:22 EDT
-func runImageCmd(ctx context.Context, binary string, args []string, printTime bool) {
 	begin := time.Now()
 	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
 	CheckErr(err)
@@ -84,7 +74,8 @@ func runImageCmd(ctx context.Context, binary string, args []string, printTime bo
 	err = cli.ContainerStart(ctx, resp.ID, types.ContainerStartOptions{})
 	CheckErr(err)
 
-	fmt.Printf("docker stuff took %v seconds\n", time.Since(begin).Seconds())
+	targetBegin := time.Now()
+	fmt.Printf("docker stuff took %v seconds\n", targetBegin.Sub(begin).Seconds())
 
 	statusCh, errCh := cli.ContainerWait(ctx, resp.ID, container.WaitConditionNotRunning)
 	var commandStatus int64
@@ -108,6 +99,8 @@ func runImageCmd(ctx context.Context, binary string, args []string, printTime bo
 	}
 	err = cli.ContainerRemove(ctx, resp.ID, removeOptions)
 	CheckErr(err)
+
+	fmt.Printf("target took %v seconds\n", time.Since(targetBegin).Seconds())
 
 	if commandStatus != 0 {
 		panic(commandStatus)

@@ -39,6 +39,13 @@ KERNEL_OBJS := $(foreach kern_tmp,$(KERNEL_FILES),$(call obj_path,$(kern_tmp)))
 
 -include $(foreach kern_tmp,$(KERNEL_FILES),$(call dep_path,$(kern_tmp)))
 
+.PHONY: dump
+dump: $(OUT_DIR)/dump
+	@echo "dump written to '$<'"
+
+$(OUT_DIR)/dump: $(OUT_DIR)/os.elf
+	@llvm-objdump --arch=x86-64-D $(OUT_DIR)/os.elf > $(OUT_DIR)/os-dump.txt
+
 .PHONY: build
 build: $(OUT_DIR)/kernel
 	@# This silences make's "nothing to be done for target" message

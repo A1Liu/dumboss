@@ -6,7 +6,6 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
-	"time"
 
 	. "a1liu.com/dumboss/util"
 )
@@ -35,13 +34,6 @@ func runClean() {
 	RunCmd("rm", []string{"-rf", CacheDir, OutDir, ObjDir, DepsDir})
 }
 
-func runObjDump(ctx context.Context) {
-	elfPath := filepath.Join(OutDir, "os.elf")
-	runMakeTarget(ctx, elfPath)
-
-	RunImageCmd(ctx, "llvm-objdump", []string{"--arch=x86-64", "-D", elfPath})
-}
-
 func runQemu(ctx context.Context) {
 	// TODO In 20 years when this OS finally has a GUI, we'll need this to make
 	// serial write to stdout again: "-serial", "stdio",
@@ -65,7 +57,5 @@ func runMakeTarget(ctx context.Context, target string) {
 	CheckErr(err)
 
 	makeArgs := []string{"-f", filepath.Join(ProjectDir, "Makefile"), target}
-	begin := time.Now()
-	RunImageCmdSingle(ctx, "make", makeArgs)
-	fmt.Printf("the target `%v` took %v seconds\n", target, time.Since(begin).Seconds())
+	RunImageCmd(ctx, "make", makeArgs)
 }
