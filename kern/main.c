@@ -31,7 +31,7 @@ void _start(void) {
   /*** NOTE: BOOTBOOT runs _start on all cores in parallel ***/
   const uint16_t apic_id = asm_cpuid(1).ebx >> 24, bspid = bootboot.bspid;
 
-  // ensure only one core does first bit
+  // ensure only one core is running
   while (apic_id != bspid)
     asm_hlt();
 

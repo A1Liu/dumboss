@@ -23,6 +23,7 @@ _Noreturn void ext__shutdown(void) {
 
 #define BUF_SIZE 200
 
+static _Atomic(u8) LoggingMutex;
 static char buffer[BUF_SIZE];
 static void serial__write(char a);
 
@@ -32,6 +33,9 @@ static s64 write_prefix_to_buffer(String out, sloc loc) {
 }
 
 void ext__log(sloc loc, s32 count, const any *args) {
+  while (!Mutex__try_lock(&LoggingMutex))
+    ;
+
   String out = Str__new(buffer, BUF_SIZE);
   s64 written = write_prefix_to_buffer(out, loc);
 
@@ -50,9 +54,14 @@ void ext__log(sloc loc, s32 count, const any *args) {
   for (s64 i = 0; i < written; i++)
     serial__write(buffer[i]);
   serial__write('\n');
+
+  Mutex__unlock(&LoggingMutex);
 }
 
 void ext__log_fmt(sloc loc, const char *fmt, s32 count, const any *args) {
+  while (!Mutex__try_lock(&LoggingMutex))
+    ;
+
   String out = Str__new(buffer, BUF_SIZE);
   s64 written = write_prefix_to_buffer(out, loc);
   s64 fmt_try = any__fmt(Str__suffix(out, written), fmt, count, args);
@@ -78,6 +87,8 @@ void ext__log_fmt(sloc loc, const char *fmt, s32 count, const any *args) {
   for (s64 i = 0; i < written; i++)
     serial__write(buffer[i]);
   serial__write('\n');
+
+  Mutex__unlock(&LoggingMutex);
 }
 
 // Largely copy-pasted from
