@@ -38,7 +38,10 @@ in the same way (`dumboss build` to build and `dumboss run` to run)
    Then, we can add a filesystem thingy on top if we want.
 7. Permissions are based (at least partly) on programs.
 8. Maybe never support dylibs.
-9. Allocator is global source of truth for what memory is being used
+9. Allocator is global source of truth for what memory is being used.
+
+## Notes
+1. No need for Linux zones memory is memory.
 
 ## Scrapped Ideas
 1. Integer divide-by-zero always results in a zero. (THIS IS NOT POSSIBLE ON X64 FEELSBADMAN)

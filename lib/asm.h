@@ -1,6 +1,6 @@
 #ifndef __LIB_ASM__
 #define __LIB_ASM__
-#include <macro_utils.h>
+#include <magic.h>
 #include <types.h>
 
 static inline void asm_hlt(void) {

@@ -1,6 +1,6 @@
 #ifndef __LIB_MACROS__
 #define __LIB_MACROS__
-#include <macro_utils.h>
+#include <magic.h>
 #include <types.h>
 
 // TODO Should the formatting stuff in basics be moved to logging? I'm not sure

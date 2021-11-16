@@ -11,7 +11,6 @@
 typedef struct {
   MMapEnt *data;
   s64 count;
-  u64 memory_size;
 } MMap;
 
 typedef struct memory__FreeBlock {
@@ -38,7 +37,6 @@ typedef struct {
 } GlobalState;
 
 static GlobalState *GLOBAL;
-const char *const memory__bootboot_mmap_typename[] = {"Used", "Free", "ACPI", "MMIO"};
 
 // get physical address from kernel address
 u64 physical_address(void *ptr) {
@@ -78,15 +76,27 @@ static inline s64 page_to_buddy(s64 page_index, s64 size_class) {
 
 static void *alloc_from_entries(MMap mmap, s64 size, s64 align);
 
+const char *const memory__bootboot_mmap_typename[] = {"Used", "Free", "ACPI", "MMIO"};
+const char *const sizename[] = {"", " Kb", " Mb", " Gb"};
 void memory__init(BOOTBOOT *bb) {
   // Calculation described in bootboot specification
-  MMap mmap = {.data = &bb->mmap, .count = (bb->size - 128) / 16, .memory_size = 0};
-  u64 memory_size = 0;
+  MMap mmap = {.data = &bb->mmap, .count = (bb->size - 128) / 16};
+  u64 mem_upper_bound = 0;
   FOR(mmap) {
     u64 ptr = MMapEnt_Ptr(it), size = MMapEnt_Size(it);
-    memory_size = max(memory_size, ptr + size);
+    mem_upper_bound = max(mem_upper_bound, ptr + size);
+    const char *const mtype = memory__bootboot_mmap_typename[MMapEnt_Type(it)];
+
+    u8 size_class = 0;
+    REPEAT(4) {
+      if (size > 1024) {
+        size_class++;
+        size /= 1024;
+      }
+    }
+
+    log_fmt("entry: %f entry size %f%f", mtype, size, sizename[size_class]);
   }
-  mmap.memory_size = memory_size;
 
   // sort the entries so that the free ones are first
   SLOW_SORT(mmap) {
@@ -104,7 +114,6 @@ void memory__init(BOOTBOOT *bb) {
     }
 
     it->size = MMapEnt_Size(it);
-    log_fmt("entry: free entry size %f", it->size);
   }
 
   // Hacky solution to quickly get everything into a higher-half kernel
@@ -117,8 +126,8 @@ void memory__init(BOOTBOOT *bb) {
   memset(GLOBAL, 0, sizeof(*GLOBAL));
 
   // Build basic buddy system structure
-  mmap.memory_size = align_up(mmap.memory_size, _4KB << SIZE_CLASS_COUNT);
-  s64 max_page_idx = address_to_page(mmap.memory_size);
+  const u64 buddy_max = align_up(mem_upper_bound, _4KB << SIZE_CLASS_COUNT);
+  s64 max_page_idx = address_to_page(buddy_max);
 
   u64 *usable_pages_data = alloc_from_entries(mmap, (max_page_idx - 1) / 8 + 1, 8);
   GLOBAL->usable_pages = BitSet__from_raw(usable_pages_data, max_page_idx);
@@ -128,19 +137,16 @@ void memory__init(BOOTBOOT *bb) {
   GLOBAL->free_pages = BitSet__from_raw(free_pages_data, max_page_idx);
   BitSet__set_all(GLOBAL->free_pages, false);
 
-  FOR_PTR(GLOBAL->size_classes, SIZE_CLASS_COUNT, info, class) {
-    BitSet buddies = BitSet__from_raw(NULL, 0);
-
-    if (class != SIZE_CLASS_COUNT - 1) {
-      s64 num_buddy_pairs = page_to_buddy(max_page_idx, class);
-      u64 *data = alloc_from_entries(mmap, (num_buddy_pairs - 1) / 8 + 1, 8);
-      buddies = BitSet__from_raw(data, num_buddy_pairs);
-      BitSet__set_all(buddies, false);
-    }
-
+  FOR_PTR(GLOBAL->size_classes, SIZE_CLASS_COUNT - 1, info, class) {
+    s64 num_buddy_pairs = page_to_buddy(max_page_idx, class);
+    u64 *data = alloc_from_entries(mmap, (num_buddy_pairs - 1) / 8 + 1, 8);
+    info->buddies = BitSet__from_raw(data, num_buddy_pairs);
+    BitSet__set_all(info->buddies, false);
     info->freelist = NULL;
-    info->buddies = buddies;
   }
+
+  GLOBAL->size_classes[SIZE_CLASS_COUNT - 1].freelist = NULL;
+  GLOBAL->size_classes[SIZE_CLASS_COUNT - 1].buddies = BitSet__from_raw(NULL, 0);
 
   s64 available_memory = 0;
   FOR(mmap, entry) {
@@ -148,16 +154,12 @@ void memory__init(BOOTBOOT *bb) {
     u64 end = align_down(entry->ptr + entry->size, _4KB);
     s64 begin_page = address_to_page(begin);
     s64 end_page = address_to_page(end);
-    u64 size = max(end, begin) - begin;
+    s64 size = (s64)(max(end, begin) - begin);
 
-    log_fmt("%fk bytes at %f", size / 1024, begin);
-    available_memory += (s64)size;
+    available_memory += size;
 
     BitSet__set_range(GLOBAL->usable_pages, begin_page, end_page, true);
     free(kernel_address(begin), size / _4KB);
-
-    entry->size = size;
-    entry->ptr = begin;
   }
 
   assert(available_memory == GLOBAL->free_memory);

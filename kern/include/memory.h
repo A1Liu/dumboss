@@ -4,6 +4,10 @@
 
 #define MEMORY__KERNEL_SPACE_BEGIN ((u64)0xffff800000000000ull)
 
+#define _KB (1024)
+#define _MB (1024 * 1024)
+#define _GB (1024 * 1024 * 1024)
+
 #define _4KB (4096)
 #define _2MB (2 * 1024 * 1024)
 #define _1GB (1024 * 1024 * 1024)
