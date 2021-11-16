@@ -21,15 +21,17 @@ void memory__init(BOOTBOOT *bb);
 u64 physical_address(void *ptr);
 
 // get kernel address from physical address
-void *kernel_address(u64 address);
+u64 kernel_address(u64 address);
+
+// get kernel address from physical address
+void *kernel_ptr(u64 address);
 
 // Allocate `count` contiguous pages
 // Pages are zeroed.
 void *alloc(s64 count);
 
-// Allocate `count` contiguous pages
-// Pages are not zeroed.
-void *alloc_raw(s64 count);
+// Copy the given memory to a new allocation
+Buffer alloc_copy(const void *src, s64 size);
 
 // Free contiguous pages starting at data
 void free(void *data, s64 count);

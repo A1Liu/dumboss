@@ -29,9 +29,10 @@
 #define PTE_NO_EXECUTE      (U64(1) << 63)
 #define PTE_ADDRESS         U64(0x000ffffffffff000)
 
-#define PTE_NOT_EMPTY (PTE_BIT_9)
-#define PTE_KERNEL    (PTE_WRITABLE | PTE_NO_EXECUTE | PTE_PRESENT | PTE_NOT_EMPTY)
-#define PTE_USER      (PTE_WRITABLE | PTE_NO_EXECUTE | PTE_PRESENT | PTE_USER_ACCESSIBLE | PTE_NOT_EMPTY)
+#define PTE_NOT_EMPTY  (PTE_BIT_9)
+#define PTE_KERNEL     (PTE_WRITABLE | PTE_NO_EXECUTE | PTE_PRESENT | PTE_NOT_EMPTY)
+#define PTE_KERNEL_EXE (PTE_PRESENT | PTE_NOT_EMPTY)
+#define PTE_USER       (PTE_WRITABLE | PTE_NO_EXECUTE | PTE_PRESENT | PTE_USER_ACCESSIBLE | PTE_NOT_EMPTY)
 
 typedef struct PageTable4 PageTable4;
 
@@ -41,6 +42,15 @@ void UNSAFE_HACKY_higher_half_init(void);
 // Read the value of cr3
 PageTable4 *get_page_table(void);
 
-void *map_page(PageTable4 *_p4, u64 virtual, void *kernel, u64 flags);
+void set_page_table(PageTable4 *p4);
 
-void *map_2MB_page(PageTable4 *_p4, u64 virtual, void *kernel, u64 flags);
+void traverse_table(PageTable4 *p4);
+
+// Translates virtual address to higher-half kernel-space address
+void *translate(PageTable4 *p4, u64 virtual);
+
+void *map_region(PageTable4 *p4, u64 virtual, void *kernel, u64 flags, s64 size);
+
+void *map_page(PageTable4 *p4, u64 virtual, void *kernel, u64 flags);
+
+void *map_2MB_page(PageTable4 *p4, u64 virtual, void *kernel, u64 flags);

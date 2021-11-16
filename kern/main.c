@@ -43,6 +43,7 @@ void _start(void) {
   if (gb_pages) log("gb pages are enabled");
 
   memory__init(&bootboot);
+  alloc__validate_heap();
 
   GdtInfo gdt_info = current_gdt();
 
@@ -63,10 +64,10 @@ void _start(void) {
 
   // divide_by_zero();
 
-  void *hello = alloc(5);
-  alloc__validate_heap();
-  free(hello, 5);
-  alloc__validate_heap();
+  // void *hello = alloc(5);
+  // alloc__validate_heap();
+  // free(hello, 5);
+  // alloc__validate_heap();
 
   log_fmt("finished messing with allocator");
 

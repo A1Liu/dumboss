@@ -39,17 +39,23 @@ PHDRS
 }
 SECTIONS
 {
-    . = 0xffffffffffe02000;
+    code_begin = 0xffffffffffe02000;
+    . = code_begin;
     .text : {
         KEEP(*(.text.boot)) *(.text .text.*)   /* code */
         *(.rodata .rodata.*)                   /* data */
         *(.data .data.*)
+        *(.got)
     } :boot
+
+    code_end = ALIGN(4096);
+    . = code_end;
+
     .bss (NOLOAD) : {                          /* bss */
-        . = ALIGN(16);
         *(.bss .bss.*)
         *(COMMON)
     } :boot
+    bss_end = ALIGN(4096);
 
     /DISCARD/ : { *(.eh_frame) *(.comment) }
 }

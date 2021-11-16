@@ -24,6 +24,8 @@ dep_path = $(call output_path,$(1),$(DEPS_DIR),.dep)
 
 # Changing these flags sometimes seem to result in hard-to-understand compiler
 # errors.
+#
+# -fpic is necessary for whatever reason. Beats me man.
 CFLAGS := -c --std=gnu17 -target x86_64-unknown-elf -MD                        \
           -ffreestanding -fno-stack-protector -fmerge-all-constants -fPIC      \
           -mno-red-zone -nostdlib -isystem./lib                                \
@@ -62,7 +64,7 @@ kern: $(OUT_DIR)/os.elf
 	@# This silences make's "nothing to be done for target" message
 
 $(OUT_DIR)/os.elf: $(KERNEL_OBJS)
-	@ld.lld -nostdlib --script $(KERNEL_DIR)/link.ld -o $(OUT_DIR)/os.elf $(KERNEL_OBJS)
+	@ld.lld -nostdlib --no-dynamic-linker --script $(KERNEL_DIR)/link.ld -o $(OUT_DIR)/os.elf $(KERNEL_OBJS)
 	@echo 'finished linking $@'
 
 $(KERNEL_TMP_PREFIX).%.c.o: $(KERNEL_DIR)/%.c

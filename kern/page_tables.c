@@ -53,7 +53,7 @@ static void *pte_address(u64 entry) {
   const u64 addr_bits = entry & PTE_ADDRESS;
   const s64 signed_address_shifted = (s64)(addr_bits << 16);
   const u64 address = (u64)(signed_address_shifted >> 16);
-  return kernel_address(address);
+  return kernel_ptr(address);
 }
 
 static u64 indices_to_address(PageTableIndices indices) {
@@ -69,7 +69,11 @@ static u64 indices_to_address(PageTableIndices indices) {
 }
 
 PageTable4 *get_page_table(void) {
-  return (PageTable4 *)(read_register(cr3, u64, "q") + MEMORY__KERNEL_SPACE_BEGIN);
+  return kernel_ptr(read_register(cr3, u64, "q"));
+}
+
+void set_page_table(PageTable4 *p4) {
+  write_register(cr3, physical_address(p4));
 }
 
 // Hacky solution to quickly get everything into a higher-half kernel. Called in
@@ -86,6 +90,55 @@ void UNSAFE_HACKY_higher_half_init() {
   write_register(cr3, table);
 }
 
+void *map_region(PageTable4 *p4, u64 virtual, void *_kernel, u64 flags, s64 size) {
+  ensure(p4 != NULL && is_aligned(p4, _4KB)) return NULL;
+  ensure(_kernel && is_aligned(_kernel, _4KB)) return NULL;
+  ensure(virtual && is_aligned(virtual, _4KB)) return NULL;
+  ensure(is_aligned(size, _4KB)) return NULL;
+
+  void *const output = (void *)virtual;
+
+  DECLARE_SCOPED(u64 diff = 0)
+  for (u8 *ptr = (u8 *)_kernel, *res = NULL; size > 0; virtual += diff, ptr += diff, size -= diff) {
+    if (is_aligned(virtual, _2MB) && is_aligned(ptr, _2MB) && size >= _2MB) {
+      res = map_2MB_page(p4, virtual, ptr, flags);
+      ensure(res) return NULL;
+      diff = _2MB;
+      continue;
+    }
+
+    res = map_page(p4, virtual, ptr, flags);
+    ensure(res) return NULL;
+    diff = _4KB;
+  }
+
+  return output;
+}
+
+void *translate(PageTable4 *_p4, u64 virtual) {
+  ensure(_p4) return NULL;
+
+  PageTable *p4 = (PageTable *)_p4;
+  PageTableIndices indices = page_table_indices(virtual);
+
+  PageTable *p3 = pte_address(p4->entries[indices.p4]);
+  ensure(p3) return NULL;
+
+  PageTable *p2 = pte_address(p3->entries[indices.p3]);
+  ensure(p2) return NULL;
+
+  const u64 p2_entry = p2->entries[indices.p2];
+  u8 *page = pte_address(p2_entry);
+  ensure(page) return NULL;
+
+  if (p2_entry & PTE_HUGE_PAGE) {
+    return page + (U64(indices.p1) << 12) + indices.p0;
+  }
+
+  PageTable *p1 = (PageTable *)page;
+  return pte_address(p1->entries[indices.p1]) + indices.p0;
+}
+
 void *map_page(PageTable4 *_p4, u64 virtual, void *kernel, u64 flags) {
   PageTable *p4 = (PageTable *)_p4;
   PageTableIndices indices = page_table_indices(virtual);
@@ -99,7 +152,7 @@ void *map_page(PageTable4 *_p4, u64 virtual, void *kernel, u64 flags) {
     p3 = alloc(1);
     ensure(p3) return NULL;
 
-    p4->entries[indices.p4] = make_pte(p3, PTE_KERNEL);
+    p4->entries[indices.p4] = make_pte(p3, flags);
   }
 
   PageTable *p2 = pte_address(p3->entries[indices.p3]);
@@ -107,7 +160,7 @@ void *map_page(PageTable4 *_p4, u64 virtual, void *kernel, u64 flags) {
     p2 = alloc(1);
     ensure(p2) return NULL;
 
-    p3->entries[indices.p3] = make_pte(p2, PTE_KERNEL);
+    p3->entries[indices.p3] = make_pte(p2, flags);
   }
 
   PageTable *p1 = pte_address(p2->entries[indices.p2]);
@@ -115,7 +168,7 @@ void *map_page(PageTable4 *_p4, u64 virtual, void *kernel, u64 flags) {
     p1 = alloc(1);
     ensure(p1) return NULL;
 
-    p2->entries[indices.p2] = make_pte(p1, PTE_KERNEL);
+    p2->entries[indices.p2] = make_pte(p1, flags);
   }
 
   ensure(p1->entries[indices.p1] == 0) return NULL;
@@ -137,7 +190,7 @@ void *map_2MB_page(PageTable4 *_p4, u64 virtual, void *kernel, u64 flags) {
     p3 = alloc(1);
     ensure(p3) return NULL;
 
-    p4->entries[indices.p4] = make_pte(p3, PTE_KERNEL);
+    p4->entries[indices.p4] = make_pte(p3, flags);
   }
 
   PageTable *p2 = pte_address(p3->entries[indices.p3]);
@@ -145,7 +198,7 @@ void *map_2MB_page(PageTable4 *_p4, u64 virtual, void *kernel, u64 flags) {
     p2 = alloc(1);
     ensure(p2) return NULL;
 
-    p3->entries[indices.p3] = make_pte(p2, PTE_KERNEL);
+    p3->entries[indices.p3] = make_pte(p2, flags);
   }
 
   ensure(p2->entries[indices.p2] == 0) return NULL;
@@ -154,7 +207,12 @@ void *map_2MB_page(PageTable4 *_p4, u64 virtual, void *kernel, u64 flags) {
   return (void *)virtual;
 }
 
-static void traverse_table(u64 table_entry, u16 table_level) {
+static void traverse_table_inner(u64 table_entry, u16 table_level);
+void traverse_table(PageTable4 *p4) {
+  traverse_table_inner(make_pte(p4, 0), 4);
+}
+
+static void traverse_table_inner(u64 table_entry, u16 table_level) {
   const static char *const prefixes[] = {"| | | +-", "| | +-", "| +-", "+-", ""};
   const static char *const page_size_for_entry[] = {"", "4Kb", "2Mb", "1Gb", ""};
 
@@ -164,7 +222,7 @@ static void traverse_table(u64 table_entry, u16 table_level) {
   }
 
   u16 count = 0;
-  PageTable *table = (PageTable *)(table_entry & PTE_ADDRESS);
+  PageTable *table = pte_address(table_entry);
   FOR_PTR(table->entries, PageTable__ENTRY_COUNT) {
     u64 entry = *it;
     if (!entry) continue;
@@ -208,7 +266,7 @@ static void traverse_table(u64 table_entry, u16 table_level) {
 
     switch (new_mode) {
     case TABLE:
-      traverse_table(entry, table_level - 1);
+      traverse_table_inner(entry, table_level - 1);
       break;
 
     case EMPTY:

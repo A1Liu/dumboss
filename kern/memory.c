@@ -7,6 +7,9 @@
 #include <types.h>
 
 #define SIZE_CLASS_COUNT 12
+extern const u8 code_begin;
+extern const u8 code_end;
+extern const u8 bss_end;
 
 typedef struct {
   MMapEnt *data;
@@ -45,7 +48,13 @@ u64 physical_address(void *ptr) {
 }
 
 // get kernel address from physical address
-void *kernel_address(u64 address) {
+u64 kernel_address(u64 address) {
+  assert(address < MEMORY__KERNEL_SPACE_BEGIN);
+
+  return address + MEMORY__KERNEL_SPACE_BEGIN;
+}
+
+void *kernel_ptr(u64 address) {
   assert(address < MEMORY__KERNEL_SPACE_BEGIN);
 
   return (void *)(address + MEMORY__KERNEL_SPACE_BEGIN);
@@ -148,12 +157,12 @@ void memory__init(BOOTBOOT *bb) {
     u64 end = align_down(entry->ptr + entry->size, _4KB);
     s64 begin_page = address_to_page(begin);
     s64 end_page = address_to_page(end);
-    s64 size = (s64)(max(end, begin) - begin);
+    s64 size = S64(max(end, begin) - begin);
 
     available_memory += size;
 
     BitSet__set_range(MemGlobals.usable_pages, begin_page, end_page, true);
-    free(kernel_address(begin), size / _4KB);
+    free(kernel_ptr(begin), size / _4KB);
   }
 
   assert(available_memory == MemGlobals.free_memory);
@@ -162,6 +171,47 @@ void memory__init(BOOTBOOT *bb) {
   log_fmt("global allocator INIT_COMPLETE");
 
   // Build a new page table using functions that assume higher-half kernel
+  PageTable4 *old = get_page_table();
+  PageTable4 *new = alloc(1);
+  assert(new);
+
+  // Map higher half code
+  void *result = map_region(new, MEMORY__KERNEL_SPACE_BEGIN, (void *)MEMORY__KERNEL_SPACE_BEGIN,
+                            PTE_KERNEL, (s64)mem_upper_bound);
+  assert(result);
+
+  // Map kernel code to address listed in the linker script
+  const u8 *code_ptr = &code_begin, *code_end_ptr = &code_end, *bss_end_ptr = &bss_end;
+  const s64 code_size = S64(code_end_ptr - code_ptr), bss_size = S64(bss_end_ptr - code_end_ptr);
+
+  Buffer kern_text = alloc_copy(code_ptr, code_size);
+  assert(kern_text.data);
+  Buffer bss = alloc_copy(code_end_ptr, bss_size);
+  assert(bss.data);
+
+  result = map_region(new, (u64)code_ptr, kern_text.data, PTE_KERNEL_EXE, kern_text.count);
+  assert(result);
+  result = map_region(new, (u64)code_end_ptr, bss.data, PTE_KERNEL_EXE, bss.count);
+  assert(result);
+
+  // Map Bootboot struct, as described in linker script
+  void *bb_ptr = translate(old, (u64)bb);
+  result = map_page(new, (u64)bb, bb_ptr, PTE_KERNEL);
+  assert(result);
+
+  // Map Environment data
+  void *env_ptr = translate(old, (u64)&environment);
+  result = map_page(new, (u64)&environment, env_ptr, PTE_KERNEL);
+  assert(result);
+
+  // Map kernel stack
+  void *stack_bottom = translate(old, (u64)align_down(&result, _4KB));
+  result = map_page(new, 0xFFFFFFFFFFFFF000, stack_bottom, PTE_KERNEL);
+  assert(result);
+
+  set_page_table(new);
+
+  log_fmt("memory INIT_COMPLETE");
 }
 
 static void *alloc_from_entries(MMap mmap, s64 _size, s64 _align) {
@@ -183,6 +233,18 @@ static void *alloc_from_entries(MMap mmap, s64 _size, s64 _align) {
   assert(false);
 }
 
+static inline FreeBlock *find_block(FreeBlock *target) {
+  FOR_PTR(MemGlobals.size_classes, SIZE_CLASS_COUNT, info, class) {
+    FreeBlock *block = info->freelist;
+    while (block != NULL) {
+      if (block == target) return block;
+      block = block->next;
+    }
+  }
+
+  return NULL;
+}
+
 static void *pop_freelist(s64 size_class) {
   assert(size_class < SIZE_CLASS_COUNT);
 
@@ -190,11 +252,15 @@ static void *pop_freelist(s64 size_class) {
   FreeBlock *block = info->freelist;
 
   assert(block != NULL);
-  assert(block->size_class == size_class);
+  assert(block->size_class == size_class, "block had size_class %f in freelist of class %f",
+         block->size_class, size_class);
   assert(block->prev == NULL);
 
   info->freelist = block->next;
   if (info->freelist != NULL) info->freelist->prev = NULL;
+
+  assert(find_block(block) == NULL);
+
   return block;
 }
 
@@ -202,8 +268,9 @@ static inline void remove_from_freelist(s64 page, s64 size_class) {
   assert(size_class < SIZE_CLASS_COUNT);
   assert(valid_page_for_size_class(page, size_class));
 
-  FreeBlock *block = kernel_address(page_to_address(page));
+  FreeBlock *block = kernel_ptr(page_to_address(page));
   assert(block->size_class == size_class);
+  assert(find_block(block) != NULL);
 
   SizeClassInfo *info = &MemGlobals.size_classes[size_class];
   FreeBlock *prev = block->prev, *next = block->next;
@@ -224,33 +291,61 @@ static inline void remove_from_freelist(s64 page, s64 size_class) {
 
     info->freelist = next;
   }
+
+  assert(find_block(block) == NULL);
 }
 
 static inline void add_to_freelist(s64 page, s64 size_class) {
   assert(size_class < SIZE_CLASS_COUNT);
   assert(valid_page_for_size_class(page, size_class));
 
-  FreeBlock *block = kernel_address(page_to_address(page));
+  FreeBlock *block = kernel_ptr(page_to_address(page));
+  assert(find_block(block) == NULL);
   SizeClassInfo *info = &MemGlobals.size_classes[size_class];
+
   block->size_class = size_class;
   block->prev = NULL;
   block->next = info->freelist;
-  if (block->next != NULL) block->next->prev = block;
+
+  if (info->freelist != NULL) info->freelist->prev = block;
   info->freelist = block;
 }
 
 void alloc__validate_heap(void) {
+  bool success = true;
   s64 calculated_free_memory = 0;
   for (s64 i = 0; i < SIZE_CLASS_COUNT; i++) {
     s64 size = (s64)((1 << i) * _4KB);
     FreeBlock *block = MemGlobals.size_classes[i].freelist;
     for (; block != NULL; block = block->next) {
-      assert(block->size_class == i);
+      if (block->size_class != i) {
+        log_fmt("block class = %f but was in class %f", block->size_class, i);
+        success = false;
+      }
+
       calculated_free_memory += size;
     }
   }
 
-  assert(calculated_free_memory == MemGlobals.free_memory);
+  if (calculated_free_memory != MemGlobals.free_memory) {
+    log_fmt("calculated was %f but free_memory was %f", calculated_free_memory,
+            MemGlobals.free_memory);
+    success = false;
+  }
+
+  assert(success);
+}
+
+static void *alloc_raw(s64 count);
+
+Buffer alloc_copy(const void *src, s64 size) {
+  Buffer buffer;
+  buffer.count = align_up(size, _4KB);
+  buffer.data = alloc_raw(buffer.count / _4KB);
+
+  memcpy(buffer.data, src, size);
+
+  return buffer;
 }
 
 void *alloc(s64 count) {
@@ -261,7 +356,7 @@ void *alloc(s64 count) {
   return data;
 }
 
-void *alloc_raw(s64 count) {
+static void *alloc_raw(s64 count) {
   if (count <= 0) return NULL;
 
   s64 size_class = smallest_greater_power2(count);
@@ -277,34 +372,35 @@ void *alloc_raw(s64 count) {
   const u64 addr = physical_address(data);
   const s64 begin_page = address_to_page(addr), end_page = begin_page + count;
   assert(BitSet__get_all(MemGlobals.usable_pages, begin_page, end_page));
-  assert(BitSet__get_all(MemGlobals.free_pages, begin_page, end_page));
+  assert(BitSet__get_all(MemGlobals.free_pages, begin_page, end_page),
+         "%f free of %f expected for class %f data=%f",
+         BitSet__get_count(MemGlobals.free_pages, begin_page, end_page), end_page - begin_page,
+         size_class, (u64)data);
   BitSet__set_range(MemGlobals.free_pages, begin_page, end_page, false);
 
-  if (size_class != SIZE_CLASS_COUNT - 1) {
-    s64 buddy_index = page_to_buddy(begin_page, size_class);
-    assert(BitSet__get(MemGlobals.size_classes[size_class].buddies, buddy_index));
-    BitSet__set(MemGlobals.size_classes[size_class].buddies, buddy_index, false);
-  }
+  s64 buddy_index = page_to_buddy(begin_page, size_class);
+  assert(BitSet__get(MemGlobals.size_classes[size_class].buddies, buddy_index));
+  BitSet__set(MemGlobals.size_classes[size_class].buddies, buddy_index, false);
 
-  if (size_class == 0) return data;
-
-  for (s64 i = size_class - 1, page = begin_page; i >= 0; i--) {
-    if ((1 << (i + 1)) == count) return data;
-
-    SizeClassInfo *info = &MemGlobals.size_classes[i];
-    s64 size = 1 << i, buddy_index = page_to_buddy(page, i);
+  DECLARE_SCOPED(s64 remaining = count, page = begin_page)
+  for (s64 i = size_class; remaining > 0 && i > 0; i--) {
+    const s64 child_class = i - 1;
+    SizeClassInfo *const info = &MemGlobals.size_classes[child_class];
+    const s64 child_size = 1 << child_class, buddy_index = page_to_buddy(page, child_class);
     assert(!BitSet__get(info->buddies, buddy_index));
 
-    if (count <= size) {
-      add_to_freelist(page + size, i);
-      BitSet__set(info->buddies, buddy_index, true);
-    } else {
-      count -= size;
-      page += size;
+    if (remaining > child_size) {
+      remaining -= child_size;
+      page += child_size;
+      continue;
     }
+
+    add_to_freelist(page + child_size, child_class);
+    BitSet__set(info->buddies, buddy_index, true);
+
+    if (remaining == child_size) break;
   }
 
-  // TODO this is probably unreachable
   return data;
 }
 
@@ -327,6 +423,7 @@ void free(void *data, s64 count) {
   for (s64 page = begin_page; page < end_page; page++)
     free_at_size_class(page, 0);
 
+  MemGlobals.free_memory += count * _4KB;
   BitSet__set_range(MemGlobals.free_pages, begin_page, end_page, true);
 }
 
@@ -350,7 +447,6 @@ void unsafe_mark_memory_usability(void *data, s64 count, bool usable) {
 }
 
 static void free_at_size_class(s64 page, s64 size_class) {
-  MemGlobals.free_memory += (1 << size_class) * _4KB;
 
   for (s64 i = size_class; i < SIZE_CLASS_COUNT - 1; i++) {
     assert(valid_page_for_size_class(page, i));
@@ -358,6 +454,7 @@ static void free_at_size_class(s64 page, s64 size_class) {
     SizeClassInfo *info = &MemGlobals.size_classes[i];
     const s64 buddy_index = page_to_buddy(page, i);
     const s64 buddy_page = buddy_page_for_page(page, i);
+
     const bool buddy_is_free = BitSet__get(info->buddies, buddy_index);
     BitSet__set(info->buddies, buddy_index, !buddy_is_free);
 
