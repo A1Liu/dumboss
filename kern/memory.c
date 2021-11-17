@@ -405,18 +405,13 @@ void free(void *data, s64 count) {
   const u64 addr = physical_address(data);
   assert(addr == align_down(addr, _4KB));
 
-  const s64 begin_page = address_to_page(addr), end_page = begin_page + count;
-  for (s64 i = begin_page; i < end_page; i++) {
-    assert(!BitSet__get(MemGlobals->free_pages, i), "index: %f", i - begin_page);
-  }
-  assert(BitSet__get_all(MemGlobals->usable_pages, begin_page, end_page));
-  assert(!BitSet__get_any(MemGlobals->free_pages, begin_page, end_page));
+  const s64 begin = address_to_page(addr), end = begin + count;
+  assert(BitSet__get_all(MemGlobals->usable_pages, begin, end));
+  assert(!BitSet__get_any(MemGlobals->free_pages, begin, end));
 
   // TODO should probably do some math here to not have to iterate over every
   // page in data
-  for (s64 _page = begin_page; _page < end_page; _page++) {
-    s64 page = _page;
-
+  RANGE(begin, end, page) {
     FOR_PTR(MemGlobals->classes, CLASS_COUNT - 1, info, class) {
       assert(valid_page_for_class(page, class));
       const s64 buddy_index = page_to_buddy(page, class);
@@ -427,7 +422,7 @@ void free(void *data, s64 count) {
 
       if (!buddy_is_free) {
         add_to_freelist(page, class);
-        goto next_iter;
+        continue(page);
       }
 
       remove_from_freelist(buddy_page, class);
@@ -436,12 +431,10 @@ void free(void *data, s64 count) {
 
     assert(valid_page_for_class(page, CLASS_COUNT - 1));
     add_to_freelist(page, CLASS_COUNT - 1);
-
-  next_iter:;
   }
 
   MemGlobals->free_memory += count * _4KB;
-  BitSet__set_range(MemGlobals->free_pages, begin_page, end_page, true);
+  BitSet__set_range(MemGlobals->free_pages, begin, end, true);
 }
 
 void unsafe_mark_memory_usability(void *data, s64 count, bool usable) {
