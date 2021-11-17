@@ -73,8 +73,8 @@ static inline BuddyInfo buddy_info(s64 page, s64 class) {
 
 static void *alloc_from_entries(MMap mmap, s64 size, s64 align);
 
-const char *const memory__bootboot_mmap_typename[] = {"Used", "Free", "ACPI", "MMIO"};
-const char *const sizename[] = {"", " Kb", " Mb", " Gb"};
+static const char *const mmap_typename[] = {"Used", "Free", "ACPI", "MMIO"};
+static const char *const sizename[] = {"", " Kb", " Mb", " Gb"};
 void memory__init(BOOTBOOT *bb) {
   // Calculation described in bootboot specification
   MMap mmap = {.data = &bb->mmap, .count = (bb->size - 128) / 16};
@@ -82,7 +82,7 @@ void memory__init(BOOTBOOT *bb) {
   FOR(mmap) {
     u64 ptr = MMapEnt_Ptr(it), size = MMapEnt_Size(it);
     mem_upper_bound = max(mem_upper_bound, ptr + size);
-    const char *const mtype = memory__bootboot_mmap_typename[MMapEnt_Type(it)];
+    const char *const mtype = mmap_typename[MMapEnt_Type(it)];
 
     u8 class = 0;
     REPEAT(3) {
