@@ -84,7 +84,7 @@ typedef const struct LABEL_T_DO_NOT_USE *const LABEL_T_DO_NOT_USE;
 #define _LOOP_HELPER(_cont, _br, _helper, it, cond, post_body)                                     \
   for (LABEL_T_DO_NOT_USE _LABEL_C(it) = (LABEL_T_DO_NOT_USE) && _cont,                            \
                           _LABEL_B(it) = (LABEL_T_DO_NOT_USE) && _br;                              \
-       ; ({                                                                                        \
+       cond; ({                                                                                    \
          (void)_LABEL_C(it);                                                                       \
          (void)_LABEL_B(it);                                                                       \
          _Pragma("clang diagnostic push \"-Wno-unused-label\"");                                   \
