@@ -27,14 +27,11 @@ u64 kernel_address(u64 address);
 void *kernel_ptr(u64 address);
 
 // Allocate `count` physically contiguous pages. Pages will be uninitialized.
-void *alloc_raw(s64 count);
+void *raw_pages(s64 count);
 
 // Allocate `count` contiguous pages
 // Pages are zeroed.
-void *alloc(s64 count);
-
-// Copy the given memory to a new allocation
-Buffer alloc_copy(const void *src, s64 size);
+void *zeroed_pages(s64 count);
 
 // Free contiguous pages starting at data
 void free(void *data, s64 count);

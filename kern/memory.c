@@ -162,12 +162,12 @@ void memory__init(BOOTBOOT *bb) {
 
   // Build a new page table using functions that assume higher-half kernel
   PageTable4 *old = get_page_table();
-  PageTable4 *new = alloc(1);
+  PageTable4 *new = zeroed_pages(1);
   assert(new);
 
   // Map higher half code
-  void *result = map_region(new, MEMORY__KERNEL_SPACE_BEGIN, (void *)MEMORY__KERNEL_SPACE_BEGIN,
-                            PTE_KERNEL, (s64)mem_upper_bound);
+  void *target = kernel_ptr(0);
+  void *result = map_region(new, (u64)target, target, PTE_KERNEL, (s64)mem_upper_bound);
   assert(result);
 
   // Map kernel code to address listed in the linker script
@@ -175,12 +175,13 @@ void memory__init(BOOTBOOT *bb) {
   const s64 code_size = S64(code_end_ptr - code_ptr), bss_size = S64(bss_end_ptr - code_end_ptr);
 
   {
-    const Buffer kern_text = alloc_copy(code_ptr, code_size);
-    result = map_region(new, (u64)code_ptr, kern_text.data, PTE_KERNEL_EXE, kern_text.count);
+    void *const kern = raw_pages(code_size / _4KB);
+    memcpy(kern, code_ptr, code_size);
+    result = map_region(new, (u64)code_ptr, kern, PTE_KERNEL_EXE, code_size);
     assert(result);
   }
 
-  void *const bss = alloc_raw(bss_size / _4KB);
+  void *const bss = raw_pages(bss_size / _4KB);
   result = map_region(new, (u64)code_end_ptr, bss, PTE_KERNEL, bss_size);
   assert(result);
 
@@ -326,25 +327,15 @@ void alloc__validate_heap(void) {
   assert(success);
 }
 
-Buffer alloc_copy(const void *src, s64 size) {
-  Buffer buffer;
-  buffer.count = align_up(size, _4KB);
-  buffer.data = alloc_raw(buffer.count / _4KB);
-
-  memcpy(buffer.data, src, size);
-
-  return buffer;
-}
-
-void *alloc(s64 count) {
-  void *data = alloc_raw(count);
+void *zeroed_pages(s64 count) {
+  void *data = raw_pages(count);
   ensure(data) return NULL;
 
   memset(data, 0, count * _4KB);
   return data;
 }
 
-void *alloc_raw(s64 count) {
+void *raw_pages(s64 count) {
   if (count <= 0) return NULL;
 
   s64 class = smallest_greater_power2(count);

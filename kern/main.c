@@ -48,14 +48,14 @@ void _start(void) {
 
   log_fmt("GDT: %f %f", gdt_info.size, (u64)gdt_info.gdt);
 
-  Gdt *gdt = alloc(1);
+  Gdt *gdt = zeroed_pages(1);
   *gdt = Gdt__new();
   u16 segment = Gdt__add_entry(gdt, GDT__KERNEL_CODE);
   load_gdt(gdt, segment);
 
   log_fmt("global descriptor table INIT_COMPLETE");
 
-  Idt *idt = Idt__new(alloc(1), 1 * _4KB);
+  Idt *idt = Idt__new(zeroed_pages(1), 1 * _4KB);
   IdtEntry__set_handler(&idt->double_fault, Idt__double_fault);
   load_idt(idt);
 
@@ -63,7 +63,7 @@ void _start(void) {
 
   // divide_by_zero();
 
-  void *hello = alloc(5);
+  void *hello = zeroed_pages(5);
   alloc__validate_heap();
   free(hello, 5);
   alloc__validate_heap();

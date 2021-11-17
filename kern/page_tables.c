@@ -149,7 +149,7 @@ void *map_page(PageTable4 *_p4, u64 virtual, void *kernel, u64 flags) {
 
   PageTable *p3 = pte_address(p4->entries[indices.p4]);
   ensure(p3) {
-    p3 = alloc(1);
+    p3 = zeroed_pages(1);
     ensure(p3) return NULL;
 
     p4->entries[indices.p4] = make_pte(p3, flags);
@@ -157,7 +157,7 @@ void *map_page(PageTable4 *_p4, u64 virtual, void *kernel, u64 flags) {
 
   PageTable *p2 = pte_address(p3->entries[indices.p3]);
   ensure(p2) {
-    p2 = alloc(1);
+    p2 = zeroed_pages(1);
     ensure(p2) return NULL;
 
     p3->entries[indices.p3] = make_pte(p2, flags);
@@ -165,7 +165,7 @@ void *map_page(PageTable4 *_p4, u64 virtual, void *kernel, u64 flags) {
 
   PageTable *p1 = pte_address(p2->entries[indices.p2]);
   ensure(p1) {
-    p1 = alloc(1);
+    p1 = zeroed_pages(1);
     ensure(p1) return NULL;
 
     p2->entries[indices.p2] = make_pte(p1, flags);
@@ -187,7 +187,7 @@ void *map_2MB_page(PageTable4 *_p4, u64 virtual, void *kernel, u64 flags) {
 
   PageTable *p3 = pte_address(p4->entries[indices.p4]);
   ensure(p3) {
-    p3 = alloc(1);
+    p3 = zeroed_pages(1);
     ensure(p3) return NULL;
 
     p4->entries[indices.p4] = make_pte(p3, flags);
@@ -195,7 +195,7 @@ void *map_2MB_page(PageTable4 *_p4, u64 virtual, void *kernel, u64 flags) {
 
   PageTable *p2 = pte_address(p3->entries[indices.p3]);
   ensure(p2) {
-    p2 = alloc(1);
+    p2 = zeroed_pages(1);
     ensure(p2) return NULL;
 
     p3->entries[indices.p3] = make_pte(p2, flags);
