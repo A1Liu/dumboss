@@ -26,6 +26,9 @@ u64 kernel_address(u64 address);
 // get kernel address from physical address
 void *kernel_ptr(u64 address);
 
+// Allocate `count` physically contiguous pages. Pages will be uninitialized.
+void *alloc_raw(s64 count);
+
 // Allocate `count` contiguous pages
 // Pages are zeroed.
 void *alloc(s64 count);

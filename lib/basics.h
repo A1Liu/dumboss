@@ -94,19 +94,19 @@ static any inline any__any(any value) {
 
 #define align_up(value, _align)                                                                    \
   ({                                                                                               \
-    u64 M_align = _align;                                                                          \
+    const u64 M_align = _align;                                                                    \
     assert(M_align && (__builtin_popcountl(M_align) == 1), "alignment wasn't a power of 2");       \
     __builtin_align_up(value, M_align);                                                            \
   })
 #define align_down(value, _align)                                                                  \
   ({                                                                                               \
-    u64 M_align = _align;                                                                          \
+    const u64 M_align = _align;                                                                    \
     assert(M_align && (__builtin_popcountl(M_align) == 1), "alignment wasn't a power of 2");       \
     __builtin_align_down(value, M_align);                                                          \
   })
 #define is_aligned(value, _align)                                                                  \
   ({                                                                                               \
-    u64 M_align = _align;                                                                          \
+    const u64 M_align = _align;                                                                    \
     assert(M_align && (__builtin_popcountl(M_align) == 1), "alignment wasn't a power of 2");       \
     __builtin_is_aligned(value, M_align);                                                          \
   })

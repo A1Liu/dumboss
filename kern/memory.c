@@ -23,12 +23,16 @@ typedef struct memory__FreeBlock {
 } FreeBlock;
 
 typedef struct {
+  s64 buddy;
+  s64 bitset_index;
+} BuddyInfo;
+
+typedef struct {
   FreeBlock *freelist;
   BitSet buddies;
-} SizeClassInfo;
+} ClassInfo;
 
 static struct {
-  s64 heap_size;
   s64 free_memory;
 
   // NOTE: This is used for checking correctness. Maybe its not necessary?
@@ -36,7 +40,7 @@ static struct {
   BitSet free_pages;
 
   // NOTE: The smallest size class is 4kb.
-  SizeClassInfo classes[CLASS_COUNT];
+  ClassInfo classes[CLASS_COUNT];
 } * MemGlobals;
 
 // get physical address from kernel address
@@ -81,6 +85,13 @@ static inline s64 page_to_buddy(s64 page_index, s64 class) {
   return page_index >> (class + 1);
 }
 
+static inline BuddyInfo buddy_info(s64 page, s64 class) {
+  assert(valid_page_for_class(page, class));
+  s64 buddy = page ^ (S64(1) << class);
+  s64 index = page >> (class + 1);
+  return (BuddyInfo){.buddy = buddy, .bitset_index = index};
+}
+
 static void *alloc_from_entries(MMap mmap, s64 size, s64 align);
 
 const char *const memory__bootboot_mmap_typename[] = {"Used", "Free", "ACPI", "MMIO"};
@@ -97,7 +108,7 @@ void memory__init(BOOTBOOT *bb) {
     u8 class = 0;
     REPEAT(3) {
       if (size < 1024) break;
-      class ++;
+      class += 1;
       size /= 1024;
     }
 
@@ -131,7 +142,7 @@ void memory__init(BOOTBOOT *bb) {
   MemGlobals = alloc_from_entries(mmap, sizeof(*MemGlobals), _Alignof(typeof(*MemGlobals)));
 
   const u64 buddy_max = align_up(mem_upper_bound, _4KB << CLASS_COUNT);
-  s64 max_page_idx = address_to_page(buddy_max);
+  const s64 max_page_idx = address_to_page(buddy_max);
 
   u64 *usable_pages_data = alloc_from_entries(mmap, (max_page_idx - 1) / 8 + 1, 8);
   MemGlobals->usable_pages = BitSet__from_raw(usable_pages_data, max_page_idx);
@@ -142,9 +153,9 @@ void memory__init(BOOTBOOT *bb) {
   BitSet__set_all(MemGlobals->free_pages, false);
 
   FOR_PTR(MemGlobals->classes, CLASS_COUNT - 1, info, class) {
-    s64 num_buddy_pairs = page_to_buddy(max_page_idx, class);
-    u64 *data = alloc_from_entries(mmap, (num_buddy_pairs - 1) / 8 + 1, 8);
-    info->buddies = BitSet__from_raw(data, num_buddy_pairs);
+    const s64 bitset_size = align_up(buddy_info(max_page_idx, class).bitset_index, 8);
+    u64 *const data = alloc_from_entries(mmap, bitset_size / 8, 8);
+    info->buddies = BitSet__from_raw(data, bitset_size);
     BitSet__set_all(info->buddies, false);
     info->freelist = NULL;
   }
@@ -169,8 +180,9 @@ void memory__init(BOOTBOOT *bb) {
 
   assert(available_memory == MemGlobals->free_memory, "%f vs %f", available_memory,
          MemGlobals->free_memory);
-  MemGlobals->heap_size = available_memory;
+
   alloc__validate_heap();
+
   log_fmt("global allocator INIT_COMPLETE");
 
   // Build a new page table using functions that assume higher-half kernel
@@ -252,7 +264,7 @@ static inline FreeBlock *find_block(FreeBlock *target) {
 static void *pop_freelist(s64 class) {
   assert(class < CLASS_COUNT);
 
-  SizeClassInfo *info = &MemGlobals->classes[class];
+  ClassInfo *info = &MemGlobals->classes[class];
   FreeBlock *block = info->freelist;
 
   assert(block != NULL);
@@ -269,10 +281,10 @@ static inline void remove_from_freelist(s64 page, s64 class) {
   assert(class < CLASS_COUNT);
   assert(valid_page_for_class(page, class));
 
-  FreeBlock *block = kernel_ptr(page_to_address(page));
+  FreeBlock *block = kernel_ptr(U64(page) * _4KB);
   assert(block->class == class);
 
-  SizeClassInfo *info = &MemGlobals->classes[class];
+  ClassInfo *info = &MemGlobals->classes[class];
   FreeBlock *prev = block->prev, *next = block->next;
   if (next != NULL) next->prev = prev;
   if (prev != NULL) {
@@ -296,8 +308,8 @@ static inline void add_to_freelist(s64 page, s64 class) {
   assert(class < CLASS_COUNT);
   assert(valid_page_for_class(page, class));
 
-  FreeBlock *block = kernel_ptr(page_to_address(page));
-  SizeClassInfo *info = &MemGlobals->classes[class];
+  FreeBlock *block = kernel_ptr(U64(page) * _4KB);
+  ClassInfo *info = &MemGlobals->classes[class];
 
   block->class = class;
   block->prev = NULL;
@@ -332,8 +344,6 @@ void alloc__validate_heap(void) {
   assert(success);
 }
 
-static void *alloc_raw(s64 count);
-
 Buffer alloc_copy(const void *src, s64 size) {
   Buffer buffer;
   buffer.count = align_up(size, _4KB);
@@ -352,7 +362,7 @@ void *alloc(s64 count) {
   return data;
 }
 
-static void *alloc_raw(s64 count) {
+void *alloc_raw(s64 count) {
   if (count <= 0) return NULL;
 
   s64 class = smallest_greater_power2(count);
@@ -374,16 +384,19 @@ static void *alloc_raw(s64 count) {
          class, (u64)data);
   BitSet__set_range(MemGlobals->free_pages, begin_page, end_page, false);
 
-  s64 buddy_index = page_to_buddy(begin_page, class);
-  assert(BitSet__get(MemGlobals->classes[class].buddies, buddy_index));
-  BitSet__set(MemGlobals->classes[class].buddies, buddy_index, false);
+  if (class != CLASS_COUNT - 1) {
+    s64 index = buddy_info(begin_page, class).bitset_index;
+    assert(BitSet__get(MemGlobals->classes[class].buddies, index));
+    BitSet__set(MemGlobals->classes[class].buddies, index, false);
+  }
 
   DECLARE_SCOPED(s64 remaining = count, page = begin_page)
   for (s64 i = class; remaining > 0 && i > 0; i--) {
     const s64 child_class = i - 1;
-    SizeClassInfo *const info = &MemGlobals->classes[child_class];
-    const s64 child_size = 1 << child_class, buddy_index = page_to_buddy(page, child_class);
-    assert(!BitSet__get(info->buddies, buddy_index));
+    ClassInfo *const info = &MemGlobals->classes[child_class];
+    const s64 child_size = 1 << child_class;
+    const s64 index = buddy_info(page, child_class).bitset_index;
+    assert(!BitSet__get(info->buddies, index));
 
     if (remaining > child_size) {
       remaining -= child_size;
@@ -392,7 +405,7 @@ static void *alloc_raw(s64 count) {
     }
 
     add_to_freelist(page + child_size, child_class);
-    BitSet__set(info->buddies, buddy_index, true);
+    BitSet__set(info->buddies, index, true);
 
     if (remaining == child_size) break;
   }
@@ -409,24 +422,23 @@ void free(void *data, s64 count) {
   assert(BitSet__get_all(MemGlobals->usable_pages, begin, end));
   assert(!BitSet__get_any(MemGlobals->free_pages, begin, end));
 
-  // TODO should probably do some math here to not have to iterate over every
-  // page in data
   RANGE(begin, end, page) {
+    // TODO should probably do some math here to not have to iterate over every
+    // page in data
     FOR_PTR(MemGlobals->classes, CLASS_COUNT - 1, info, class) {
       assert(valid_page_for_class(page, class));
-      const s64 buddy_index = page_to_buddy(page, class);
-      const s64 buddy_page = buddy_page_for_page(page, class);
+      const BuddyInfo buds = buddy_info(page, class);
 
-      const bool buddy_is_free = BitSet__get(info->buddies, buddy_index);
-      BitSet__set(info->buddies, buddy_index, !buddy_is_free);
+      const bool buddy_is_free = BitSet__get(info->buddies, buds.bitset_index);
+      BitSet__set(info->buddies, buds.bitset_index, !buddy_is_free);
 
       if (!buddy_is_free) {
         add_to_freelist(page, class);
         continue(page);
       }
 
-      remove_from_freelist(buddy_page, class);
-      page = min(page, buddy_page);
+      remove_from_freelist(buds.buddy, class);
+      page = min(page, buds.buddy);
     }
 
     assert(valid_page_for_class(page, CLASS_COUNT - 1));
@@ -448,10 +460,5 @@ void unsafe_mark_memory_usability(void *data, s64 count, bool usable) {
   assert(!any_are_free, "if you're marking memory usability, the marked pages can't be free");
 
   const s64 existing_pages = BitSet__get_count(MemGlobals->usable_pages, begin_page, end_page);
-  MemGlobals->heap_size -= existing_pages * _4KB;
-  if (usable) {
-    MemGlobals->heap_size += count * _4KB;
-  }
-
   BitSet__set_range(MemGlobals->usable_pages, begin_page, end_page, usable);
 }
