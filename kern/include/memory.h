@@ -30,7 +30,7 @@ void *raw_pages(s64 count);
 void *zeroed_pages(s64 count);
 
 // Free contiguous pages starting at data
-void free(void *data, s64 count);
+void free_pages(void *data, s64 count);
 
 // Free contiguous pages starting at data that were not usable before
 void unsafe_mark_memory_usability(void *data, s64 count, bool usable);

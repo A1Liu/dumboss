@@ -46,6 +46,9 @@ void set_page_table(PageTable4 *p4);
 
 void traverse_table(PageTable4 *p4);
 
+void destroy_table(PageTable4 *p4);
+void destroy_bootboot_table(PageTable4 *p4);
+
 // Translates virtual address to higher-half kernel-space address
 void *translate(PageTable4 *p4, u64 virtual);
 

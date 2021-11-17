@@ -153,7 +153,7 @@ void memory__init() {
     available_memory += size;
 
     BitSet__set_range(MemGlobals.usable_pages, begin_page, end_page, true);
-    free(kernel_ptr(begin), size / _4KB);
+    free_pages(kernel_ptr(begin), size / _4KB);
   }
 
   assert(available_memory == MemGlobals.free_memory);
@@ -207,6 +207,9 @@ void memory__init() {
   // Make sure BSS data stays up-to-date (because it includes MemGlobals)
   memcpy(bss, code_end_ptr, bss_size);
   set_page_table(new);
+  alloc__validate_heap();
+
+  destroy_bootboot_table(old);
   alloc__validate_heap();
 
   log_fmt("memory INIT_COMPLETE");
@@ -385,7 +388,7 @@ void *raw_pages(s64 count) {
   return data;
 }
 
-void free(void *data, s64 count) {
+void free_pages(void *data, s64 count) {
   assert(data != NULL);
   const u64 addr = physical_address(data);
   assert(addr == align_down(addr, _4KB));

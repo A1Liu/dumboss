@@ -4,9 +4,9 @@
 #include <basics.h>
 #include <macros.h>
 
-#define PageTable__ENTRY_COUNT 512
+#define ENTRY_COUNT 512
 typedef struct {
-  volatile u64 entries[PageTable__ENTRY_COUNT];
+  volatile u64 entries[ENTRY_COUNT];
 } PageTable;
 _Static_assert(sizeof(PageTable) == _4KB, "PageTables should be 4KB");
 
@@ -33,10 +33,10 @@ static PageTableIndices page_table_indices(u64 address) {
 
   return (PageTableIndices){
       .p0 = (u16)(address % _4KB),
-      .p1 = (u16)(p1 % PageTable__ENTRY_COUNT),
-      .p2 = (u16)(p2 % PageTable__ENTRY_COUNT),
-      .p3 = (u16)(p3 % PageTable__ENTRY_COUNT),
-      .p4 = (u16)(p4 % PageTable__ENTRY_COUNT),
+      .p1 = (u16)(p1 % ENTRY_COUNT),
+      .p2 = (u16)(p2 % ENTRY_COUNT),
+      .p3 = (u16)(p3 % ENTRY_COUNT),
+      .p4 = (u16)(p4 % ENTRY_COUNT),
   };
 }
 
@@ -207,6 +207,44 @@ void *map_2MB_page(PageTable4 *_p4, u64 virtual, void *kernel, u64 flags) {
   return (void *)virtual;
 }
 
+static void destroy_bb_table_inner(PageTable *table, u64 entry, u8 level) {
+  if (table == NULL) return;
+  if (entry & PTE_HUGE_PAGE) return;
+  if (!level) return;
+
+  if (level > 1) {
+    FOR_PTR(table->entries, ENTRY_COUNT) {
+      destroy_bb_table_inner(pte_address(*it), *it, level - 1);
+    }
+  }
+
+  unsafe_mark_memory_usability(table, 1, true);
+  free_pages(table, 1);
+}
+
+void destroy_bootboot_table(PageTable4 *p4) {
+  destroy_bb_table_inner((PageTable *)p4, 0, 4);
+}
+
+static void destroy_table_inner(PageTable *table, u64 entry, u8 level);
+void destroy_table(PageTable4 *p4) {
+  destroy_table_inner((PageTable *)p4, 0, 4);
+}
+
+static void destroy_table_inner(PageTable *table, u64 entry, u8 level) {
+  if (table == NULL) return;
+  if (entry & PTE_HUGE_PAGE) return;
+  if (!level) return;
+
+  if (level > 1) {
+    FOR_PTR(table->entries, ENTRY_COUNT) {
+      destroy_table_inner(pte_address(*it), *it, level - 1);
+    }
+  }
+
+  free_pages(table, 1);
+}
+
 static void traverse_table_inner(u64 table_entry, u16 table_level);
 void traverse_table(PageTable4 *p4) {
   traverse_table_inner(make_pte(p4, 0), 4);
@@ -223,7 +261,7 @@ static void traverse_table_inner(u64 table_entry, u16 table_level) {
 
   u16 count = 0;
   PageTable *table = pte_address(table_entry);
-  FOR_PTR(table->entries, PageTable__ENTRY_COUNT) {
+  FOR_PTR(table->entries, ENTRY_COUNT) {
     u64 entry = *it;
     if (!entry) continue;
     count++;
@@ -252,7 +290,7 @@ static void traverse_table_inner(u64 table_entry, u16 table_level) {
     break;                                                                                         \
   }
 
-  FOR_PTR(table->entries, PageTable__ENTRY_COUNT) {
+  FOR_PTR(table->entries, ENTRY_COUNT) {
     u64 entry = *it;
 
     enum Mode new_mode;
