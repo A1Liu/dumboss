@@ -64,9 +64,9 @@ void _start(void) {
   // divide_by_zero();
 
   void *hello = zeroed_pages(5);
-  alloc__validate_heap();
-  free_pages(hello, 5);
-  alloc__validate_heap();
+  validate_heap();
+  release_pages(hello, 5);
+  validate_heap();
 
   log_fmt("finished messing with allocator");
 

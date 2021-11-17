@@ -219,7 +219,7 @@ static void destroy_bb_table_inner(PageTable *table, u64 entry, u8 level) {
   }
 
   unsafe_mark_memory_usability(table, 1, true);
-  free_pages(table, 1);
+  release_pages(table, 1);
 }
 
 void destroy_bootboot_table(PageTable4 *p4) {
@@ -242,7 +242,7 @@ static void destroy_table_inner(PageTable *table, u64 entry, u8 level) {
     }
   }
 
-  free_pages(table, 1);
+  release_pages(table, 1);
 }
 
 static void traverse_table_inner(u64 table_entry, u16 table_level);

@@ -23,17 +23,19 @@ u64 kernel_address(u64 address);
 void *kernel_ptr(u64 address);
 
 // Allocate `count` physically contiguous pages. Pages will be uninitialized.
+Buffer try_raw_pages(s64 count);
+
+// Allocate `count` physically contiguous pages. Pages will be uninitialized.
 void *raw_pages(s64 count);
 
 // Allocate `count` contiguous pages
 // Pages are zeroed.
 void *zeroed_pages(s64 count);
 
-// Free contiguous pages starting at data
-void free_pages(void *data, s64 count);
+// Release contiguous pages starting at data
+void release_pages(void *data, s64 count);
 
-// Free contiguous pages starting at data that were not usable before
 void unsafe_mark_memory_usability(void *data, s64 count, bool usable);
 
 // Check that the heap is in a valid state
-void alloc__validate_heap(void);
+void validate_heap(void);

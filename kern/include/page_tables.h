@@ -42,6 +42,9 @@ void UNSAFE_HACKY_higher_half_init(void);
 // Read the value of cr3
 PageTable4 *get_page_table(void);
 
+// Allocate `count` virtually contiguous pages. Pages will be zeroed.
+void *virtual_pages(PageTable4 *p4, s64 count);
+
 void set_page_table(PageTable4 *p4);
 
 void traverse_table(PageTable4 *p4);
