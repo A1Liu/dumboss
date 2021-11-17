@@ -77,31 +77,39 @@ struct LABEL_T_DO_NOT_USE;
 #define _FOR_PTR2(ptr, len)            _FOR_PTR(PASTE(M_FOR_, __COUNTER__), ptr, len, it, index)
 #define _FOR_PTR3(ptr, len, it)        _FOR_PTR(PASTE(M_FOR_, __COUNTER__), ptr, len, it, index)
 #define _FOR_PTR4(ptr, len, it, index) _FOR_PTR(PASTE(M_FOR_, __COUNTER__), ptr, len, it, index)
-#define _FOR_PTR(_uniq, ptr, len, it, it_index)                                                    \
+#define _FOR_PTR(_uniq, ptr, len, it, index)                                                       \
   NAMED_BREAK(it)                                                                                  \
   DECLARE_SCOPED(s64 PASTE(_uniq, M_idx) = 0, PASTE(_uniq, M_len) = (len))                         \
-  DECLARE_SCOPED(s64 it_index = 0)                                                                 \
+  DECLARE_SCOPED(s64 index = 0)                                                                    \
   DECLARE_SCOPED(typeof(&ptr[0]) PASTE(_uniq, M_ptr) = (ptr))                                      \
   for (typeof(&ptr[0]) it = PASTE(_uniq, M_ptr); PASTE(_uniq, M_idx) < PASTE(_uniq, M_len);        \
        PASTE(_uniq, M_ptr)++, PASTE(_uniq, M_idx)++, it = PASTE(_uniq, M_ptr),                     \
-                       it_index = PASTE(_uniq, M_idx))
+                       index = PASTE(_uniq, M_idx))
 
-#define FOR(...)                   PASTE(_FOR, NARG(__VA_ARGS__))(__VA_ARGS__)
-#define _FOR1(array)               _FOR(PASTE(M_FOR_, __COUNTER__), array, it, it_index)
-#define _FOR2(array, it)           _FOR(PASTE(M_FOR_, __COUNTER__), array, it, it_index)
-#define _FOR3(array, it, it_index) _FOR(PASTE(M_FOR_, __COUNTER__), array, it, it_index)
-#define _FOR(_uniq, array, it, it_index)                                                           \
+#define FOR(...)                PASTE(_FOR, NARG(__VA_ARGS__))(__VA_ARGS__)
+#define _FOR1(array)            _FOR(PASTE(M_FOR_, __COUNTER__), array, it, index)
+#define _FOR2(array, it)        _FOR(PASTE(M_FOR_, __COUNTER__), array, it, index)
+#define _FOR3(array, it, index) _FOR(PASTE(M_FOR_, __COUNTER__), array, it, index)
+#define _FOR(_uniq, array, it, index)                                                              \
   DECLARE_SCOPED(typeof(array) PASTE(_uniq, M_array) = array)                                      \
-  _FOR_PTR(_uniq, PASTE(_uniq, M_array).data, PASTE(_uniq, M_array).count, it, it_index)
+  _FOR_PTR(_uniq, PASTE(_uniq, M_array).data, PASTE(_uniq, M_array).count, it, index)
 
-#define REPEAT(...)         PASTE(_REPEAT, NARG(__VA_ARGS__))(__VA_ARGS__)
-#define _REPEAT1(times)     _REPEAT(PASTE(M_REPEAT_, __COUNTER__), times, it)
-#define _REPEAT2(times, it) _REPEAT(PASTE(M_REPEAT_, __COUNTER__), times, it)
-#define _REPEAT(_uniq, times, it)                                                                  \
+#define RANGE(...)                     PASTE(_RANGE, NARG(__VA_ARGS__))(__VA_ARGS__)
+#define _RANGE2(begin, end)            _RANGE(PASTE(M_RANGE_, __COUNTER__), begin, end, it, index)
+#define _RANGE3(begin, end, it)        _RANGE(PASTE(M_RANGE_, __COUNTER__), begin, end, it, index)
+#define _RANGE4(begin, end, it, index) _RANGE(PASTE(M_RANGE_, __COUNTER__), begin, end, it, index)
+#define _RANGE(_uniq, begin, end, it, index)                                                       \
   NAMED_BREAK(it)                                                                                  \
-  DECLARE_SCOPED(s64 PASTE(_uniq, M_it) = 0, PASTE(_uniq, M_end) = times)                          \
-  for (s64 it = PASTE(_uniq, M_it); PASTE(_uniq, M_it) < PASTE(_uniq, M_end);                      \
-       PASTE(_uniq, M_it)++, it = PASTE(_uniq, M_it))
+  DECLARE_SCOPED(const typeof(begin) PASTE(_uniq, M_begin) = (begin), PASTE(_uniq, M_end) = (end)) \
+  DECLARE_SCOPED(s64 PASTE(_uniq, M_idx) = 0, index = 0)                                           \
+  for (typeof(begin) PASTE(_uniq, M_it) = PASTE(_uniq, M_begin), it = PASTE(_uniq, M_it);          \
+       PASTE(_uniq, M_it) != PASTE(_uniq, M_end); PASTE(_uniq, M_it)++, PASTE(_uniq, M_idx)++,     \
+                                  it = PASTE(_uniq, M_it), index = PASTE(_uniq, M_idx))
+
+#define REPEAT(...)               PASTE(_REPEAT, NARG(__VA_ARGS__))(__VA_ARGS__)
+#define _REPEAT1(times)           _REPEAT(PASTE(M_REPEAT_, __COUNTER__), times, it)
+#define _REPEAT2(times, it)       _REPEAT(PASTE(M_REPEAT_, __COUNTER__), times, it)
+#define _REPEAT(_uniq, times, it) _RANGE(_uniq, 0, times, it, PASTE(_uniq, M_ignore))
 
 // Does bubble sort stuff; user has to make the swaps themself
 #define SLOW_SORT(array)                                                                           \

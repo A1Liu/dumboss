@@ -115,7 +115,7 @@ void memory__init(BOOTBOOT *bb) {
   // remove weird bit stuff that BOOTBOOT does for the free entries
   FOR(mmap) {
     if (!MMapEnt_IsFree(it)) {
-      mmap.count = it_index;
+      mmap.count = index;
       break;
     }
 
@@ -167,7 +167,8 @@ void memory__init(BOOTBOOT *bb) {
     free(kernel_ptr(begin), size / _4KB);
   }
 
-  assert(available_memory == MemGlobals->free_memory);
+  assert(available_memory == MemGlobals->free_memory, "%f vs %f", available_memory,
+         MemGlobals->free_memory);
   MemGlobals->heap_size = available_memory;
   alloc__validate_heap();
   log_fmt("global allocator INIT_COMPLETE");
@@ -399,8 +400,6 @@ static void *alloc_raw(s64 count) {
   return data;
 }
 
-static void free_at_class(s64 page, s64 class);
-
 void free(void *data, s64 count) {
   assert(data != NULL);
   const u64 addr = physical_address(data);
@@ -415,8 +414,31 @@ void free(void *data, s64 count) {
 
   // TODO should probably do some math here to not have to iterate over every
   // page in data
-  for (s64 page = begin_page; page < end_page; page++)
-    free_at_class(page, 0);
+  for (s64 _page = begin_page; _page < end_page; _page++) {
+    s64 page = _page;
+
+    FOR_PTR(MemGlobals->classes, CLASS_COUNT - 1, info, class) {
+      assert(valid_page_for_class(page, class));
+      const s64 buddy_index = page_to_buddy(page, class);
+      const s64 buddy_page = buddy_page_for_page(page, class);
+
+      const bool buddy_is_free = BitSet__get(info->buddies, buddy_index);
+      BitSet__set(info->buddies, buddy_index, !buddy_is_free);
+
+      if (!buddy_is_free) {
+        add_to_freelist(page, class);
+        goto next_iter;
+      }
+
+      remove_from_freelist(buddy_page, class);
+      page = min(page, buddy_page);
+    }
+
+    assert(valid_page_for_class(page, CLASS_COUNT - 1));
+    add_to_freelist(page, CLASS_COUNT - 1);
+
+  next_iter:;
+  }
 
   MemGlobals->free_memory += count * _4KB;
   BitSet__set_range(MemGlobals->free_pages, begin_page, end_page, true);
@@ -439,26 +461,4 @@ void unsafe_mark_memory_usability(void *data, s64 count, bool usable) {
   }
 
   BitSet__set_range(MemGlobals->usable_pages, begin_page, end_page, usable);
-}
-
-static void free_at_class(s64 page, s64 class) {
-
-  for (s64 i = class; i < CLASS_COUNT - 1; i++) {
-    assert(valid_page_for_class(page, i));
-
-    SizeClassInfo *info = &MemGlobals->classes[i];
-    const s64 buddy_index = page_to_buddy(page, i);
-    const s64 buddy_page = buddy_page_for_page(page, i);
-
-    const bool buddy_is_free = BitSet__get(info->buddies, buddy_index);
-    BitSet__set(info->buddies, buddy_index, !buddy_is_free);
-
-    if (!buddy_is_free) return add_to_freelist(page, i);
-
-    remove_from_freelist(buddy_page, i);
-    page = min(page, buddy_page);
-  }
-
-  assert(valid_page_for_class(page, CLASS_COUNT - 1));
-  add_to_freelist(page, CLASS_COUNT - 1);
 }
