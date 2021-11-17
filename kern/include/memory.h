@@ -1,9 +1,5 @@
 #pragma once
-#include "bootboot.h"
 #include <types.h>
-
-extern struct {
-} Globals;
 
 #define MEMORY__KERNEL_SPACE_BEGIN ((u64)0xffff800000000000ull)
 
@@ -15,7 +11,7 @@ extern struct {
 #define _2MB (2 * 1024 * 1024)
 #define _1GB (1024 * 1024 * 1024)
 
-void memory__init(BOOTBOOT *bb);
+void memory__init(void);
 
 // get physical address from kernel address
 u64 physical_address(void *ptr);

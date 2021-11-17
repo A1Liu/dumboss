@@ -143,7 +143,7 @@ typedef struct {
 } _pack BOOTBOOT;
 
 /* imported virtual addresses, see linker script */
-extern BOOTBOOT bootboot;         // see bootboot.h
+extern BOOTBOOT bb;               // see bootboot.h
 extern uint8_t environment[4096]; // configuration, UTF-8 text key=value pairs
 extern uint8_t fb;                // linear framebuffer mapped
 

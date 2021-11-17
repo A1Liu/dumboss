@@ -1,4 +1,5 @@
 #include "memory.h"
+#include "bootboot.h"
 #include "page_tables.h"
 #include <asm.h>
 #include <basics.h>
@@ -75,9 +76,9 @@ static void *alloc_from_entries(MMap mmap, s64 size, s64 align);
 
 static const char *const mmap_typename[] = {"Used", "Free", "ACPI", "MMIO"};
 static const char *const sizename[] = {"", " Kb", " Mb", " Gb"};
-void memory__init(BOOTBOOT *bb) {
+void memory__init() {
   // Calculation described in bootboot specification
-  MMap mmap = {.data = &bb->mmap, .count = (bb->size - 128) / 16};
+  MMap mmap = {.data = &bb.mmap, .count = (bb.size - 128) / 16};
   u64 mem_upper_bound = 0;
   FOR(mmap) {
     u64 ptr = MMapEnt_Ptr(it), size = MMapEnt_Size(it);
@@ -170,42 +171,40 @@ void memory__init(BOOTBOOT *bb) {
   void *result = map_region(new, (u64)target, target, PTE_KERNEL, (s64)mem_upper_bound);
   assert(result);
 
-  // Map kernel code to address listed in the linker script
   const u8 *code_ptr = &code_begin, *code_end_ptr = &code_end, *bss_end_ptr = &bss_end;
   const s64 code_size = S64(code_end_ptr - code_ptr), bss_size = S64(bss_end_ptr - code_end_ptr);
 
-  {
-    void *const kern = raw_pages(code_size / _4KB);
+  { // Map kernel code to address listed in the linker script
+    void *kern = raw_pages(code_size / _4KB);
     memcpy(kern, code_ptr, code_size);
     result = map_region(new, (u64)code_ptr, kern, PTE_KERNEL_EXE, code_size);
     assert(result);
   }
 
+  // Map BSS data
   void *const bss = raw_pages(bss_size / _4KB);
   result = map_region(new, (u64)code_end_ptr, bss, PTE_KERNEL, bss_size);
   assert(result);
 
-  // Map Bootboot struct, as described in linker script
-  {
-    void *bb_ptr = translate(old, (u64)bb);
-    result = map_page(new, (u64)bb, bb_ptr, PTE_KERNEL);
+  { // Map Bootboot struct, as described in linker script
+    void *bb_ptr = translate(old, (u64)&bb);
+    result = map_page(new, (u64)&bb, bb_ptr, PTE_KERNEL);
     assert(result);
   }
 
-  // Map Environment data
-  {
+  { // Map Environment data
     void *env_ptr = translate(old, (u64)&environment);
     result = map_page(new, (u64)&environment, env_ptr, PTE_KERNEL);
     assert(result);
   }
 
-  // Map bootboot kernel stack
-  {
+  { // Map bootboot kernel stack
     void *stack_bottom = translate(old, (u64)align_down(&result, _4KB));
     result = map_page(new, 0xFFFFFFFFFFFFF000, stack_bottom, PTE_KERNEL);
     assert(result);
   }
 
+  // Make sure BSS data stays up-to-date (because it includes MemGlobals)
   memcpy(bss, code_end_ptr, bss_size);
   set_page_table(new);
   alloc__validate_heap();

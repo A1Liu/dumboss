@@ -29,7 +29,7 @@ __attribute__((interrupt, noreturn)) void Idt__double_fault(ExceptionStackFrame 
  ******************************************/
 void _start(void) {
   /*** NOTE: BOOTBOOT runs _start on all cores in parallel ***/
-  const uint16_t apic_id = asm_cpuid(1).ebx >> 24, bspid = bootboot.bspid;
+  const uint16_t apic_id = asm_cpuid(1).ebx >> 24, bspid = bb.bspid;
 
   // ensure only one core is running
   while (apic_id != bspid)
@@ -42,7 +42,7 @@ void _start(void) {
   u32 gb_pages = asm_cpuid(0x80000001).edx & CPUID_PDPE1GB;
   if (gb_pages) log("gb pages are enabled");
 
-  memory__init(&bootboot);
+  memory__init();
 
   GdtInfo gdt_info = current_gdt();
 
