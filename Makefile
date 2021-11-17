@@ -28,6 +28,7 @@ dep_path = $(call output_path,$(1),$(DEPS_DIR),.dep)
 # -fpic is necessary for whatever reason. Beats me man.
 CFLAGS := -c --std=gnu17 -target x86_64-unknown-elf -MD                        \
           -ffreestanding -fno-stack-protector -fmerge-all-constants -fPIC      \
+          -fno-diagnostics-show-note-include-stack                             \
           -mno-red-zone -nostdlib -isystem./lib                                \
           -Wall -Wextra -Werror -Wconversion                                   \
           -Wno-unused-function -Wno-gcc-compat                                 \

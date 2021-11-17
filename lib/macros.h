@@ -49,29 +49,53 @@
 // NOTE: This forward declaration is required to compile on Clang. It's not clear
 // whether it SHOULD be required, but it is.
 //                        - Albert Liu, Nov 02, 2021 Tue 21:16 EDT
-struct LABEL_T_DO_NOT_USE;
+typedef const struct LABEL_T_DO_NOT_USE *const LABEL_T_DO_NOT_USE;
 
-#define _LABEL(name) PASTE(M_LABEL_, name)
+#define _LABEL_B(name) PASTE(M_LABEL_B_, name)
+#define _LABEL_C(name) PASTE(M_LABEL_C_, name)
 #define break(label)                                                                               \
   ({                                                                                               \
-    _Static_assert(CMP_TYPE(typeof(&_LABEL(label)), const struct LABEL_T_DO_NOT_USE *const *),     \
+    _Static_assert(CMP_TYPE(typeof(&_LABEL_B(label)), LABEL_T_DO_NOT_USE *),                       \
                    "called break on something that's not a label");                                \
-    goto *(void *)_LABEL(label);                                                                   \
+    goto *(void *)_LABEL_B(label);                                                                 \
+  })
+#define continue(label)                                                                            \
+  ({                                                                                               \
+    _Static_assert(CMP_TYPE(typeof(&_LABEL_C(label)), LABEL_T_DO_NOT_USE *),                       \
+                   "called continue on something that's not a label");                             \
+    goto *(void *)_LABEL_C(label);                                                                 \
   })
 
 // NOTE: This ALSO breaks compatibility with GCC.
 //                                    - Albert Liu, Nov 02, 2021 Tue 01:19 EDT
-#define _NAMED_BREAK_HELPER(label, _internal_label)                                                \
-  for (const struct LABEL_T_DO_NOT_USE *const _LABEL(label) =                                      \
-           (const struct LABEL_T_DO_NOT_USE *const)&&_internal_label;                              \
-       ; ({                                                                                        \
+#define _NAMED_BREAK(_uniq, label)                                                                 \
+  for (LABEL_T_DO_NOT_USE _LABEL_B(label) = (LABEL_T_DO_NOT_USE) && _uniq;; ({                     \
          _Pragma("clang diagnostic push \"-Wno-unused-label\"");                                   \
-         (void)_LABEL(label);                                                                      \
-       _internal_label:                                                                            \
+         (void)_LABEL_B(label);                                                                    \
+       _uniq:                                                                                      \
          break;                                                                                    \
          _Pragma("clang diagnostic pop");                                                          \
        }))
-#define NAMED_BREAK(label) _NAMED_BREAK_HELPER(label, _LABEL(__COUNTER__))
+#define NAMED_BREAK(label) _NAMED_BREAK(PASTE(M_BREAK_, __COUNTER__), label)
+
+#define LOOP_HELPER(_uniq, it, cond, post_body)                                                    \
+  _LOOP_HELPER(PASTE(_uniq, C_), PASTE(_uniq, B_), PASTE(_uniq, I_), it, cond, post_body)
+
+#define _LOOP_HELPER(_cont, _br, _helper, it, cond, post_body)                                     \
+  for (LABEL_T_DO_NOT_USE _LABEL_C(it) = (LABEL_T_DO_NOT_USE) && _cont,                            \
+                          _LABEL_B(it) = (LABEL_T_DO_NOT_USE) && _br;                              \
+       ; ({                                                                                        \
+         (void)_LABEL_C(it);                                                                       \
+         (void)_LABEL_B(it);                                                                       \
+         _Pragma("clang diagnostic push \"-Wno-unused-label\"");                                   \
+       _cont:                                                                                      \
+         post_body;                                                                                \
+         goto _helper;                                                                             \
+       _br:                                                                                        \
+         break;                                                                                    \
+       _helper:;                                                                                   \
+         _Pragma("clang diagnostic pop");                                                          \
+       }))
 
 #define FOR_PTR(...)                   PASTE(_FOR_PTR, NARG(__VA_ARGS__))(__VA_ARGS__)
 #define _FOR_PTR2(ptr, len)            _FOR_PTR(PASTE(M_FOR_, __COUNTER__), ptr, len, it, index)
@@ -99,12 +123,12 @@ struct LABEL_T_DO_NOT_USE;
 #define _RANGE3(begin, end, it)        _RANGE(PASTE(M_RANGE_, __COUNTER__), begin, end, it, index)
 #define _RANGE4(begin, end, it, index) _RANGE(PASTE(M_RANGE_, __COUNTER__), begin, end, it, index)
 #define _RANGE(_uniq, begin, end, it, index)                                                       \
-  NAMED_BREAK(it)                                                                                  \
-  DECLARE_SCOPED(const typeof(begin) PASTE(_uniq, M_begin) = (begin), PASTE(_uniq, M_end) = (end)) \
+  DECLARE_SCOPED(typeof(begin) const PASTE(_uniq, M_begin) = (begin), PASTE(_uniq, M_end) = (end)) \
   DECLARE_SCOPED(s64 PASTE(_uniq, M_idx) = 0, index = 0)                                           \
-  for (typeof(begin) PASTE(_uniq, M_it) = PASTE(_uniq, M_begin), it = PASTE(_uniq, M_it);          \
-       PASTE(_uniq, M_it) != PASTE(_uniq, M_end); PASTE(_uniq, M_it)++, PASTE(_uniq, M_idx)++,     \
-                                  it = PASTE(_uniq, M_it), index = PASTE(_uniq, M_idx))
+  DECLARE_SCOPED(typeof((begin) + 0) PASTE(_uniq, M_it) = PASTE(_uniq, M_begin),                   \
+                 it = PASTE(_uniq, M_it))                                                          \
+  LOOP_HELPER(_uniq, it, PASTE(_uniq, M_it) != PASTE(_uniq, M_end),                                \
+              (it = ++PASTE(_uniq, M_it), index = ++PASTE(_uniq, M_idx)))
 
 #define REPEAT(...)               PASTE(_REPEAT, NARG(__VA_ARGS__))(__VA_ARGS__)
 #define _REPEAT1(times)           _REPEAT(PASTE(M_REPEAT_, __COUNTER__), times, it)
