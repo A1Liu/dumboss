@@ -64,29 +64,8 @@ void *kernel_ptr(u64 address) {
   return (void *)(address + MEMORY__KERNEL_SPACE_BEGIN);
 }
 
-static inline s64 address_to_page(u64 address) {
-  return (s64)(address / _4KB);
-}
-
-static inline u64 page_to_address(s64 page) {
-  return ((u64)page) * _4KB;
-}
-
-static inline bool valid_page_for_class(s64 page, s64 class) {
-  return (page >> class << class) == page;
-}
-
-static inline s64 buddy_page_for_page(s64 page_index, s64 class) {
-  assert(valid_page_for_class(page_index, class));
-  return page_index ^ (((s64)1) << class);
-}
-
-static inline s64 page_to_buddy(s64 page_index, s64 class) {
-  return page_index >> (class + 1);
-}
-
 static inline BuddyInfo buddy_info(s64 page, s64 class) {
-  assert(valid_page_for_class(page, class));
+  assert(is_aligned(page, 1 << class));
   s64 buddy = page ^ (S64(1) << class);
   s64 index = page >> (class + 1);
   return (BuddyInfo){.buddy = buddy, .bitset_index = index};
@@ -142,7 +121,7 @@ void memory__init(BOOTBOOT *bb) {
   MemGlobals = alloc_from_entries(mmap, sizeof(*MemGlobals), _Alignof(typeof(*MemGlobals)));
 
   const u64 buddy_max = align_up(mem_upper_bound, _4KB << CLASS_COUNT);
-  const s64 max_page_idx = address_to_page(buddy_max);
+  const s64 max_page_idx = buddy_max / _4KB;
 
   u64 *usable_pages_data = alloc_from_entries(mmap, (max_page_idx - 1) / 8 + 1, 8);
   MemGlobals->usable_pages = BitSet__from_raw(usable_pages_data, max_page_idx);
@@ -168,8 +147,8 @@ void memory__init(BOOTBOOT *bb) {
   FOR(mmap, entry) {
     u64 begin = align_up(entry->ptr, _4KB);
     u64 end = align_down(entry->ptr + entry->size, _4KB);
-    s64 begin_page = address_to_page(begin);
-    s64 end_page = address_to_page(end);
+    s64 begin_page = begin / _4KB;
+    s64 end_page = end / _4KB;
     s64 size = S64(max(end, begin) - begin);
 
     available_memory += size;
@@ -279,7 +258,7 @@ static void *pop_freelist(s64 class) {
 
 static inline void remove_from_freelist(s64 page, s64 class) {
   assert(class < CLASS_COUNT);
-  assert(valid_page_for_class(page, class));
+  assert(is_aligned(page, 1 << class));
 
   FreeBlock *block = kernel_ptr(U64(page) * _4KB);
   assert(block->class == class);
@@ -306,7 +285,7 @@ static inline void remove_from_freelist(s64 page, s64 class) {
 
 static inline void add_to_freelist(s64 page, s64 class) {
   assert(class < CLASS_COUNT);
-  assert(valid_page_for_class(page, class));
+  assert(is_aligned(page, 1 << class));
 
   FreeBlock *block = kernel_ptr(U64(page) * _4KB);
   ClassInfo *info = &MemGlobals->classes[class];
@@ -376,7 +355,7 @@ void *alloc_raw(s64 count) {
 
   void *const data = pop_freelist(class);
   const u64 addr = physical_address(data);
-  const s64 begin_page = address_to_page(addr), end_page = begin_page + count;
+  const s64 begin_page = addr / _4KB, end_page = begin_page + count;
   assert(BitSet__get_all(MemGlobals->usable_pages, begin_page, end_page));
   assert(BitSet__get_all(MemGlobals->free_pages, begin_page, end_page),
          "%f free of %f expected for class %f data=%f",
@@ -418,7 +397,7 @@ void free(void *data, s64 count) {
   const u64 addr = physical_address(data);
   assert(addr == align_down(addr, _4KB));
 
-  const s64 begin = address_to_page(addr), end = begin + count;
+  const s64 begin = addr / _4KB, end = begin + count;
   assert(BitSet__get_all(MemGlobals->usable_pages, begin, end));
   assert(!BitSet__get_any(MemGlobals->free_pages, begin, end));
 
@@ -426,7 +405,7 @@ void free(void *data, s64 count) {
     // TODO should probably do some math here to not have to iterate over every
     // page in data
     FOR_PTR(MemGlobals->classes, CLASS_COUNT - 1, info, class) {
-      assert(valid_page_for_class(page, class));
+      assert(is_aligned(page, 1 << class));
       const BuddyInfo buds = buddy_info(page, class);
 
       const bool buddy_is_free = BitSet__get(info->buddies, buds.bitset_index);
@@ -441,7 +420,7 @@ void free(void *data, s64 count) {
       page = min(page, buds.buddy);
     }
 
-    assert(valid_page_for_class(page, CLASS_COUNT - 1));
+    assert(is_aligned(page, 1 << (CLASS_COUNT - 1)));
     add_to_freelist(page, CLASS_COUNT - 1);
   }
 
@@ -454,7 +433,7 @@ void unsafe_mark_memory_usability(void *data, s64 count, bool usable) {
   const u64 addr = physical_address(data);
   assert(addr == align_down(addr, _4KB));
 
-  const s64 begin_page = address_to_page(addr), end_page = begin_page + count;
+  const s64 begin_page = addr / _4KB, end_page = begin_page + count;
 
   const bool any_are_free = BitSet__get_any(MemGlobals->free_pages, begin_page, end_page);
   assert(!any_are_free, "if you're marking memory usability, the marked pages can't be free");
