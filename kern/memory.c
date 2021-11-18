@@ -204,7 +204,8 @@ void memory__init() {
   res = copy_mapping(new, old, 0xFFFFFFFFFFFFF000, 1, PTE_KERNEL);
   assert(res);
 
-  volatile u8 *fb_ptr = &fb;
+  res = copy_mapping(new, old, (u64)&fb, align_up(bb.fb_size, _4KB) / _4KB, PTE_KERNEL);
+  assert(res);
 
   // Make sure BSS data stays up-to-date (because it includes MemGlobals)
   set_page_table(new);
