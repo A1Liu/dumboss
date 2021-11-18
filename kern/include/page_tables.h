@@ -56,7 +56,7 @@ s64 region_size(PageTable4 *p4, u64 ptr);
 // Translates virtual address to physical address
 void *translate(PageTable4 *p4, u64 virt);
 
-bool map_region(PageTable4 *p4, u64 virt, const void *kernel, u64 flags, s64 size);
+bool map_region(PageTable4 *p4, u64 virt, const void *kernel, s64 size, u64 flags);
 
 bool map_page(PageTable4 *p4, u64 virt, const void *kernel, u64 flags);
 

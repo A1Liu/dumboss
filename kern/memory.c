@@ -101,7 +101,8 @@ void memory__init() {
   // Calculation described in bootboot specification
   MMap mmap = {.data = &bb.mmap, .count = (bb.size - 128) / 16};
   const MMapEnt *last_ent = &mmap.data[mmap.count - 1];
-  const u64 mem_upper_bound = MMapEnt_Ptr(last_ent) + MMapEnt_Size(last_ent);
+  const u64 end_address = MMapEnt_Ptr(last_ent) + MMapEnt_Size(last_ent);
+  const u64 end_page = align_up(end_address, _4KB) / _4KB;
 
   FOR(mmap) {
     static const char *const typename[] = {"Used", "Free", "ACPI", "MMIO"};
@@ -133,29 +134,24 @@ void memory__init() {
   log_fmt("higher-half addressing INIT COMPLETE");
 
   // Build basic buddy system structure
-  const u64 buddy_max = align_up(mem_upper_bound, _4KB << CLASS_COUNT);
-  const s64 max_page_idx = buddy_max / _4KB;
+  const u64 buddy_max = align_up(end_address, _4KB << CLASS_COUNT);
+  const s64 buddy_end_page = buddy_max / _4KB;
 
-  u64 *usable_pages_data = alloc_from_entries(mmap, (max_page_idx - 1) / 8 + 1, 8);
-  MemGlobals.usable_pages = BitSet__from_raw(usable_pages_data, max_page_idx);
+  u64 *usable_pages_data = alloc_from_entries(mmap, (end_page - 1) / 8 + 1, 8);
+  MemGlobals.usable_pages = BitSet__from_raw(usable_pages_data, buddy_end_page);
   BitSet__set_all(MemGlobals.usable_pages, false);
 
-  u64 *free_pages_data = alloc_from_entries(mmap, (max_page_idx - 1) / 8 + 1, 8);
-  MemGlobals.free_pages = BitSet__from_raw(free_pages_data, max_page_idx);
+  u64 *free_pages_data = alloc_from_entries(mmap, (end_page - 1) / 8 + 1, 8);
+  MemGlobals.free_pages = BitSet__from_raw(free_pages_data, buddy_end_page);
   BitSet__set_all(MemGlobals.free_pages, false);
 
   FOR_PTR(MemGlobals.classes, CLASS_COUNT - 1, info, class) {
-    const s64 bitset_size = align_up(buddy_info(max_page_idx, class).bitset_index, 8);
+    const s64 bitset_size = align_up(buddy_info(buddy_end_page, class).bitset_index, 8);
     u64 *const data = alloc_from_entries(mmap, bitset_size / 8, 8);
     info->buddies = BitSet__from_raw(data, bitset_size);
     BitSet__set_all(info->buddies, false);
-    info->freelist = NULL;
   }
 
-  MemGlobals.classes[CLASS_COUNT - 1].freelist = NULL;
-  MemGlobals.classes[CLASS_COUNT - 1].buddies = BitSet__from_raw(NULL, 0);
-
-  MemGlobals.free_memory = 0;
   s64 available_memory = 0;
   FOR(mmap, entry) {
     u64 begin = align_up(entry->ptr, _4KB);
@@ -181,43 +177,36 @@ void memory__init() {
   assert(new);
 
   // Map higher half code
-  void *target = kernel_ptr(0);
-  bool res = map_region(new, (u64)target, target, PTE_KERNEL, (s64)mem_upper_bound);
+  const void *const target = kernel_ptr(0);
+  bool res = map_region(new, (u64)target, target, (s64)end_page, PTE_KERNEL);
   assert(res);
 
   const u8 *code_ptr = &code_begin, *code_end_ptr = &code_end, *bss_end_ptr = &bss_end;
   const s64 code_size = S64(code_end_ptr - code_ptr), bss_size = S64(bss_end_ptr - code_end_ptr);
 
   // Map kernel code to address listed in the linker script
-  void *kern = raw_pages(code_size / _4KB);
-  memcpy(kern, code_ptr, code_size);
-  res = map_region(new, (u64)code_ptr, kern, PTE_KERNEL_EXE, code_size);
+  res = copy_mapping(new, old, (u64)code_ptr, code_size / _4KB, PTE_KERNEL_EXE);
   assert(res);
 
   // Map BSS data
-  void *const bss = raw_pages(bss_size / _4KB);
-  res = map_region(new, (u64)code_end_ptr, bss, PTE_KERNEL, bss_size);
+  res = copy_mapping(new, old, (u64)code_end_ptr, bss_size / _4KB, PTE_KERNEL);
   assert(res);
 
   // Map Bootboot struct, as described in linker script
-  void *bb_ptr = translate(old, (u64)&bb);
-  res = map_page(new, (u64)&bb, bb_ptr, PTE_KERNEL);
+  res = copy_mapping(new, old, (u64)&bb, 1, PTE_KERNEL);
   assert(res);
 
   // Map Environment data
-  void *env_ptr = translate(old, (u64)&environment);
-  res = map_page(new, (u64)&environment, env_ptr, PTE_KERNEL);
+  res = copy_mapping(new, old, (u64)&environment, 1, PTE_KERNEL);
   assert(res);
 
   // Map bootboot kernel stack
-  void *stack_bottom = translate(old, (u64)align_down(&res, _4KB));
-  res = map_page(new, 0xFFFFFFFFFFFFF000, stack_bottom, PTE_KERNEL);
+  res = copy_mapping(new, old, 0xFFFFFFFFFFFFF000, 1, PTE_KERNEL);
   assert(res);
 
   volatile u8 *fb_ptr = &fb;
 
   // Make sure BSS data stays up-to-date (because it includes MemGlobals)
-  memcpy(bss, code_end_ptr, bss_size);
   set_page_table(new);
   validate_heap();
 

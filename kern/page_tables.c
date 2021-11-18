@@ -95,9 +95,12 @@ bool copy_mapping(PageTable4 *dest, PageTable4 *src, u64 virt, s64 count, u64 fl
 
   while (count > 0) {
     void *ptr = translate(src, virt);
-    const s64 size = region_size(src, virt);
+    ensure(ptr) return false;
 
-    bool res = map_region(dest, virt, ptr, flags, min(size, count));
+    const s64 size = region_size(src, virt);
+    ensure(size) return false;
+
+    bool res = map_region(dest, virt, ptr, min(size, count), flags);
     ensure(res) return false;
 
     count -= size;
@@ -110,18 +113,11 @@ s64 region_size(PageTable4 *p4, u64 virt) {
   const u8 *expected = translate(p4, virt);
   ensure(expected) return 0;
 
-  s64 count = 0;
-  for (;;) {
+  for (s64 count = 0;; virt += _4KB, expected += _4KB, count++) {
     const void *const addr = translate(p4, virt);
-    ensure(addr) break;
-    ensure(addr == expected) break;
-
-    virt += _4KB;
-    expected += _4KB;
-    count++;
+    ensure(addr) return count;
+    ensure(addr == expected) return count;
   }
-
-  return count;
 }
 
 void *translate(PageTable4 *_p4, u64 virtual) {
@@ -147,18 +143,18 @@ void *translate(PageTable4 *_p4, u64 virtual) {
   PageTable *p1 = (PageTable *)page;
   return pte_address(p1->entries[indices.p1]) + indices.p0;
 }
-
 // TODO this shouldn't return a void* bc the page table might not be valid. Should
 // probably just return bool.
-bool map_region(PageTable4 *p4, u64 virtual, const void *_kernel, u64 flags, s64 size) {
+bool map_region(PageTable4 *p4, u64 virtual, const void *const kernel, const s64 count, u64 flags) {
   ensure(p4 != NULL && is_aligned(p4, _4KB)) return false;
-  ensure(_kernel && is_aligned(_kernel, _4KB)) return false;
+  ensure(kernel && is_aligned(kernel, _4KB)) return false;
   ensure(virtual && is_aligned(virtual, _4KB)) return false;
-  ensure(is_aligned(size, _4KB)) return false;
 
-  DECLARE_SCOPED(u64 diff = 0)
-  for (u8 *ptr = (u8 *)_kernel; size > 0; virtual += diff, ptr += diff, size -= diff) {
-    if (is_aligned(virtual, _2MB) && is_aligned(ptr, _2MB) && size >= _2MB) {
+  const u8 *ptr = kernel;
+  u32 diff = 0;
+  const s64 size = count * _4KB;
+  for (s64 mapped = 0; mapped < size; virtual += diff, ptr += diff, mapped += diff) {
+    if (is_aligned(virtual, _2MB) && is_aligned(ptr, _2MB) && size - mapped >= _2MB) {
       bool res = map_2MB_page(p4, virtual, ptr, flags);
       ensure(res) return false;
       diff = _2MB;
