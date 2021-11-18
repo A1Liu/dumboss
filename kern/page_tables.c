@@ -27,6 +27,14 @@ typedef struct {
   };
 } PageTableIndices;
 
+PageTable4 *get_page_table(void) {
+  return kernel_ptr(read_register(cr3, u64, "q"));
+}
+
+void set_page_table(PageTable4 *p4) {
+  write_register(cr3, physical_address(p4));
+}
+
 static PageTableIndices page_table_indices(u64 address) {
   u64 p1 = address >> 12, p2 = p1 >> 9;
   u64 p3 = p2 >> 9, p4 = p3 >> 9;
@@ -40,7 +48,7 @@ static PageTableIndices page_table_indices(u64 address) {
   };
 }
 
-static u64 make_pte(void *ptr, u64 flags) {
+static u64 make_pte(const void *ptr, u64 flags) {
   if (ptr == NULL) return 0;
 
   u64 addr_bits = physical_address(ptr) & PTE_ADDRESS;
@@ -68,14 +76,6 @@ static u64 indices_to_address(PageTableIndices indices) {
   return address;
 }
 
-PageTable4 *get_page_table(void) {
-  return kernel_ptr(read_register(cr3, u64, "q"));
-}
-
-void set_page_table(PageTable4 *p4) {
-  write_register(cr3, physical_address(p4));
-}
-
 // Hacky solution to quickly get everything into a higher-half kernel. Called in
 // memory.c, before allocator is initialized.
 void UNSAFE_HACKY_higher_half_init() {
@@ -90,29 +90,38 @@ void UNSAFE_HACKY_higher_half_init() {
   write_register(cr3, table);
 }
 
-void *map_region(PageTable4 *p4, u64 virtual, void *_kernel, u64 flags, s64 size) {
-  ensure(p4 != NULL && is_aligned(p4, _4KB)) return NULL;
-  ensure(_kernel && is_aligned(_kernel, _4KB)) return NULL;
-  ensure(virtual && is_aligned(virtual, _4KB)) return NULL;
-  ensure(is_aligned(size, _4KB)) return NULL;
+bool copy_mapping(PageTable4 *dest, PageTable4 *src, u64 virt, s64 count, u64 flags) {
+  virt = align_down(virt, _4KB);
 
-  void *const output = (void *)virtual;
+  while (count > 0) {
+    void *ptr = translate(src, virt);
+    const s64 size = region_size(src, virt);
 
-  DECLARE_SCOPED(u64 diff = 0)
-  for (u8 *ptr = (u8 *)_kernel, *res = NULL; size > 0; virtual += diff, ptr += diff, size -= diff) {
-    if (is_aligned(virtual, _2MB) && is_aligned(ptr, _2MB) && size >= _2MB) {
-      res = map_2MB_page(p4, virtual, ptr, flags);
-      ensure(res) return NULL;
-      diff = _2MB;
-      continue;
-    }
+    bool res = map_region(dest, virt, ptr, flags, min(size, count));
+    ensure(res) return false;
 
-    res = map_page(p4, virtual, ptr, flags);
-    ensure(res) return NULL;
-    diff = _4KB;
+    count -= size;
   }
 
-  return output;
+  return true;
+}
+
+s64 region_size(PageTable4 *p4, u64 virt) {
+  const u8 *expected = translate(p4, virt);
+  ensure(expected) return 0;
+
+  s64 count = 0;
+  for (;;) {
+    const void *const addr = translate(p4, virt);
+    ensure(addr) break;
+    ensure(addr == expected) break;
+
+    virt += _4KB;
+    expected += _4KB;
+    count++;
+  }
+
+  return count;
 }
 
 void *translate(PageTable4 *_p4, u64 virtual) {
@@ -139,18 +148,43 @@ void *translate(PageTable4 *_p4, u64 virtual) {
   return pte_address(p1->entries[indices.p1]) + indices.p0;
 }
 
-void *map_page(PageTable4 *_p4, u64 virtual, void *kernel, u64 flags) {
+// TODO this shouldn't return a void* bc the page table might not be valid. Should
+// probably just return bool.
+bool map_region(PageTable4 *p4, u64 virtual, const void *_kernel, u64 flags, s64 size) {
+  ensure(p4 != NULL && is_aligned(p4, _4KB)) return false;
+  ensure(_kernel && is_aligned(_kernel, _4KB)) return false;
+  ensure(virtual && is_aligned(virtual, _4KB)) return false;
+  ensure(is_aligned(size, _4KB)) return false;
+
+  DECLARE_SCOPED(u64 diff = 0)
+  for (u8 *ptr = (u8 *)_kernel; size > 0; virtual += diff, ptr += diff, size -= diff) {
+    if (is_aligned(virtual, _2MB) && is_aligned(ptr, _2MB) && size >= _2MB) {
+      bool res = map_2MB_page(p4, virtual, ptr, flags);
+      ensure(res) return false;
+      diff = _2MB;
+      continue;
+    }
+
+    bool res = map_page(p4, virtual, ptr, flags);
+    ensure(res) return false;
+    diff = _4KB;
+  }
+
+  return true;
+}
+
+bool map_page(PageTable4 *_p4, u64 virtual, const void *kernel, u64 flags) {
   PageTable *p4 = (PageTable *)_p4;
   PageTableIndices indices = page_table_indices(virtual);
 
-  ensure(p4 != NULL && is_aligned(p4, _4KB)) return NULL;
-  ensure(kernel && is_aligned(kernel, _4KB)) return NULL;
-  ensure(virtual && is_aligned(virtual, _4KB)) return NULL;
+  ensure(p4 != NULL && is_aligned(p4, _4KB)) return false;
+  ensure(kernel && is_aligned(kernel, _4KB)) return false;
+  ensure(virtual && is_aligned(virtual, _4KB)) return false;
 
   PageTable *p3 = pte_address(p4->entries[indices.p4]);
   ensure(p3) {
     p3 = zeroed_pages(1);
-    ensure(p3) return NULL;
+    ensure(p3) return false;
 
     p4->entries[indices.p4] = make_pte(p3, flags);
   }
@@ -158,7 +192,7 @@ void *map_page(PageTable4 *_p4, u64 virtual, void *kernel, u64 flags) {
   PageTable *p2 = pte_address(p3->entries[indices.p3]);
   ensure(p2) {
     p2 = zeroed_pages(1);
-    ensure(p2) return NULL;
+    ensure(p2) return false;
 
     p3->entries[indices.p3] = make_pte(p2, flags);
   }
@@ -166,29 +200,29 @@ void *map_page(PageTable4 *_p4, u64 virtual, void *kernel, u64 flags) {
   PageTable *p1 = pte_address(p2->entries[indices.p2]);
   ensure(p1) {
     p1 = zeroed_pages(1);
-    ensure(p1) return NULL;
+    ensure(p1) return false;
 
     p2->entries[indices.p2] = make_pte(p1, flags);
   }
 
-  ensure(p1->entries[indices.p1] == 0) return NULL;
+  ensure(p1->entries[indices.p1] == 0) return false;
   p1->entries[indices.p1] = make_pte(kernel, flags);
 
-  return (void *)virtual;
+  return true;
 }
 
-void *map_2MB_page(PageTable4 *_p4, u64 virtual, void *kernel, u64 flags) {
+bool map_2MB_page(PageTable4 *_p4, u64 virtual, const void *kernel, u64 flags) {
   PageTable *p4 = (PageTable *)_p4;
   PageTableIndices indices = page_table_indices(virtual);
 
-  ensure(p4 != NULL && is_aligned(p4, _4KB)) return NULL;
-  ensure(kernel && is_aligned(kernel, _2MB)) return NULL;
-  ensure(virtual && is_aligned(virtual, _2MB)) return NULL;
+  ensure(p4 != NULL && is_aligned(p4, _4KB)) return false;
+  ensure(kernel && is_aligned(kernel, _2MB)) return false;
+  ensure(virtual && is_aligned(virtual, _2MB)) return false;
 
   PageTable *p3 = pte_address(p4->entries[indices.p4]);
   ensure(p3) {
     p3 = zeroed_pages(1);
-    ensure(p3) return NULL;
+    ensure(p3) return false;
 
     p4->entries[indices.p4] = make_pte(p3, flags);
   }
@@ -196,15 +230,15 @@ void *map_2MB_page(PageTable4 *_p4, u64 virtual, void *kernel, u64 flags) {
   PageTable *p2 = pte_address(p3->entries[indices.p3]);
   ensure(p2) {
     p2 = zeroed_pages(1);
-    ensure(p2) return NULL;
+    ensure(p2) return false;
 
     p3->entries[indices.p3] = make_pte(p2, flags);
   }
 
-  ensure(p2->entries[indices.p2] == 0) return NULL;
+  ensure(p2->entries[indices.p2] == 0) return false;
   p2->entries[indices.p2] = make_pte(kernel, flags | PTE_HUGE_PAGE);
 
-  return (void *)virtual;
+  return true;
 }
 
 static void destroy_bb_table_inner(PageTable *table, u64 entry, u8 level) {

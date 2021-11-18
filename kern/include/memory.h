@@ -14,7 +14,7 @@
 void memory__init(void);
 
 // get physical address from kernel address
-u64 physical_address(void *ptr);
+u64 physical_address(const void *ptr);
 
 // get kernel address from physical address
 u64 kernel_address(u64 address);
@@ -35,7 +35,7 @@ void *zeroed_pages(s64 count);
 // Release contiguous pages starting at data
 void release_pages(void *data, s64 count);
 
-void unsafe_mark_memory_usability(void *data, s64 count, bool usable);
+void unsafe_mark_memory_usability(const void *data, s64 count, bool usable);
 
 // Check that the heap is in a valid state
 void validate_heap(void);

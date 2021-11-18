@@ -41,10 +41,6 @@ void UNSAFE_HACKY_higher_half_init(void);
 
 // Read the value of cr3
 PageTable4 *get_page_table(void);
-
-// Allocate `count` virtually contiguous pages. Pages will be zeroed.
-void *virtual_pages(PageTable4 *p4, s64 count);
-
 void set_page_table(PageTable4 *p4);
 
 void traverse_table(PageTable4 *p4);
@@ -52,11 +48,16 @@ void traverse_table(PageTable4 *p4);
 void destroy_table(PageTable4 *p4);
 void destroy_bootboot_table(PageTable4 *p4);
 
-// Translates virtual address to higher-half kernel-space address
-void *translate(PageTable4 *p4, u64 virtual);
+bool copy_mapping(PageTable4 *dest, PageTable4 *src, u64 virt, s64 count, u64 flags);
 
-void *map_region(PageTable4 *p4, u64 virtual, void *kernel, u64 flags, s64 size);
+// Get the size of the underlying contiguous physical region
+s64 region_size(PageTable4 *p4, u64 ptr);
 
-void *map_page(PageTable4 *p4, u64 virtual, void *kernel, u64 flags);
+// Translates virtual address to physical address
+void *translate(PageTable4 *p4, u64 virt);
 
-void *map_2MB_page(PageTable4 *p4, u64 virtual, void *kernel, u64 flags);
+bool map_region(PageTable4 *p4, u64 virt, const void *kernel, u64 flags, s64 size);
+
+bool map_page(PageTable4 *p4, u64 virt, const void *kernel, u64 flags);
+
+bool map_2MB_page(PageTable4 *p4, u64 virt, const void *kernel, u64 flags);

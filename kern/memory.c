@@ -58,7 +58,7 @@ static void *alloc_from_entries(MMap mmap, s64 size, s64 align);
 static Buffer alloc_raw(s64 count, bool exact);
 
 // get physical address from kernel address
-u64 physical_address(void *ptr) {
+u64 physical_address(const void *ptr) {
   u64 address = (u64)ptr;
   assert(address >= MEMORY__KERNEL_SPACE_BEGIN);
 
@@ -182,8 +182,8 @@ void memory__init() {
 
   // Map higher half code
   void *target = kernel_ptr(0);
-  void *result = map_region(new, (u64)target, target, PTE_KERNEL, (s64)mem_upper_bound);
-  assert(result);
+  bool res = map_region(new, (u64)target, target, PTE_KERNEL, (s64)mem_upper_bound);
+  assert(res);
 
   const u8 *code_ptr = &code_begin, *code_end_ptr = &code_end, *bss_end_ptr = &bss_end;
   const s64 code_size = S64(code_end_ptr - code_ptr), bss_size = S64(bss_end_ptr - code_end_ptr);
@@ -191,28 +191,30 @@ void memory__init() {
   // Map kernel code to address listed in the linker script
   void *kern = raw_pages(code_size / _4KB);
   memcpy(kern, code_ptr, code_size);
-  result = map_region(new, (u64)code_ptr, kern, PTE_KERNEL_EXE, code_size);
-  assert(result);
+  res = map_region(new, (u64)code_ptr, kern, PTE_KERNEL_EXE, code_size);
+  assert(res);
 
   // Map BSS data
   void *const bss = raw_pages(bss_size / _4KB);
-  result = map_region(new, (u64)code_end_ptr, bss, PTE_KERNEL, bss_size);
-  assert(result);
+  res = map_region(new, (u64)code_end_ptr, bss, PTE_KERNEL, bss_size);
+  assert(res);
 
   // Map Bootboot struct, as described in linker script
   void *bb_ptr = translate(old, (u64)&bb);
-  result = map_page(new, (u64)&bb, bb_ptr, PTE_KERNEL);
-  assert(result);
+  res = map_page(new, (u64)&bb, bb_ptr, PTE_KERNEL);
+  assert(res);
 
   // Map Environment data
   void *env_ptr = translate(old, (u64)&environment);
-  result = map_page(new, (u64)&environment, env_ptr, PTE_KERNEL);
-  assert(result);
+  res = map_page(new, (u64)&environment, env_ptr, PTE_KERNEL);
+  assert(res);
 
   // Map bootboot kernel stack
-  void *stack_bottom = translate(old, (u64)align_down(&result, _4KB));
-  result = map_page(new, 0xFFFFFFFFFFFFF000, stack_bottom, PTE_KERNEL);
-  assert(result);
+  void *stack_bottom = translate(old, (u64)align_down(&res, _4KB));
+  res = map_page(new, 0xFFFFFFFFFFFFF000, stack_bottom, PTE_KERNEL);
+  assert(res);
+
+  volatile u8 *fb_ptr = &fb;
 
   // Make sure BSS data stays up-to-date (because it includes MemGlobals)
   memcpy(bss, code_end_ptr, bss_size);
@@ -461,7 +463,7 @@ void release_pages(void *data, s64 count) {
   BitSet__set_range(MemGlobals.free_pages, begin, end, true);
 }
 
-void unsafe_mark_memory_usability(void *data, s64 count, bool usable) {
+void unsafe_mark_memory_usability(const void *data, s64 count, bool usable) {
   assert(data != NULL);
   const u64 addr = physical_address(data);
   assert(addr == align_down(addr, _4KB));
