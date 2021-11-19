@@ -143,6 +143,7 @@ static inline void load_idt(Idt *base);
 
 static void Gdt__init(Gdt *gdt);
 static u16 Gdt__add_entry(Gdt *gdt, u64 entry);
+static u16 Gdt__add_tss(Gdt *gdt, const Tss *tss);
 static inline void load_gdt(Gdt *base, u16 selector);
 static GdtInfo current_gdt(void);
 
@@ -159,7 +160,12 @@ void descriptor__init() {
   assert(gdt);
   Gdt__init(gdt);
 
+  Tss *tss = Bump__bump(&bump, Tss);
+  assert(tss);
+
   u16 segment = Gdt__add_entry(gdt, GDT__KERNEL_CODE);
+  Gdt__add_tss(gdt, tss);
+
   load_gdt(gdt, segment);
 
   log_fmt("global descriptor table INIT_COMPLETE");
@@ -312,4 +318,10 @@ static u16 Gdt__add_entry(Gdt *gdt, u64 entry) {
 
   uint8_t priviledge_level = (entry & GDT__DPL_RING_3) ? 3 : 0;
   return (u16)((index << 3) | priviledge_level);
+}
+
+static u16 Gdt__add_tss(Gdt *gdt, const Tss *tss) {
+  (void)gdt;
+  (void)tss;
+  return 0;
 }
