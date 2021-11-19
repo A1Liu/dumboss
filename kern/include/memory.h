@@ -11,8 +11,6 @@
 #define _2MB (2 * 1024 * 1024)
 #define _1GB (1024 * 1024 * 1024)
 
-void memory__init(void);
-
 // get physical address from kernel address
 u64 physical_address(const void *ptr);
 

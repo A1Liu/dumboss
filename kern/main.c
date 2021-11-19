@@ -1,5 +1,5 @@
 #include "bootboot.h"
-#include "descriptor_tables.h"
+#include "init.h"
 #include "memory.h"
 #include "page_tables.h"
 #include <asm.h>
@@ -17,24 +17,11 @@ static inline cpuid_result asm_cpuid(u32 code) {
   return result;
 }
 
-__attribute__((interrupt, noreturn)) void Idt__double_fault(ExceptionStackFrame *frame,
-                                                            u64 error_code) {
-  log_fmt("double fault error_code: %f", error_code);
-  Idt__log_fmt(frame);
-  panic();
+static void divide_by_zero(void) {
+  asm volatile("movq $0, %rdx; divq %rdx");
 }
 
-/******************************************
- * Entry point, called by BOOTBOOT Loader *
- ******************************************/
-void _start(void) {
-  /*** NOTE: BOOTBOOT runs _start on all cores in parallel ***/
-  const uint16_t apic_id = asm_cpuid(1).ebx >> 24, bspid = bb.bspid;
-
-  // ensure only one core is running
-  while (apic_id != bspid)
-    asm_hlt();
-
+static void init(void) {
   log("--------------------------------------------------");
   log("                    BOOTING UP                    ");
   log("--------------------------------------------------");
@@ -44,32 +31,24 @@ void _start(void) {
 
   memory__init();
 
-  GdtInfo gdt_info = current_gdt();
-
-  log_fmt("GDT: %f %f", gdt_info.size, (u64)gdt_info.gdt);
-
-  Gdt *gdt = zeroed_pages(1);
-  *gdt = Gdt__new();
-  u16 segment = Gdt__add_entry(gdt, GDT__KERNEL_CODE);
-  load_gdt(gdt, segment);
-
-  log_fmt("global descriptor table INIT_COMPLETE");
-
-  Idt *idt = Idt__new(zeroed_pages(1), 1 * _4KB);
-  IdtEntry__set_handler(&idt->double_fault, Idt__double_fault);
-  load_idt(idt);
-
-  log_fmt("interrupt descriptor table INIT_COMPLETE");
+  descriptor__init();
 
   // divide_by_zero();
 
-  void *hello = zeroed_pages(5);
-  validate_heap();
-  release_pages(hello, 5);
-  validate_heap();
-
-  log_fmt("finished messing with allocator");
-
   log_fmt("Kernel main end");
   exit(0);
+}
+
+/******************************************
+ * Entry point, called by BOOTBOOT Loader *
+ ******************************************/
+void _start(void) {
+  /*** NOTE: BOOTBOOT runs _start on all cores in parallel ***/
+  const uint16_t apic_id = asm_cpuid(1).ebx >> 24, bspid = bb.bspid;
+
+  if (apic_id == bspid) init();
+
+  // ensure only one core is running
+  while (true)
+    asm_hlt();
 }

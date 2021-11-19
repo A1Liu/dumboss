@@ -1,5 +1,6 @@
 #include "memory.h"
 #include "bootboot.h"
+#include "init.h"
 #include "page_tables.h"
 #include <asm.h>
 #include <basics.h>
