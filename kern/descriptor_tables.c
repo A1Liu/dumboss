@@ -150,6 +150,8 @@ static GdtInfo current_gdt(void);
 static NORET_HANDLER Idt__double_fault(ExceptionStackFrame *frame, u64 error_code);
 
 void descriptor__init() {
+  // NOTE: this leaks intentionally. The GDT and IDT need to exist until shutdown,
+  // at which time it does not matter whether they are freed.
   Bump bump = Bump__new(2);
 
   Idt *idt = Bump__bump(&bump, Idt);
@@ -164,6 +166,7 @@ void descriptor__init() {
   assert(tss);
 
   // TODO make this safer
+  //      - Albert Liu, Nov 18, 2021 Thu 23:04 EST
   void *new_stack = zeroed_pages(2);
   tss->interrupt_stack_table[0] = U64(new_stack) + 2 * _4KB;
 
@@ -255,8 +258,6 @@ void IdtEntry__ForDivergingExt__set_handler(IdtEntry__ForDivergingExt *entry,
   IdtEntry__set_handler(&entry->inner, handler);
 }
 
-// TODO the full definition of the GDT should probably be entirely in this file.
-
 static inline IdtEntry IdtEntry__missing(void) {
   // Options disable IRQs by default
 
@@ -331,7 +332,7 @@ static u16 Gdt__add_tss(Gdt *gdt, const Tss *tss) {
   const u64 BYTES_24_32 = (BYTE << 24);
   const u64 BYTES_32_64 = (BYTE << 32) | (BYTE << 40) | (BYTE << 48) | (BYTE << 56);
 
-  u64 addr = U64(tss);
+  const u64 addr = U64(tss);
   u64 low = GDT__PRESENT;
   low |= (addr & BYTES_0_24) << 16;
   low |= (addr & BYTES_24_32) << 32;
@@ -341,7 +342,7 @@ static u16 Gdt__add_tss(Gdt *gdt, const Tss *tss) {
   u64 high = 0;
   high |= (addr & BYTES_32_64) >> 32;
 
-  u16 index = gdt->index;
+  const u16 index = gdt->index;
   assert(index + 1 < 8);
 
   gdt->table[index] = low;
