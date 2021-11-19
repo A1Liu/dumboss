@@ -35,8 +35,7 @@ static void init(void) {
 
   // divide_by_zero();
 
-  log_fmt("Kernel main end");
-  exit(0);
+  asm volatile("jmp task_main");
 }
 
 /******************************************

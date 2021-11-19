@@ -1,5 +1,6 @@
 #ifndef __LIB_MACROS__
 #define __LIB_MACROS__
+#include <external.h>
 #include <magic.h>
 #include <types.h>
 

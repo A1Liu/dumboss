@@ -1,6 +1,5 @@
 #ifndef __LIB_BASICS__
 #define __LIB_BASICS__
-#include <external.h>
 #include <types.h>
 
 typedef struct {
