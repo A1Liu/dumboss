@@ -3,6 +3,14 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#define _KB (1024)
+#define _MB (1024 * 1024)
+#define _GB (1024 * 1024 * 1024)
+
+#define _4KB (4096)
+#define _2MB (2 * 1024 * 1024)
+#define _1GB (1024 * 1024 * 1024)
+
 typedef uint64_t u64;
 typedef int64_t s64;
 typedef uint32_t u32;

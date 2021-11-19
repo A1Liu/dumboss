@@ -3,6 +3,16 @@
 #include <external.h>
 #include <types.h>
 
+typedef struct {
+  u8 *const begin;
+  const s64 count;
+  s64 index;
+} Bump;
+
+Bump Bump__new(s64 count);
+void *Bump__bump_impl(Bump *bump, s64 size, s64 align);
+#define Bump__bump(bump, ty) ((ty *)Bump__bump_impl(bump, sizeof(ty), _Alignof(ty)))
+
 String Str__new(char *data, s64 count);
 bool Str__is_null(String str);
 String Str__slice(String str, s64 begin, s64 end);
@@ -115,9 +125,27 @@ static any inline any__any(any value) {
 
 #ifdef __DUMBOSS_IMPL__
 #undef __DUMBOSS_IMPL__
+#include <external.h>
 #include <macros.h>
 #include <types.h>
 #define __DUMBOSS_IMPL__
+
+Bump Bump__new(s64 count) {
+  void *base = ext__alloc_pages(count);
+  assert(base);
+
+  return (Bump){.begin = base, .count = count * _4KB, .index = 0};
+}
+
+void *Bump__bump_impl(Bump *bump, s64 size, s64 align) {
+  s64 aligned_index = align_up(bump->index, align);
+  s64 end_index = aligned_index + size;
+  ensure(end_index <= bump->count) return NULL;
+
+  u8 *ptr = bump->begin + aligned_index;
+  bump->index = end_index;
+  return ptr;
+}
 
 s64 smallest_greater_power2(s64 _value) {
   assert(_value >= 0);

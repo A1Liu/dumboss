@@ -1,3 +1,4 @@
+#include "memory.h"
 #include <asm.h>
 #include <types.h>
 
@@ -8,6 +9,10 @@
 
 static inline void asm_outw(u16 port, u16 val) {
   asm volatile("outw %0, %1" : : "a"(val), "Nd"(port));
+}
+
+void *ext__alloc_pages(s64 count) {
+  return zeroed_pages(count);
 }
 
 _Noreturn void ext__shutdown(void) {

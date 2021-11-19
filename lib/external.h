@@ -15,4 +15,6 @@ _Noreturn static inline void exit(s32 code) {
 void ext__log(sloc loc, int32_t count, const any *args);
 void ext__log_fmt(sloc loc, const char *fmt, s32 count, const any *args);
 
+void *ext__alloc_pages(s64 count);
+
 #endif

@@ -64,10 +64,11 @@ typedef struct {
   u64 stack_segment;
 } ExceptionStackFrame;
 
+#define HANDLER       __attribute__((interrupt)) void
 #define NORET_HANDLER __attribute__((noreturn, interrupt)) void
 
-typedef void (*Idt__Handler)(ExceptionStackFrame *);
-typedef void (*Idt__HandlerExt)(ExceptionStackFrame *, u64);
+typedef HANDLER (*Idt__Handler)(ExceptionStackFrame *);
+typedef HANDLER (*Idt__HandlerExt)(ExceptionStackFrame *, u64);
 typedef NORET_HANDLER (*Idt__DivergingHandler)(ExceptionStackFrame *);
 typedef NORET_HANDLER (*Idt__DivergingHandlerExt)(ExceptionStackFrame *, u64);
 
@@ -134,13 +135,13 @@ _Static_assert(GDT__USER_CODE == 0x00affb000000ffffULL, "GDT__USER_CODE has inco
 
 // Used Phil Opperman's x86_64 rust code to figure out how to do this
 // https://github.com/rust-osdev/x86_64/blob/master/src/structures/idt.rs
-static Idt *Idt__new(void *buffer, s64 size);
+static void Idt__init(Idt *idt);
 static void Idt__log_fmt(ExceptionStackFrame *frame);
 static u64 IdtEntry__handler_addr(IdtEntry entry);
 static inline IdtEntry IdtEntry__missing(void);
 static inline void load_idt(Idt *base);
 
-static Gdt Gdt__new(void);
+static void Gdt__init(Gdt *gdt);
 static u16 Gdt__add_entry(Gdt *gdt, u64 entry);
 static inline void load_gdt(Gdt *base, u16 selector);
 static GdtInfo current_gdt(void);
@@ -148,14 +149,21 @@ static GdtInfo current_gdt(void);
 static NORET_HANDLER Idt__double_fault(ExceptionStackFrame *frame, u64 error_code);
 
 void descriptor__init() {
-  Gdt *gdt = zeroed_pages(1);
-  *gdt = Gdt__new();
+  Bump bump = Bump__new(2);
+
+  Idt *idt = Bump__bump(&bump, Idt);
+  assert(idt);
+  Idt__init(idt);
+
+  Gdt *gdt = Bump__bump(&bump, Gdt);
+  assert(gdt);
+  Gdt__init(gdt);
+
   u16 segment = Gdt__add_entry(gdt, GDT__KERNEL_CODE);
   load_gdt(gdt, segment);
 
   log_fmt("global descriptor table INIT_COMPLETE");
 
-  Idt *idt = Idt__new(zeroed_pages(1), 1 * _4KB);
   IdtEntry__set_handler(&idt->double_fault, Idt__double_fault);
   load_idt(idt);
 
@@ -190,17 +198,11 @@ static NORET_HANDLER Idt__double_fault(ExceptionStackFrame *frame, u64 error_cod
 --------------------------------------------------------------------------------
 */
 
-static Idt *Idt__new(void *buffer, s64 size) {
-  assert(size >= 0);
-  assert((u64)size >= sizeof(Idt));
-  assert(sizeof(Idt) / sizeof(IdtEntry) == 256);
-
-  IdtEntry *entries = (IdtEntry *)buffer;
+static void Idt__init(Idt *idt) {
+  IdtEntry *entries = (IdtEntry *)idt;
   for (s64 i = 0; i < 256; i++) {
     entries[i] = IdtEntry__missing();
   }
-
-  return (Idt *)buffer;
 }
 
 static void Idt__log_fmt(ExceptionStackFrame *frame) {
@@ -296,11 +298,9 @@ exit:
   return;
 }
 
-static Gdt Gdt__new(void) {
-  Gdt gdt;
-  gdt.table[0] = 0;
-  gdt.index = 1;
-  return gdt;
+static void Gdt__init(Gdt *gdt) {
+  gdt->table[0] = 0;
+  gdt->index = 1;
 }
 
 static u16 Gdt__add_entry(Gdt *gdt, u64 entry) {
