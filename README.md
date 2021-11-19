@@ -40,7 +40,8 @@ in the same way (`dumboss build` to build and `dumboss run` to run)
 9. Allocator is global source of truth for what memory is being used.
 
 ## Notes
-1. No need for Linux zones memory is memory.
+1. No need for Linux zones, memory is memory.
+2. No async-await stuff. Tasks are just functions with associated state.
 
 ## Scrapped Ideas
 1. Integer divide-by-zero always results in a zero. (THIS IS NOT POSSIBLE ON X64 FEELSBADMAN)
