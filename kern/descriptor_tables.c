@@ -163,6 +163,10 @@ void descriptor__init() {
   Tss *tss = Bump__bump(&bump, Tss);
   assert(tss);
 
+  // TODO make this safer
+  void *new_stack = zeroed_pages(2);
+  tss->interrupt_stack_table[0] = U64(new_stack) + 2 * _4KB;
+
   u16 segment = Gdt__add_entry(gdt, GDT__KERNEL_CODE);
   Gdt__add_tss(gdt, tss);
 
@@ -310,18 +314,40 @@ static void Gdt__init(Gdt *gdt) {
 }
 
 static u16 Gdt__add_entry(Gdt *gdt, u64 entry) {
-  uint8_t index = gdt->index;
+  u16 index = gdt->index;
   assert(index < 8);
 
   gdt->table[index] = entry;
-  gdt->index = index + 1;
+  gdt->index = U8(index + 1);
 
-  uint8_t priviledge_level = (entry & GDT__DPL_RING_3) ? 3 : 0;
-  return (u16)((index << 3) | priviledge_level);
+  u16 priviledge_level = (entry & GDT__DPL_RING_3) ? 3 : 0;
+  return U16((index << 3) | priviledge_level);
 }
 
 static u16 Gdt__add_tss(Gdt *gdt, const Tss *tss) {
-  (void)gdt;
-  (void)tss;
-  return 0;
+  const u64 BYTE = 255;
+  const u64 BYTES_0_16 = BYTE | (BYTE << 8);
+  const u64 BYTES_0_24 = BYTE | (BYTE << 8) | (BYTE << 16);
+  const u64 BYTES_24_32 = (BYTE << 24);
+  const u64 BYTES_32_64 = (BYTE << 32) | (BYTE << 40) | (BYTE << 48) | (BYTE << 56);
+
+  u64 addr = U64(tss);
+  u64 low = GDT__PRESENT;
+  low |= (addr & BYTES_0_24) << 16;
+  low |= (addr & BYTES_24_32) << 32;
+  low |= sizeof(Tss) - 1;
+  low |= U64(9) << 40;
+
+  u64 high = 0;
+  high |= (addr & BYTES_32_64) >> 32;
+
+  u16 index = gdt->index;
+  assert(index + 1 < 8);
+
+  gdt->table[index] = low;
+  gdt->table[index + 1] = high;
+  gdt->index += 2;
+
+  // priviledge level is zero so there's no need to BIT_OR with anything
+  return U16(index << 3);
 }

@@ -65,6 +65,10 @@ typedef struct {
 
 #define S64(i) ((s64)(i))
 
+#define U16(i) ((u16)(i))
+
+#define U8(i) ((u8)(i))
+
 #define NULL ((void *)0)
 
 #define __LOC__                                                                                    \
