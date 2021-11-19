@@ -60,6 +60,49 @@ typedef struct {
   type_id type;
 } any;
 
+static any inline any__bool(bool value) {
+  return (any){.bool_value = value, .type = type_id_bool};
+}
+
+static any inline any__u64(u64 value) {
+  return (any){.u64_value = (u64)value, .type = type_id_u64};
+}
+
+static any inline any__i64(s64 value) {
+  return (any){.i64_value = (s64)value, .type = type_id_i64};
+}
+
+static any inline any__char_ptr(const char *value) {
+  return (any){.ptr = (void *)value, .type = type_id_char_ptr};
+}
+
+static any inline any__char(char value) {
+  return (any){.char_value = value, .type = type_id_char};
+}
+
+static any inline any__any(any value) {
+  return value;
+}
+
+// clang-format off
+#define make_any(value)                                                        \
+  _Generic((value),                                                            \
+          bool  : any__bool,                                                   \
+            u8  : any__u64,                                                    \
+            s8  : any__i64,                                                    \
+           u16  : any__u64,                                                    \
+           s16  : any__i64,                                                    \
+           u32  : any__u64,                                                    \
+           s32  : any__i64,                                                    \
+           u64  : any__u64,                                                    \
+           s64  : any__i64,                                                    \
+          char  : any__char,                                                   \
+          char* : any__char_ptr,                                               \
+    const char* : any__char_ptr,                                               \
+           any  : any__any                                                     \
+  )(value)
+// clang-format on
+
 #define U64(i) ((u64)(i))
 #define U32(i) ((u32)(i))
 

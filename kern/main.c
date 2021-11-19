@@ -1,9 +1,7 @@
 #include "bootboot.h"
 #include "init.h"
-#include "memory.h"
-#include "page_tables.h"
+#include "multitasking.h"
 #include <asm.h>
-#include <basics.h>
 #include <macros.h>
 
 typedef struct {
@@ -35,7 +33,7 @@ static void init(void) {
 
   // divide_by_zero();
 
-  asm volatile("jmp task_main");
+  return task_main();
 }
 
 /******************************************
@@ -50,4 +48,6 @@ void _start(void) {
   // ensure only one core is running
   while (true)
     asm_hlt();
+
+  return task_main();
 }
