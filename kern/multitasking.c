@@ -57,6 +57,10 @@ _Noreturn void task_begin(void) {
   WorkerState *state = &TaskGlobals.workers[index];
   state->core_id = core_id();
 
+  // TODO switch kernel stacks?
+
+  // TODO run tasks?
+
   log_fmt("Kernel main end");
   exit(0);
 }
@@ -65,3 +69,7 @@ _Noreturn void task_main(void) {
   log_fmt("Kernel main end");
   exit(0);
 }
+
+// TODO schedule(task) add task to the workers
+
+// TODO task_switch()
