@@ -150,19 +150,15 @@ static GdtInfo current_gdt(void);
 static NORET_HANDLER Idt__double_fault(ExceptionStackFrame *frame, u64 error_code);
 
 void descriptor__init() {
-  // NOTE: this leaks intentionally. The GDT and IDT need to exist until shutdown,
-  // at which time it does not matter whether they are freed.
-  Bump bump = Bump__new(2);
-
-  Idt *idt = Bump__bump(&bump, Idt);
+  Idt *idt = Bump__bump(&InitAlloc, Idt);
   assert(idt);
   Idt__init(idt);
 
-  Gdt *gdt = Bump__bump(&bump, Gdt);
+  Gdt *gdt = Bump__bump(&InitAlloc, Gdt);
   assert(gdt);
   Gdt__init(gdt);
 
-  Tss *tss = Bump__bump(&bump, Tss);
+  Tss *tss = Bump__bump(&InitAlloc, Tss);
   assert(tss);
 
   // TODO make this safer

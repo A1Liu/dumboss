@@ -3,14 +3,15 @@
 #include <types.h>
 
 typedef struct {
-  u8 *const begin;
-  const s64 count;
+  u8 *begin;
+  s64 count;
   s64 index;
 } Bump;
 
 Bump Bump__new(s64 count);
 void *Bump__bump_impl(Bump *bump, s64 size, s64 align);
-#define Bump__bump(bump, ty) ((ty *)Bump__bump_impl(bump, sizeof(ty), _Alignof(ty)))
+#define Bump__bump(bump, ty)         ((ty *)Bump__bump_impl(bump, sizeof(ty), _Alignof(ty)))
+#define Bump__array(bump, ty, count) ((ty *)Bump__bump_impl(bump, sizeof(ty) * count, _Alignof(ty)))
 
 String Str__new(char *data, s64 count);
 bool Str__is_null(String str);

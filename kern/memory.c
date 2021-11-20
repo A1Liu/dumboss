@@ -50,6 +50,8 @@ static struct {
   ClassInfo classes[CLASS_COUNT];
 } MemGlobals;
 
+Bump InitAlloc;
+
 static void *alloc_from_entries(MMap mmap, s64 size, s64 align);
 
 // Allocate `count` physically contiguous pages.
@@ -214,6 +216,10 @@ void memory__init() {
 
   destroy_bootboot_table(old);
   validate_heap();
+
+  // NOTE: this leaks intentionally. The GDT and IDT need to exist until shutdown,
+  // at which time it does not matter whether they are freed.
+  InitAlloc = Bump__new(2);
 
   log_fmt("memory INIT_COMPLETE");
 }

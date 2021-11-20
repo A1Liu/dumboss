@@ -1,5 +1,5 @@
 # Dumb Operating SyStem
-I'm making a stupid operating system. The goal is to be compatible with nobody,
+I'm making a stupid x86_64 operating system. The goal is to be compatible with nobody,
 and to break as much existing code as possible.
 
 ## Building This Project
