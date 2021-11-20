@@ -1,4 +1,5 @@
 #include "multitasking.h"
+#include "asm_kern.h"
 #include "bootboot.h"
 #include "init.h"
 #include "memory.h"
@@ -17,9 +18,6 @@ typedef struct {
 } Task;
 
 typedef struct {
-} TaskQueue;
-
-typedef struct {
   Task *tasks;
   s64 count; // capacity of buffer in term of tasks (should always be a power of 2)
 
@@ -33,8 +31,8 @@ typedef struct {
 
 static struct {
   WorkerState *workers;
-  s32 count;
-  _Atomic s32 init_count;
+  u16 count;
+  _Atomic u16 init_count;
 
   // TODO: this can be garbage collected, as long as we make tasks movable.
   Bump task_data_alloc;
@@ -52,7 +50,13 @@ void tasks__init(void) {
   }
 }
 
+static WorkerState *get_state(void);
+
 _Noreturn void task_begin(void) {
+  u16 index = a_add(&TaskGlobals.init_count, 1);
+  WorkerState *state = &TaskGlobals.workers[index];
+  state->core_id = core_id();
+
   log_fmt("Kernel main end");
   exit(0);
 }

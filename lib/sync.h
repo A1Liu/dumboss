@@ -4,6 +4,18 @@
 #include <stddef.h>
 #include <types.h>
 
+// TODO: Add more macros for clang builtin as needed. Builtins list is here:
+// https://releases.llvm.org/10.0.0/tools/clang/docs/LanguageExtensions.html
+//                                      - Albert Liu, Nov 03, 2021 Wed 00:50 EDT
+#define a_init(ptr_val, initial) __c11_atomic_init(ptr_val, initial)
+#define a_load(obj)              __c11_atomic_load(obj, __ATOMIC_SEQ_CST)
+#define a_store(obj, value)      __c11_atomic_store(obj, value, __ATOMIC_SEQ_CST)
+#define a_add(obj, add)          __c11_atomic_fetch_add(obj, add, __ATOMIC_SEQ_CST)
+#define a_cxweak(obj, expected, desired)                                                           \
+  __c11_atomic_compare_exchange_weak(obj, expected, desired, __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST)
+#define a_cxstrong(obj, expected, desired)                                                         \
+  __c11_atomic_compare_exchange_strong(obj, expected, desired, __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST)
+
 // NOTE: This ALSO breaks compatibility with GCC.
 //                                    - Albert Liu, Nov 15, 2021 Mon 19:03 EST
 #define spin_or(expr, spin)                                                                        \
@@ -93,17 +105,6 @@ s64 Queue__capacity(Queue queue);
   (Queue__Result) {                                                                                \
     .kind = Queue__TypeError, .count = 0,                                                          \
   }
-
-// TODO: Add more macros for clang builtin as needed. Builtins list is here:
-// https://releases.llvm.org/10.0.0/tools/clang/docs/LanguageExtensions.html
-//                                      - Albert Liu, Nov 03, 2021 Wed 00:50 EDT
-#define a_init(ptr_val, initial) __c11_atomic_init(ptr_val, initial)
-#define a_load(obj)              __c11_atomic_load(obj, __ATOMIC_SEQ_CST)
-#define a_store(obj, value)      __c11_atomic_store(obj, value, __ATOMIC_SEQ_CST)
-#define a_cxweak(obj, expected, desired)                                                           \
-  __c11_atomic_compare_exchange_weak(obj, expected, desired, __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST)
-#define a_cxstrong(obj, expected, desired)                                                         \
-  __c11_atomic_compare_exchange_strong(obj, expected, desired, __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST)
 
 bool Mutex__try_lock(_Atomic(u8) *mtx) {
   u8 current = 0;
