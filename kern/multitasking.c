@@ -19,9 +19,7 @@ typedef struct {
 
 typedef struct {
   Task *tasks;
-  s64 count; // capacity of buffer in term of tasks (should always be a power of 2)
-
-  // x modulo y = (x & (y − 1))
+  s64 count;
   // Get amount queued using `write_to - read_from`
   s64 read_from; // always-increasing task index to read from (need to take mod before indexing)
   s64 write_to;  // always-increasing task index to write to (need to take mod before indexing)
@@ -61,8 +59,7 @@ _Noreturn void task_begin(void) {
 
   // TODO run tasks?
 
-  log_fmt("Kernel main end");
-  exit(0);
+  task_main();
 }
 
 _Noreturn void task_main(void) {

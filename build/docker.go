@@ -6,13 +6,13 @@ package main
 // Docker documentation.
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"sync/atomic"
 	"time"
 
 	"github.com/docker/docker/api/types"
@@ -114,31 +114,48 @@ func buildImage(cli *client.Client, ctx context.Context, dockerfileName, imageNa
 		return
 	}
 
-	cmd := exec.Command("docker", "build", "--platform=linux/amd64", "-f", dockerfilePath, "--tag", imageName, ".")
+	fmt.Printf("building image %v...\n", imageName)
+	begin := time.Now()
+
+	cmd := exec.Command("docker", "build", "--platform=linux/amd64", "-f", dockerfilePath, "--tag", imageName, ProjectDir)
 
 	stdout, err := cmd.StdoutPipe()
 	CheckErr(err)
 	stderr, err := cmd.StderrPipe()
 	CheckErr(err)
 
-	finished := make(chan bool)
-	var logBuffer bytes.Buffer
-	logs := io.Writer(&logBuffer)
+	writeFinished := make(chan bool)
+	commandStatus := int32(0)
 
-	ioCopy := func(r io.Reader) {
-		io.Copy(logs, r)
-		finished <- true
+	ioCopy := func(w io.Writer, r io.Reader) {
+		time.Sleep(2 * time.Second)
+
+		if !atomic.CompareAndSwapInt32(&commandStatus, 0, 2) && atomic.LoadInt32(&commandStatus) == 1 {
+			return
+		}
+
+		io.Copy(w, r)
+		writeFinished <- true
 	}
 
-	go ioCopy(stdout)
-	go ioCopy(stderr)
+	go ioCopy(os.Stdout, stdout)
+	go ioCopy(os.Stdout, stderr)
 
 	err = cmd.Run()
 	if err != nil {
-		<-finished
-		<-finished
+		<-writeFinished
+		<-writeFinished
 
-		fmt.Print(logBuffer.String())
+		fmt.Println("what", imageName)
 		panic(err)
 	}
+
+	if !atomic.CompareAndSwapInt32(&commandStatus, 0, 1) {
+		<-writeFinished
+		<-writeFinished
+		fmt.Printf("\nimage %v took %v seconds\n\n", imageName, time.Since(begin).Seconds())
+		return
+	}
+
+	fmt.Printf("         image %v took %v seconds\n\n", imageName, time.Since(begin).Seconds())
 }
