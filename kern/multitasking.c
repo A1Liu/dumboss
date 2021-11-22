@@ -19,12 +19,12 @@ typedef struct {
 
 typedef struct {
   Task *tasks;
-  s64 count;
+  s32 count;
+  u16 core_id;
+
   // Get amount queued using `write_to - read_from`
   s64 read_from; // always-increasing task index to read from (need to take mod before indexing)
   s64 write_to;  // always-increasing task index to write to (need to take mod before indexing)
-
-  u16 core_id;
 } WorkerState;
 
 static struct {
@@ -48,6 +48,7 @@ void tasks__init(void) {
   }
 }
 
+// TODO
 static WorkerState *get_state(void);
 
 _Noreturn void task_begin(void) {
@@ -57,16 +58,16 @@ _Noreturn void task_begin(void) {
 
   // TODO switch kernel stacks?
 
-  // TODO run tasks?
-
   task_main();
 }
 
 _Noreturn void task_main(void) {
   log_fmt("Kernel main end");
   exit(0);
+
+  while (true) {
+    // TODO dequeue a task and run it
+  }
 }
 
-// TODO schedule(task) add task to the workers
-
-// TODO task_switch()
+// TODO add_task(code, data) add task to the workers
