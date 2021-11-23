@@ -48,7 +48,6 @@ void tasks__init(void) {
   }
 }
 
-// TODO
 static WorkerState *get_state(void);
 
 _Noreturn void task_begin(void) {
@@ -68,6 +67,16 @@ _Noreturn void task_main(void) {
   while (true) {
     // TODO dequeue a task and run it
   }
+}
+
+static WorkerState *get_state() {
+  const u16 id = core_id();
+  FOR_PTR(TaskGlobals.workers, TaskGlobals.count) {
+    if (it->core_id == id) return it;
+  }
+
+  // Unreachable
+  return NULL;
 }
 
 // TODO add_task(code, data) add task to the workers

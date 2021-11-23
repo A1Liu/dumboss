@@ -15,3 +15,7 @@ static inline cpuid_result asm_cpuid(u32 code) {
 static inline u16 core_id(void) {
   return asm_cpuid(1).ebx >> 24;
 }
+
+static inline void pause(void) {
+  asm volatile("pause");
+}

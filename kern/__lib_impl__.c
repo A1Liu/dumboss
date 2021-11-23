@@ -1,3 +1,4 @@
+#include "asm_kern.h"
 #include "memory.h"
 #include <asm.h>
 #include <types.h>
@@ -39,7 +40,7 @@ static s64 write_prefix_to_buffer(String out, sloc loc) {
 
 void ext__log(sloc loc, s32 count, const any *args) {
   while (!Mutex__try_lock(&LoggingMutex))
-    ;
+    pause();
 
   String out = Str__new(buffer, BUF_SIZE);
   s64 written = write_prefix_to_buffer(out, loc);
@@ -65,7 +66,7 @@ void ext__log(sloc loc, s32 count, const any *args) {
 
 void ext__log_fmt(sloc loc, const char *fmt, s32 count, const any *args) {
   while (!Mutex__try_lock(&LoggingMutex))
-    ;
+    pause();
 
   String out = Str__new(buffer, BUF_SIZE);
   s64 written = write_prefix_to_buffer(out, loc);
