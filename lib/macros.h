@@ -133,6 +133,8 @@ typedef const struct LABEL_T_DO_NOT_USE *const LABEL_T_DO_NOT_USE;
 #define _REPEAT2(times, it)       _REPEAT(PASTE(M_REPEAT_, __COUNTER__), times, it)
 #define _REPEAT(_uniq, times, it) _RANGE(_uniq, 0, times, it, PASTE(_uniq, M_ignore))
 
+#define LOOP(it) LOOP_HELPER(PASTE(_LOOP, __COUNTER__), it, , )
+
 // Does bubble sort stuff; user has to make the swaps themself
 #define SLOW_SORT(array)                                                                           \
   DECLARE_SCOPED(typeof(array) M_array = array)                                                    \
