@@ -26,8 +26,8 @@
        });                                                                                         \
        ({ break; }))
 
-bool Mutex__try_lock(_Atomic(u8) *mtx);
-void Mutex__unlock(_Atomic(u8) *mtx);
+bool Mutex__try_lock(_Atomic u8 *mtx);
+void Mutex__unlock(_Atomic u8 *mtx);
 
 // NOTE: This breaks compatibility with GCC. I guess that's fine, but like, seems
 // weird and a bit uncomfy.
@@ -41,19 +41,16 @@ void Mutex__unlock(_Atomic(u8) *mtx);
 #endif
 
 #ifdef __DUMBOSS_IMPL__
-#undef __DUMBOSS_IMPL__
-#include <macros.h>
-#define __DUMBOSS_IMPL__
 
-bool Mutex__try_lock(_Atomic(u8) *mtx) {
+bool Mutex__try_lock(_Atomic u8 *mtx) {
   u8 current = 0;
   return a_cxweak(mtx, &current, 1);
 }
 
-void Mutex__unlock(_Atomic(u8) *mtx) {
+void Mutex__unlock(_Atomic u8 *mtx) {
   a_store(mtx, 0);
 }
 
-_Static_assert(sizeof(_Atomic(s64)) == 8, "atomics are zero-cost right?? :)");
+_Static_assert(sizeof(_Atomic s64) == 8, "atomics are zero-cost right?? :)");
 
 #endif

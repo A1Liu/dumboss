@@ -1,5 +1,5 @@
 #include "multitasking.h"
-#include "asm_kern.h"
+#include "asm.h"
 #include "bootboot.h"
 #include "init.h"
 #include "memory.h"

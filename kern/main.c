@@ -1,8 +1,7 @@
-#include "asm_kern.h"
+#include "asm.h"
 #include "bootboot.h"
 #include "init.h"
 #include "multitasking.h"
-#include <asm.h>
 #include <macros.h>
 
 static void divide_by_zero(void) {

@@ -1,6 +1,5 @@
-#include "asm_kern.h"
+#include "asm.h"
 #include "memory.h"
-#include <asm.h>
 #include <types.h>
 
 #define __DUMBOSS_IMPL__
@@ -29,7 +28,7 @@ _Noreturn void ext__shutdown(void) {
 
 #define BUF_SIZE 200
 
-static _Atomic(u8) LoggingMutex;
+static _Atomic u8 LoggingMutex;
 static char buffer[BUF_SIZE];
 static void serial__write(char a);
 
