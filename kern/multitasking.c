@@ -1,8 +1,8 @@
-#include "multitasking.h"
 #include "asm.h"
 #include "bootboot.h"
 #include "init.h"
 #include "memory.h"
+#include "multitasking.h"
 #include <basics.h>
 #include <macros.h>
 #include <sync.h>
@@ -20,6 +20,7 @@ typedef struct {
 } Task;
 
 // Get amount queued using `write_to - read_from`
+// `write_to` and `read_from` need to take mod before indexing
 typedef struct {
   Task *tasks;
   s32 task_count;
@@ -27,9 +28,9 @@ typedef struct {
 
   // void* stack_pointer;
 
-  // always-increasing task index to read from (need to take mod before indexing)
+  // always-increasing index to read from
   _Atomic s64 read_from;
-  // always-increasing task index to write to (need to take mod before indexing)
+  // always-increasing index to write to (need to take mod before indexing)
   _Atomic s64 write_to;
 } WorkerState;
 
