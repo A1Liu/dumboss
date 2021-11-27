@@ -1,7 +1,7 @@
-#include "memory.h"
 #include "asm.h"
 #include "bootboot.h"
 #include "init.h"
+#include "memory.h"
 #include "page_tables.h"
 #include <basics.h>
 #include <bitset.h>
