@@ -35,8 +35,10 @@ void _start(void) {
   if (core_id() == bb.bspid) init();
 
   // ensure only one core is running
-  while (true)
+  while (true) {
     asm_hlt();
+    pause();
+  }
 
   return task_begin();
 }

@@ -130,7 +130,7 @@ static inline IdtEntry IdtEntry__missing(void);
 
 static void Gdt__init(Gdt *gdt);
 static u16 Gdt__add_entry(Gdt *gdt, u64 entry);
-static u16 Gdt__add_tss(Gdt *gdt, const Tss *tss);
+static void Gdt__add_tss(Gdt *gdt, const Tss *tss, s64 core_idx);
 static inline void load_gdt(Gdt *base, u16 selector);
 static GdtInfo current_gdt(void);
 
@@ -170,7 +170,7 @@ void descriptor__init() {
   tss->interrupt_stack_table[0] = U64(new_stack) + 2 * _4KB;
 
   u16 segment = Gdt__add_entry(gdt, GDT__KERNEL_CODE);
-  Gdt__add_tss(gdt, tss);
+  Gdt__add_tss(gdt, tss, 0);
 
   load_gdt(gdt, segment);
 
@@ -178,7 +178,8 @@ void descriptor__init() {
 }
 
 u16 tss_segment(s64 core_idx) {
-  return (u16)core_idx;
+  u16 tss_idx = (U16(core_idx) * 2) + 2;
+  return U16(tss_idx << 3);
 }
 
 /*
@@ -278,7 +279,7 @@ static inline void load_gdt(Gdt *base, u16 selector) {
   struct {
     u16 size;
     void *base;
-  } __attribute__((packed)) GDTR = {.size = size, .base = base};
+  } __attribute__((packed)) GDTR = {.size = size, .base = base->table};
 
   // let the compiler choose an addressing mode
   u64 tmp = selector;
@@ -304,7 +305,7 @@ static u16 Gdt__add_entry(Gdt *gdt, u64 entry) {
   return U16((index << 3) | priviledge_level);
 }
 
-static u16 Gdt__add_tss(Gdt *gdt, const Tss *tss) {
+static void Gdt__add_tss(Gdt *gdt, const Tss *tss, s64 core_idx) {
   const u64 BYTE = 255;
   const u64 BYTES_0_16 = BYTE | (BYTE << 8);
   const u64 BYTES_0_24 = BYTE | (BYTE << 8) | (BYTE << 16);
@@ -329,5 +330,6 @@ static u16 Gdt__add_tss(Gdt *gdt, const Tss *tss) {
   gdt->index += 2;
 
   // priviledge level is zero so there's no need to BIT_OR with anything
-  return U16(index << 3);
+  u16 selector = U16(index << 3);
+  assert(selector == tss_segment(core_idx));
 }
