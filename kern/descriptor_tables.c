@@ -56,17 +56,6 @@ typedef struct {
   IdtEntry user_defined[256 - 32];
 } Idt;
 
-typedef struct {
-  u64 instruction_pointer;
-  u64 code_segment;
-  u64 cpu_flags;
-  u64 stack_pointer;
-  u64 stack_segment;
-} ExceptionStackFrame;
-
-#define HANDLER       __attribute__((interrupt)) void
-#define NORET_HANDLER __attribute__((noreturn, interrupt)) void
-
 typedef HANDLER (*Idt__Handler)(ExceptionStackFrame *);
 typedef HANDLER (*Idt__HandlerExt)(ExceptionStackFrame *, u64);
 typedef NORET_HANDLER (*Idt__DivergingHandler)(ExceptionStackFrame *);
@@ -135,11 +124,9 @@ _Static_assert(GDT__USER_CODE == 0x00affb000000ffffULL, "GDT__USER_CODE has inco
 
 // Used Phil Opperman's x86_64 rust code to figure out how to do this
 // https://github.com/rust-osdev/x86_64/blob/master/src/structures/idt.rs
-static void Idt__init(Idt *idt);
 static void Idt__log_fmt(ExceptionStackFrame *frame);
 static u64 IdtEntry__handler_addr(IdtEntry entry);
 static inline IdtEntry IdtEntry__missing(void);
-static inline void load_idt(Idt *base);
 
 static void Gdt__init(Gdt *gdt);
 static u16 Gdt__add_entry(Gdt *gdt, u64 entry);
@@ -149,11 +136,27 @@ static GdtInfo current_gdt(void);
 
 static NORET_HANDLER Idt__double_fault(ExceptionStackFrame *frame, u64 error_code);
 
-void descriptor__init() {
+void load_idt(void) {
   Idt *idt = Bump__bump(&InitAlloc, Idt);
   assert(idt);
-  Idt__init(idt);
 
+  IdtEntry *entries = (IdtEntry *)idt;
+  for (s64 i = 0; i < 256; i++) {
+    entries[i] = IdtEntry__missing();
+  }
+
+  IdtEntry__set_handler(&idt->double_fault, Idt__double_fault);
+
+  struct {
+    u16 size;
+    void *idt;
+  } __attribute__((packed)) IDTR = {.size = sizeof(Idt) - 1, .idt = idt};
+
+  // let the compiler choose an addressing mode
+  asm volatile("lidt %0" : : "m"(IDTR));
+}
+
+void descriptor__init() {
   Gdt *gdt = Bump__bump(&InitAlloc, Gdt);
   assert(gdt);
   Gdt__init(gdt);
@@ -172,13 +175,10 @@ void descriptor__init() {
   load_gdt(gdt, segment);
 
   log_fmt("global descriptor table INIT_COMPLETE");
+}
 
-  IdtEntry__set_handler(&idt->double_fault, Idt__double_fault);
-  load_idt(idt);
-
-  log_fmt("interrupt descriptor table INIT_COMPLETE");
-
-  log_fmt("descriptor INIT_COMPLETE");
+u16 tss_segment(s64 core_idx) {
+  return (u16)core_idx;
 }
 
 /*
@@ -206,13 +206,6 @@ static NORET_HANDLER Idt__double_fault(ExceptionStackFrame *frame, u64 error_cod
 
 --------------------------------------------------------------------------------
 */
-
-static void Idt__init(Idt *idt) {
-  IdtEntry *entries = (IdtEntry *)idt;
-  for (s64 i = 0; i < 256; i++) {
-    entries[i] = IdtEntry__missing();
-  }
-}
 
 static void Idt__log_fmt(ExceptionStackFrame *frame) {
   log_fmt("ExceptionStackFrame{ip=%f,cs=%f,flags=%f,sp=%f,ss=%f}", frame->instruction_pointer,
@@ -265,16 +258,6 @@ static inline IdtEntry IdtEntry__missing(void) {
       .pointer_high = 0,
       .reserved = 0,
   };
-}
-
-static inline void load_idt(Idt *base) {
-  struct {
-    u16 size;
-    void *base;
-  } __attribute__((packed)) IDTR = {.size = sizeof(Idt) - 1, .base = base};
-
-  // let the compiler choose an addressing mode
-  asm volatile("lidt %0" : : "m"(IDTR));
 }
 
 static GdtInfo current_gdt(void) {

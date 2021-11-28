@@ -5,7 +5,7 @@
 typedef struct {
   u8 *begin;
   s64 count;
-  s64 index;
+  _Atomic s64 index;
 } Bump;
 
 Bump Bump__new(s64 count);
@@ -84,6 +84,7 @@ void memset(void *buffer, u8 value, s64 len);
 #undef __DUMBOSS_IMPL__
 #include <external.h>
 #include <macros.h>
+#include <sync.h>
 #include <types.h>
 #define __DUMBOSS_IMPL__
 
@@ -95,13 +96,15 @@ Bump Bump__new(s64 count) {
 }
 
 void *Bump__bump_impl(Bump *bump, s64 size, s64 align) {
-  s64 aligned_index = align_up(bump->index, align);
-  s64 end_index = aligned_index + size;
-  ensure(end_index <= bump->count) return NULL;
+  s64 bump_index = a_load(&bump->index);
+  while (true) {
+    s64 aligned_index = align_up(bump_index, align);
+    s64 end_index = aligned_index + size;
+    ensure(end_index <= bump->count) return NULL;
 
-  u8 *ptr = bump->begin + aligned_index;
-  bump->index = end_index;
-  return ptr;
+    u8 *ptr = bump->begin + aligned_index;
+    if (a_cxweak(&bump->index, &bump_index, end_index)) return ptr;
+  }
 }
 
 s64 smallest_greater_power2(s64 _value) {

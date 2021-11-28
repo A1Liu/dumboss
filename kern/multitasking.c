@@ -40,6 +40,7 @@ static struct {
   WorkerState *workers;
   u16 worker_count;
   _Atomic u16 init_count;
+  _Atomic u16 init_finish_count;
 
   // This could probably be s32 or something, idk
   _Atomic s64 id;
@@ -51,7 +52,6 @@ static struct {
 void tasks__init(void) {
   TaskGlobals.workers = Bump__array(&InitAlloc, WorkerState, bb.numcores);
   TaskGlobals.worker_count = bb.numcores;
-  TaskGlobals.init_count = 0;
   TaskGlobals.task_data_alloc = Bump__new(4);
 
   FOR_PTR(TaskGlobals.workers, TaskGlobals.worker_count) {
@@ -63,21 +63,12 @@ void tasks__init(void) {
   }
 }
 
-static WorkerState *get_state(void);
+static s64 get_worker_index(void);
 static Task dequeue_task(WorkerState *worker);
 static bool enqueue_task(WorkerState *worker, TaskData data);
+static _Noreturn void task_main_inner(WorkerState *self, s64 self_index);
 
-_Noreturn void task_begin(void) {
-  u16 index = a_add(&TaskGlobals.init_count, 1);
-  WorkerState *state = &TaskGlobals.workers[index];
-  state->core_id = core_id();
-
-  // TODO switch kernel stacks?
-
-  task_main();
-}
-
-bool add_task(TaskData data) {
+bool add_task_inner(TaskData data) {
   FOR_PTR(TaskGlobals.workers, TaskGlobals.worker_count) {
     if (enqueue_task(it, data)) return true;
   }
@@ -85,9 +76,28 @@ bool add_task(TaskData data) {
   return false;
 }
 
+_Noreturn void task_begin(void) {
+  u16 index = a_add(&TaskGlobals.init_count, 1);
+  WorkerState *state = &TaskGlobals.workers[index];
+  state->core_id = core_id();
+
+  s64 self_index = get_worker_index();
+  WorkerState *self = &TaskGlobals.workers[self_index];
+
+  // TODO switch kernel stacks?
+
+  // TODO load correct TSS for current processor
+  u16 tss = tss_segment(self_index);
+  load_idt();
+
+  a_add(&TaskGlobals.init_finish_count, 1);
+
+  task_main();
+}
+
 _Noreturn void task_main(void) {
-  WorkerState *self = get_state();
-  s64 self_index = self - TaskGlobals.workers;
+  s64 self_index = get_worker_index();
+  WorkerState *self = &TaskGlobals.workers[self_index];
   Task *task = &self->running_task;
 
   while (true) {
@@ -110,13 +120,14 @@ _Noreturn void task_main(void) {
   }
 }
 
-static WorkerState *get_state() {
+static s64 get_worker_index(void) {
   const u16 id = core_id();
   FOR_PTR(TaskGlobals.workers, TaskGlobals.worker_count) {
-    if (it->core_id == id) return it;
+    if (it->core_id == id) return index;
   }
 
-  return NULL; // Unreachable
+  log_fmt("Oh dear");
+  exit(1);
 }
 
 static Task dequeue_task(WorkerState *worker) {
