@@ -27,13 +27,10 @@ typedef struct {
   u16 core_id;
 
   // void* stack_pointer;
-
   Task running_task;
 
-  // always-increasing index to read from
-  _Atomic s64 read_from;
-  // always-increasing index to write to (need to take mod before indexing)
-  _Atomic s64 write_to;
+  _Atomic s64 read_from; // always-increasing index to read from
+  _Atomic s64 write_to;  // always-increasing index to write to
 } WorkerState;
 
 static struct {
@@ -43,7 +40,7 @@ static struct {
   _Atomic u16 init_finish_count;
 
   // This could probably be s32 or something, idk
-  _Atomic s64 id;
+  _Atomic s64 next_id;
 
   // TODO: this can be garbage collected, as long as we make tasks movable.
   Bump task_data_alloc;
@@ -91,6 +88,11 @@ _Noreturn void task_begin(void) {
   load_idt();
 
   a_add(&TaskGlobals.init_finish_count, 1);
+
+  // TODO Need to enable multicore stuff first.
+  // Wait for all cores to be initialized.
+  // while (a_load(&TaskGlobals.init_finish_count) != TaskGlobals.worker_count)
+  //   pause();
 
   task_main();
 }
@@ -169,7 +171,7 @@ static bool enqueue_task(WorkerState *worker, TaskData data) {
     u8 current = Task__Empty;
     Task *target = &tasks[write_to % task_count];
     if (a_cxstrong(&target->sync_info, &current, Task__Writing)) {
-      target->id = a_add(&TaskGlobals.id, 1);
+      target->id = a_add(&TaskGlobals.next_id, 1);
       target->data = data;
 
       // we have mutual exclusion here, so we just write directly

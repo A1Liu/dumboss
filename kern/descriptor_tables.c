@@ -94,8 +94,8 @@ typedef struct {
 } GdtInfo;
 
 typedef struct {
+  u16 index;
   u64 table[8];
-  u8 index;
 } Gdt;
 
 #define GDT__ACCESSED     (U64(1) << 40)
@@ -298,7 +298,7 @@ static u16 Gdt__add_entry(Gdt *gdt, u64 entry) {
   assert(index < 8);
 
   gdt->table[index] = entry;
-  gdt->index = U8(index + 1);
+  gdt->index = index + 1;
 
   u16 priviledge_level = (entry & GDT__DPL_RING_3) ? 3 : 0;
   return U16((index << 3) | priviledge_level);
