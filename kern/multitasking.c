@@ -1,8 +1,8 @@
+#include "multitasking.h"
 #include "asm.h"
 #include "bootboot.h"
 #include "init.h"
 #include "memory.h"
-#include "multitasking.h"
 #include <basics.h>
 #include <macros.h>
 #include <sync.h>
@@ -27,6 +27,8 @@ typedef struct {
   u16 core_id;
 
   // void* stack_pointer;
+
+  Task running_task;
 
   // always-increasing index to read from
   _Atomic s64 read_from;
@@ -84,24 +86,27 @@ bool add_task(TaskData data) {
 }
 
 _Noreturn void task_main(void) {
-
   WorkerState *self = get_state();
   s64 self_index = self - TaskGlobals.workers;
+  Task *task = &self->running_task;
 
   while (true) {
-    Task task;
     RANGE(0, TaskGlobals.worker_count) {
       s64 worker_index = (it + self_index) % TaskGlobals.worker_count;
-      task = dequeue_task(&TaskGlobals.workers[worker_index]);
-      if (task.sync_info != Task__Empty) break(it);
+      *task = dequeue_task(&TaskGlobals.workers[worker_index]);
+      if (task->sync_info != Task__Empty) break(it);
     }
 
-    if (task.sync_info == Task__Empty) log_fmt("Found no tasks");
+    if (task->sync_info == Task__Empty) log_fmt("Found no tasks");
     else
       log_fmt("Found a task");
 
+    // TODO run task
+
     log_fmt("Kernel main end");
     exit(0);
+
+    pause();
   }
 }
 
@@ -111,8 +116,7 @@ static WorkerState *get_state() {
     if (it->core_id == id) return it;
   }
 
-  // Unreachable
-  return NULL;
+  return NULL; // Unreachable
 }
 
 static Task dequeue_task(WorkerState *worker) {

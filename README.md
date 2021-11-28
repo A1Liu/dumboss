@@ -13,7 +13,8 @@ You can also use `go install` to create a build script called `dumboss` that wor
 in the same way (`dumboss build` to build and `dumboss run` to run)
 
 ## ToDo
-1. remap some stuff in the kernel to be less scary (meh do it later i guess)
+1. remap some stuff in the kernel to be less scary (meh do it later i guess).
+   Also add a TSS per-core, load it using ASM, and actually use it in the IDT entries
 2. add real kernel panic stuff
 3. update logging to use serial interrupts instead of like busy-waiting
 4. add better support for multi-threading stuffs
