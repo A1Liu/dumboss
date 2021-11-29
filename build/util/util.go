@@ -9,8 +9,6 @@ import (
 	"runtime"
 	"strings"
 	"time"
-
-	dirwalk "github.com/karrick/godirwalk"
 )
 
 var (
@@ -35,44 +33,6 @@ var (
 	ObjDir   = filepath.Join(DotBuildDir, "obj")   // intermediate files
 	OutDir   = filepath.Join(DotBuildDir, "out")   // output files
 )
-
-func DirWalk(dirname string) []string {
-	fileNames := make([]string, 10)[:0]
-
-	walker := func(osPathname string, de *dirwalk.Dirent) error {
-		if de.IsRegular() {
-			processed := SimplifyPath(osPathname)
-			fileNames = append(fileNames, processed)
-		}
-
-		return nil
-	}
-
-	options := dirwalk.Options{
-		FollowSymbolicLinks: false,
-		Unsorted:            false,
-		AllowNonDirectory:   true,
-		Callback:            walker,
-	}
-
-	err := dirwalk.Walk(dirname, &options)
-	CheckErr(err)
-
-	return fileNames
-}
-
-func SimplifyPath(filePath string) string {
-	abs, err := filepath.Abs(filePath)
-	CheckErr(err)
-
-	if strings.HasPrefix(abs, ProjectDir) {
-		rel, err := filepath.Rel(ProjectDir, abs)
-		CheckErr(err)
-		return rel
-	}
-
-	return abs
-}
 
 func EscapeSourcePath(targetDir, filePath string, extras ...string) string {
 	Assert(filepath.IsAbs(targetDir))
@@ -105,14 +65,6 @@ func RunCmd(binary string, args []string) {
 	CheckErr(err)
 }
 
-func EnsurePath(path string) {
-	err := os.MkdirAll(filepath.Dir(path), fs.ModeDir|fs.ModePerm)
-	CheckErr(err)
-	file, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE, fs.ModePerm)
-	CheckErr(err)
-	file.Close()
-}
-
 func Assert(value bool) {
 	if !value {
 		panic("assertion failed")
@@ -134,22 +86,15 @@ type CacheResult struct {
 func CheckUpdateCache(filePath string, extras ...string) CacheResult {
 	cachePath := EscapeSourcePath(CacheDir, filePath, extras...)
 	result := checkCache(filePath, cachePath)
-	updateCacheEntry(cachePath)
+
+	currentTime := time.Now().Local()
+	err := os.Chtimes(cachePath, currentTime, currentTime)
+	CheckErr(err)
+
 	return result
 }
 
-func CheckCache(filePath string, extras ...string) CacheResult {
-	cachePath := EscapeSourcePath(CacheDir, filePath, extras...)
-	return checkCache(filePath, cachePath)
-}
-
-func UpdateCache(filePath string, extras ...string) {
-	cachePath := EscapeSourcePath(CacheDir, filePath, extras...)
-	updateCacheEntry(cachePath)
-}
-
 func checkCache(filePath, cachePath string) CacheResult {
-
 	result := CacheResult{
 		FileExists:       true,
 		CacheEntryExists: true,
@@ -164,7 +109,11 @@ func checkCache(filePath, cachePath string) CacheResult {
 
 	cacheFileStat, err := os.Stat(cachePath)
 	if os.IsNotExist(err) {
-		EnsurePath(cachePath)
+		err := os.MkdirAll(filepath.Dir(cachePath), fs.ModeDir|fs.ModePerm)
+		CheckErr(err)
+		file, err := os.OpenFile(cachePath, os.O_RDWR|os.O_CREATE, fs.ModePerm)
+		CheckErr(err)
+		file.Close()
 
 		result.CacheEntryExists = false
 	} else {
@@ -179,10 +128,4 @@ func checkCache(filePath, cachePath string) CacheResult {
 	cacheModTime, pathModTime := cacheFileStat.ModTime(), pathStat.ModTime()
 	result.CacheIsValid = pathModTime.Before(cacheModTime)
 	return result
-}
-
-func updateCacheEntry(cachePath string) {
-	currentTime := time.Now().Local()
-	err := os.Chtimes(cachePath, currentTime, currentTime)
-	CheckErr(err)
 }

@@ -48,14 +48,10 @@ func runQemu(ctx context.Context, params []string) {
 }
 
 func runMakeTarget(ctx context.Context, target string) {
-	err := os.MkdirAll(OutDir, fs.ModeDir|fs.ModePerm)
-	CheckErr(err)
-	err = os.MkdirAll(CacheDir, fs.ModeDir|fs.ModePerm)
-	CheckErr(err)
-	err = os.MkdirAll(DepsDir, fs.ModeDir|fs.ModePerm)
-	CheckErr(err)
-	err = os.MkdirAll(ObjDir, fs.ModeDir|fs.ModePerm)
-	CheckErr(err)
+	for _, dir := range []string{OutDir, CacheDir, DepsDir, ObjDir} {
+		err := os.MkdirAll(dir, fs.ModeDir|fs.ModePerm)
+		CheckErr(err)
+	}
 
 	makeArgs := []string{"-f", filepath.Join(ProjectDir, "Makefile"), target}
 	RunImageCmd(ctx, "make", makeArgs)
