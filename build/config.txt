@@ -1,0 +1,4 @@
+-d=cpu_reset,int
+-smp=4
+-no-reboot
+-nographic

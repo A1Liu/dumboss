@@ -77,6 +77,19 @@ func RunImageCmd(ctx context.Context, binary string, args []string) {
 	targetBegin := time.Now()
 	fmt.Printf("docker stuff took %v seconds\n", targetBegin.Sub(begin).Seconds())
 
+	attachOptions := types.ContainerAttachOptions{
+		Stream: true,
+		Stdout: true,
+		Stderr: true,
+		Logs:   true,
+	}
+	running, err := cli.ContainerAttach(ctx, resp.ID, attachOptions)
+	CheckErr(err)
+	defer running.Close()
+
+	_, err = stdcopy.StdCopy(os.Stdout, os.Stderr, running.Reader)
+	CheckErr(err)
+
 	statusCh, errCh := cli.ContainerWait(ctx, resp.ID, container.WaitConditionNotRunning)
 	var commandStatus int64
 	select {
@@ -85,13 +98,6 @@ func RunImageCmd(ctx context.Context, binary string, args []string) {
 	case resp := <-statusCh:
 		commandStatus = resp.StatusCode
 	}
-
-	logOptions := types.ContainerLogsOptions{ShowStdout: true, ShowStderr: true}
-	out, err := cli.ContainerLogs(ctx, resp.ID, logOptions)
-	CheckErr(err)
-
-	_, err = stdcopy.StdCopy(os.Stdout, os.Stderr, out)
-	CheckErr(err)
 
 	removeOptions := types.ContainerRemoveOptions{
 		RemoveVolumes: true,
