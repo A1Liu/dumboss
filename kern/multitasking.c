@@ -85,7 +85,6 @@ _Noreturn void task_begin(void) {
 
   // TODO switch kernel stacks?
 
-  // TODO load correct TSS for current processor
   load_idt();
 
   u16 tss = tss_segment(self_index);
