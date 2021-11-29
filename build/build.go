@@ -41,8 +41,8 @@ func runQemu(ctx context.Context) {
 	args := []string{"-bios", filepath.Join(BuildDir, "OVMF.bin"),
 		"-drive", "file=" + filepath.Join(DotBuildDir, "out", "kernel") + ",format=raw",
 		"-D", filepath.Join(DotBuildDir, "out", "qemu-logs.txt"),
-		"-d", "cpu_reset,int",
-		"-smp", "4", "-no-reboot", "-nographic"}
+		"-d", "cpu_reset,int", "-smp", "4",
+		"-no-reboot", "-nographic"}
 	RunCmd("qemu-system-x86_64", args)
 }
 

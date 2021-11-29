@@ -74,7 +74,8 @@ bool add_task_inner(TaskData data) {
 
   return false;
 }
-
+// TODO Use https://wiki.osdev.org/APIC (and maybe Phil Opperman's Blog?) to set
+// up the APIC and handle logging through serial interrupts
 _Noreturn void task_begin(void) {
   u16 index = a_add(&TaskGlobals.init_count, 1);
   WorkerState *state = &TaskGlobals.workers[index];

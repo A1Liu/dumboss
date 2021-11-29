@@ -9,8 +9,11 @@ static void init(void) {
   log("                    BOOTING UP                    ");
   log("--------------------------------------------------");
 
-  u32 gb_pages = asm_cpuid(0x80000001).edx & CPUID_PDPE1GB;
+  u32 gb_pages = asm_cpuid(0x80000001).edx & CPUID_EDX_PDPE1GB;
   if (gb_pages) log("gb pages are enabled");
+
+  u32 apic_enabled = asm_cpuid(1).edx & CPUID_EDX_APIC;
+  if (apic_enabled) log("APIC is enabled");
 
   memory__init();
 

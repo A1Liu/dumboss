@@ -100,11 +100,14 @@ func RunImageCmd(ctx context.Context, binary string, args []string) {
 	err = cli.ContainerRemove(ctx, resp.ID, removeOptions)
 	CheckErr(err)
 
-	fmt.Printf("target took %v seconds\n", time.Since(targetBegin).Seconds())
+	targetTime := time.Since(targetBegin).Seconds()
 
 	if commandStatus != 0 {
-		panic(commandStatus)
+		fmt.Printf("target failed after %v seconds\n", targetTime)
+		os.Exit(1)
 	}
+
+	fmt.Printf("target took %v seconds\n", targetTime)
 }
 
 func buildImage(cli *client.Client, ctx context.Context, dockerfileName, imageName string, forceBuild bool) {
@@ -117,6 +120,8 @@ func buildImage(cli *client.Client, ctx context.Context, dockerfileName, imageNa
 	fmt.Printf("building image %v...\n", imageName)
 	begin := time.Now()
 
+	// This uses the docker command because I couldn't figure out how to guarantee
+	// that the dockerfile would run on AMD64 without it.
 	cmd := exec.Command("docker", "build", "--platform=linux/amd64", "-f", dockerfilePath, "--tag", imageName, ProjectDir)
 
 	stdout, err := cmd.StdoutPipe()
@@ -146,8 +151,9 @@ func buildImage(cli *client.Client, ctx context.Context, dockerfileName, imageNa
 		<-writeFinished
 		<-writeFinished
 
-		fmt.Println("what", imageName)
-		panic(err)
+		// The err value is almost certainly useless, as it comes from go's command
+		// runner. Let's ignore it.
+		os.Exit(1)
 	}
 
 	if !atomic.CompareAndSwapInt32(&commandStatus, 0, 1) {
@@ -157,5 +163,6 @@ func buildImage(cli *client.Client, ctx context.Context, dockerfileName, imageNa
 		return
 	}
 
+	// The spacing here aligns the word `image` with the previously printed line.
 	fmt.Printf("         image %v took %v seconds\n\n", imageName, time.Since(begin).Seconds())
 }

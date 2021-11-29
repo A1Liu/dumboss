@@ -1,7 +1,6 @@
 package util
 
 import (
-	"fmt"
 	"io"
 	"io/fs"
 	"os"
@@ -116,15 +115,13 @@ func EnsurePath(path string) {
 
 func Assert(value bool) {
 	if !value {
-		fmt.Println("assertion failed")
-		panic("")
+		panic("assertion failed")
 	}
 }
 
 func CheckErr(err error) {
 	if err != nil {
-		fmt.Println(err.Error())
-		panic("")
+		panic(err.Error())
 	}
 }
 

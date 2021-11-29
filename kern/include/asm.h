@@ -50,7 +50,8 @@ typedef struct {
   u32 eax, ebx, ecx, edx;
 } cpuid_result;
 
-#define CPUID_PDPE1GB (U64(1) << 26)
+#define CPUID_EDX_APIC    (U64(1) << 9)
+#define CPUID_EDX_PDPE1GB (U64(1) << 26)
 static inline cpuid_result asm_cpuid(u32 code) {
   cpuid_result result;
   asm("cpuid" : "=a"(result.eax), "=b"(result.ebx), "=c"(result.ecx), "=d"(result.edx) : "0"(code));
