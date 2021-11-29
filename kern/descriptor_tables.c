@@ -93,6 +93,7 @@ typedef struct {
   u16 size;
 } GdtInfo;
 
+// TODO make this actualy work with more than one cpu
 typedef struct {
   u16 index;
   u64 table[8];
@@ -131,6 +132,7 @@ static inline IdtEntry IdtEntry__missing(void);
 static void Gdt__init(Gdt *gdt);
 static u16 Gdt__add_entry(Gdt *gdt, u64 entry);
 static void Gdt__add_tss(Gdt *gdt, const Tss *tss, s64 core_idx);
+static u16 IdtEntry__set_IST_index(u16 opts, u8 idx);
 static inline void load_gdt(Gdt *base, u16 selector);
 static GdtInfo current_gdt(void);
 
@@ -195,6 +197,7 @@ u16 tss_segment(s64 core_idx) {
 static NORET_HANDLER Idt__double_fault(ExceptionStackFrame *frame, u64 error_code) {
   log_fmt("double fault error_code: %f", error_code);
   Idt__log_fmt(frame);
+  log_fmt("double fault stack location: %f", (u64)&error_code);
   panic();
 }
 
@@ -217,6 +220,11 @@ static u16 IdtEntry__set_present(u16 opts) {
   return opts | (1 << 15);
 }
 
+static u16 IdtEntry__set_IST_index(u16 opts, u8 idx) {
+  assert(idx < 8);
+  return (opts & ~U16(7)) | U16(idx);
+}
+
 u64 IdtEntry__handler_addr(IdtEntry entry) {
   return ((u64)entry.pointer_low) | (((u64)entry.pointer_middle) << 16) |
          (((u64)entry.pointer_high) << 32);
@@ -230,6 +238,7 @@ static void IdtEntry__set_handler(IdtEntry *entry, void *handler) {
   entry->pointer_high = (uint32_t)(addr >> 32);
   entry->gdt_selector = read_register(cs, u16);
   entry->options = IdtEntry__set_present(entry->options);
+  entry->options = IdtEntry__set_IST_index(entry->options, 1);
 }
 
 void IdtEntry__Default__set_handler(IdtEntry *entry, Idt__Handler handler) {

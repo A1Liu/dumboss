@@ -28,6 +28,7 @@ _Noreturn void ext__shutdown(void) {
 
 #define BUF_SIZE 200
 
+static _Atomic bool UseInterrupts;
 static _Atomic u8 LoggingMutex;
 static char buffer[BUF_SIZE];
 static void serial__write(char a);
@@ -38,6 +39,10 @@ static s64 write_prefix_to_buffer(String out, sloc loc) {
 }
 
 void ext__log(sloc loc, s32 count, const any *args) {
+  if (a_load(&UseInterrupts)) {
+    return;
+  }
+
   while (!Mutex__try_lock(&LoggingMutex))
     pause();
 
@@ -64,6 +69,10 @@ void ext__log(sloc loc, s32 count, const any *args) {
 }
 
 void ext__log_fmt(sloc loc, const char *fmt, s32 count, const any *args) {
+  if (a_load(&UseInterrupts)) {
+    return;
+  }
+
   while (!Mutex__try_lock(&LoggingMutex))
     pause();
 
@@ -106,7 +115,7 @@ int is_transmit_empty() {
 
 static void serial__write(char a) {
   while (is_transmit_empty() == 0)
-    ;
+    pause();
 
   out8(COM1, (uint8_t)a);
 }

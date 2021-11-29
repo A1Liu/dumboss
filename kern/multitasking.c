@@ -58,6 +58,8 @@ void tasks__init(void) {
     // u8* stack_begin = zeroed_pages(2);
     // it->stack_pointer = stack_begin + _4KB * 2;
   }
+
+  log_fmt("tasks INIT_COMPLETE");
 }
 
 static s64 get_worker_index(void);
@@ -84,10 +86,14 @@ _Noreturn void task_begin(void) {
   // TODO switch kernel stacks?
 
   // TODO load correct TSS for current processor
-  u16 tss = tss_segment(self_index);
   load_idt();
 
+  u16 tss = tss_segment(self_index);
+  asm volatile("ltr %0" : : "r"(tss));
+
   a_add(&TaskGlobals.init_finish_count, 1);
+
+  // divide_by_zero();
 
   // TODO Need to enable multicore stuff first.
   // Wait for all cores to be initialized.
@@ -128,7 +134,7 @@ static s64 get_worker_index(void) {
     if (it->core_id == id) return index;
   }
 
-  log_fmt("Oh dear");
+  log_fmt("Unreachable?");
   exit(1);
 }
 

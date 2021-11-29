@@ -4,10 +4,6 @@
 #include "multitasking.h"
 #include <macros.h>
 
-static void divide_by_zero(void) {
-  asm volatile("movq $0, %rdx; divq %rdx");
-}
-
 static void init(void) {
   log("--------------------------------------------------");
   log("                    BOOTING UP                    ");
@@ -21,8 +17,6 @@ static void init(void) {
   descriptor__init();
 
   tasks__init();
-
-  // divide_by_zero();
 
   return task_begin();
 }

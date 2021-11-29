@@ -2,6 +2,10 @@
 #include <magic.h>
 #include <types.h>
 
+static void divide_by_zero(void) {
+  asm volatile("movq $0, %rdx; divq %rdx");
+}
+
 static inline void asm_hlt(void) {
   asm volatile("hlt");
 }
