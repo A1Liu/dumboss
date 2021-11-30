@@ -108,6 +108,7 @@ void load_idt(void) {
   // let the compiler choose an addressing mode
   asm volatile("lidt %0" : : "m"(IDTR));
 
+  // TODO SMM attacks? IDK man
   // OSDev describes how to do this: https://wiki.osdev.org/APIC
 
   // TODO remap interrupts
