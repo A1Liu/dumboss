@@ -13,7 +13,8 @@ static void init(void) {
   if (gb_pages) log("gb pages are enabled");
 
   u32 apic_enabled = asm_cpuid(1).edx & CPUID_EDX_APIC;
-  if (apic_enabled) log("APIC is enabled");
+  assert(apic_enabled, "APIC was not enabled");
+  log("APIC is enabled");
 
   memory__init();
 

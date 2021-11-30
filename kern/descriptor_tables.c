@@ -1,7 +1,5 @@
-#include "asm.h"
 #include "init.h"
 #include "memory.h"
-#include "types.h"
 #include <basics.h>
 #include <macros.h>
 

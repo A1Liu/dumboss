@@ -1,7 +1,6 @@
 #include "asm.h"
 #include "init.h"
 #include "memory.h"
-#include "types.h"
 #include <basics.h>
 #include <macros.h>
 
@@ -85,6 +84,9 @@ static u64 IdtEntry__handler_addr(IdtEntry entry);
 static inline IdtEntry IdtEntry__missing(void);
 static u16 IdtEntry__set_IST_index(u16 opts, u8 idx);
 
+static void cpu_set_apic_base(void *ptr);
+static void *cpu_get_apic_base(void);
+
 static NORET_HANDLER Idt__double_fault(ExceptionStackFrame *frame, u64 error_code);
 
 void load_idt(void) {
@@ -106,9 +108,24 @@ void load_idt(void) {
   // let the compiler choose an addressing mode
   asm volatile("lidt %0" : : "m"(IDTR));
 
+  // OSDev describes how to do this: https://wiki.osdev.org/APIC
+
   // TODO remap interrupts
 
   // TODO set up local APIC stuff I guess (first step is serial interrupts)
+}
+
+#define IA32_APIC_BASE_MSR        0x1B
+#define IA32_APIC_BASE_MSR_BSP    0x100 // Processor is a BSP
+#define IA32_APIC_BASE_MSR_ENABLE 0x800
+static void cpu_set_apic_base(void *ptr) {
+  u64 apic = physical_address(ptr);
+  cpuSetMSR(IA32_APIC_BASE_MSR, (apic & 0xffffff000) | IA32_APIC_BASE_MSR_ENABLE);
+}
+
+static void *cpu_get_apic_base() {
+  u64 apic = cpuGetMSR(IA32_APIC_BASE_MSR) & 0xffffff000;
+  return kernel_ptr(apic);
 }
 
 /*

@@ -65,3 +65,16 @@ static inline u16 core_id(void) {
 static inline void pause(void) {
   asm volatile("pause");
 }
+
+static u64 cpuGetMSR(u32 msr) {
+  u32 lo, hi;
+  asm volatile("rdmsr" : "=a"(lo), "=d"(hi) : "c"(msr));
+  u64 ret = U64(hi) << 32;
+
+  return ret | lo;
+}
+
+static void cpuSetMSR(u32 msr, u64 value) {
+  u32 lo = U32(value), hi = U32(value >> 32);
+  asm volatile("wrmsr" : : "a"(lo), "d"(hi), "c"(msr));
+}
