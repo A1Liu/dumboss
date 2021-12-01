@@ -2,6 +2,7 @@
 #include "asm.h"
 #include "bootboot.h"
 #include "init.h"
+#include "interrupts.h"
 #include "memory.h"
 #include <basics.h>
 #include <macros.h>

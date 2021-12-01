@@ -1,3 +1,4 @@
+#include "interrupts.h"
 #include "asm.h"
 #include "init.h"
 #include "memory.h"
