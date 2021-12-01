@@ -15,6 +15,7 @@ in the same way (`dumboss build` to build and `dumboss run` to run)
 ## ToDo
 1. update logging to use serial interrupts instead of like busy-waiting. (Do the
    APIC stuff)
+   (maybe this will help? https://blog.wesleyac.com/posts/ioapic-interrupts)
 2. remap some stuff in the kernel to be less scary (meh do it later i guess).
 3. add real kernel panic stuff
 4. add better support for multi-threading stuffs
